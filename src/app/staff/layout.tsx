@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -24,6 +24,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
     if (pathname.includes('/analytics')) return 'Analytics Dashboard';
+    if (pathname.includes('/menu')) return 'Menu Management';
+    if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
   }
 
@@ -45,6 +47,22 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 <Link href="/staff/pds">
                   <LayoutDashboard />
                   <span className="group-data-[collapsible=icon]:hidden">Prep Display</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
+                <Link href="/staff/menu">
+                  <BookOpen />
+                  <span className="group-data-[collapsible=icon]:hidden">Menu</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="#">
+                  <Table />
+                  <span className="group-data-[collapsible=icon]:hidden">Tables</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
