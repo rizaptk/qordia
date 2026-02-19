@@ -2,7 +2,7 @@
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, getDoc, setDoc, Timestamp, updateDoc } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
 
@@ -87,7 +87,58 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       }
     );
     return () => unsubscribe(); // Cleanup
-  }, [auth]); // Depends on the auth instance
+  }, [auth]);
+
+  // Effect to sync user profile to Firestore
+  useEffect(() => {
+    if (!userAuthState.user || !firestore) {
+      return;
+    }
+  
+    const user = userAuthState.user;
+    const userDocRef = doc(firestore, 'users', user.uid);
+  
+    const syncUserDocument = async () => {
+      try {
+        const userDocSnap = await getDoc(userDocRef);
+  
+        if (!userDocSnap.exists()) {
+          // Document doesn't exist, create it for the new user.
+          const newUserProfile = {
+            email: user.email || '',
+            name: user.displayName || 'Anonymous User',
+            photoURL: user.photoURL || '',
+            role: 'customer', // Default role
+            tenantId: null,
+            createdAt: Timestamp.now(),
+          };
+          await setDoc(userDocRef, newUserProfile, { merge: true });
+        } else {
+          // If user logs in with a provider after being anonymous, update their info.
+          const existingData = userDocSnap.data();
+          const updates: { [key: string]: any } = {};
+
+          if (user.displayName && existingData.name !== user.displayName) {
+            updates.name = user.displayName;
+          }
+          if (user.email && existingData.email !== user.email) {
+            updates.email = user.email;
+          }
+          if (user.photoURL && existingData.photoURL !== user.photoURL) {
+            updates.photoURL = user.photoURL;
+          }
+
+          if (Object.keys(updates).length > 0) {
+            await updateDoc(userDocRef, updates);
+          }
+        }
+      } catch (error) {
+          console.error("Error syncing user document:", error);
+      }
+    };
+  
+    syncUserDocument();
+  }, [userAuthState.user, firestore]);
 
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
