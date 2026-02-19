@@ -1,22 +1,23 @@
 # Sprint 6: Authentication & Roles
 
 ## Objective:
-Implement a secure, role-based authentication system using Firebase Auth.
+Implement a secure, multi-tenant, role-based authentication system using Firebase Auth.
 
 ### Atomic Tasks:
 - [ ] **Auth Setup:**
     - [ ] Ensure Firebase Auth is enabled (part of Sprint 5 setup).
     - [ ] Configure sign-in providers (e.g., Email/Password, Google) in `docs/backend.json`.
 - [ ] **Create Auth Pages:**
-    - [ ] Create a `/login` page for staff and managers.
-    - [ ] Create a simple sign-in UI.
+    - [ ] Create a `/login` page for staff, managers, and platform admins. This page might need logic to handle different user types.
 - [ ] **Auth State Management:**
-    - [ ] Use the `useUser()` hook (provided by scaffolding) to get the current user's auth state.
+    - [ ] Use the `useUser()` hook to get the current user's auth state and custom claims.
     - [ ] Wrap the application in the `FirebaseProvider` and `FirebaseClientProvider` in `src/app/layout.tsx`.
 - [ ] **Route Protection (Middleware or Layout Checks):**
-    - [ ] Protect the entire `/staff` directory, redirecting unauthenticated users to `/login`.
+    - [ ] Protect the entire `/staff` directory. Only authenticated users with a `tenantId` claim and a role of `barista`, `service`, or `manager` should have access.
+    - [ ] Create and protect a new `/platform` directory. Only authenticated users with a `platform_admin: true` claim should have access.
+    - [ ] Unauthenticated users should be redirected to `/login`.
 - [ ] **Role-Based Access Control (RBAC):**
-    - [ ] When a user signs up/is created, assign them a role (`manager`, `barista`) in their Firestore user profile document (e.g., `/users/{uid}`).
-    - [ ] Use Firebase Auth custom claims to reflect this role on the user's token for secure backend access.
-    - [ ] In the UI, conditionally render components or disable actions based on the user's role (e.g., only managers see the "Analytics" and "Menu Management" links).
-    - [ ] Enforce RBAC in Firestore Security Rules (e.g., only a user with a `manager` claim can write to `/menuItems`).
+    - [ ] On user creation, assign a role (`manager`, `barista`, etc.) and a `tenantId` in their Firestore user profile (`/users/{uid}`).
+    - [ ] Create a cloud function (or manual process initially) to set Firebase Auth custom claims (`role`, `tenantId`, `platform_admin`) based on the user's Firestore profile. This is crucial for secure Firestore rules.
+    - [ ] In the UI, conditionally render components based on the user's role and `tenantId` from their auth token. For example, a manager of `tenantA` should not see settings for `tenantB`.
+    - [ ] Enforce RBAC strictly in Firestore Security Rules based on auth claims. This is the primary security boundary.

@@ -23,11 +23,16 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-04-manager-dashboard.md](./sprints/sprint-04-manager-dashboard.md)
 
 ## 5. Backend - Data Persistence & Real-time
-- [ ] **Task:** Transition from mock data to a persistent backend.
-- **Details:** Integrate Firebase Firestore to manage menus, orders, tables, and users. Implement real-time updates for orders using Firestore listeners.
+- [ ] **Task:** Transition from mock data to a persistent, multi-tenant backend.
+- **Details:** Integrate Firebase Firestore to manage menus, orders, tables, and users within a multi-tenant structure. Implement real-time updates for orders using Firestore listeners.
 - **Sprint:** [sprints/sprint-05-backend-firestore.md](./sprints/sprint-05-backend-firestore.md)
 
 ## 6. Authentication & Roles
-- [ ] **Task:** Implement a role-based authentication system.
-- **Details:** Use Firebase Authentication to manage user roles (Customer, Staff, Manager). Secure application routes and data access based on the user's role as defined in `Devs-Onboarding.md`.
+- [ ] **Task:** Implement a multi-tenant, role-based authentication system.
+- **Details:** Use Firebase Authentication to manage user roles (Customer, Staff, Manager, Platform Admin). Secure application routes and data access based on the user's role and tenant affiliation as defined in `Devs-Onboarding.md`.
 - **Sprint:** [sprints/sprint-06-auth-roles.md](./sprints/sprint-06-auth-roles.md)
+
+## 7. Qordia Platform Admin
+- [ ] **Task:** Build the internal SaaS administration panel.
+- **Details:** Create a separate interface for platform administrators to manage tenants (outlets), monitor system health, and oversee the entire platform as specified in `APP-FLOWS.md`.
+- **Sprint:** [sprints/sprint-07-platform-admin.md](./sprints/sprint-07-platform-admin.md)
