@@ -3,8 +3,10 @@ export type MenuItem = {
   name: string;
   description: string;
   price: number;
-  category: 'Coffee' | 'Tea' | 'Pastries' | 'Sandwiches' | 'Desserts';
-  image: string;
+  category: string; // The text name of the category
+  categoryId?: string; // The ID from firestore, optional for mock data
+  image: string; // the ID for the placeholder image
+  imageUrl?: string; // The actual URL, optional for mock data
   isAvailable: boolean;
   isPopular: boolean;
   options?: {

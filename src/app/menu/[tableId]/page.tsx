@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, use } from "react";
-import { menuItems } from "@/lib/data";
 import type { MenuItem, CartItem } from "@/lib/types";
 import { getSuggestedItems } from "@/app/actions/suggest-items";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
@@ -14,65 +13,82 @@ import { ShoppingCart, UtensilsCrossed, Trash2 } from "lucide-react";
 import { SuggestedItems } from "@/components/menu/suggested-items";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useToast } from "@/hooks/use-toast";
+import { useCartStore } from "@/stores/cart-store";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from "firebase/firestore";
+import { useFirebase } from "@/firebase/provider";
 
-const categories: MenuItem['category'][] = ['Coffee', 'Tea', 'Pastries', 'Sandwiches', 'Desserts'];
+const TENANT_ID = 'qordiapro-tenant';
 
 export default function MenuPage({ params }: { params: { tableId: string } }) {
   const resolvedParams = use(params as any);
+  
+  const { cart, removeFromCart, clearCart, totalItems, totalPrice } = useCartStore();
+
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [suggestedItems, setSuggestedItems] = useState<MenuItem[]>([]);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
+
+  const { firestore } = useFirebase();
+  const menuItemsRef = useMemoFirebase(() => 
+    firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
+    [firestore]
+  );
+  const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
+
+  const categoriesRef = useMemoFirebase(() => 
+    firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
+    [firestore]
+  );
+  const { data: categories, isLoading: isLoadingCategories } = useCollection<{name: string, displayOrder: number}>(categoriesRef);
+
+  const sortedCategories = useMemo(() => {
+    if (!categories) return [];
+    return [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
+  }, [categories]);
 
   const handleSelectItem = (item: MenuItem) => {
     setSelectedItem(item);
     setIsDialogOpen(true);
   };
 
-  const handleAddToCart = (item: CartItem) => {
-    setCart(prev => [...prev, item]);
-    toast({
-        title: "Added to order",
-        description: `${item.menuItem.name} has been added to your order.`,
-      })
-  };
-
   const handleRemoveFromCart = (cartItemId: string) => {
-    setCart(prev => prev.filter(item => item.id !== cartItemId));
+    removeFromCart(cartItemId);
   };
 
   const placeOrder = () => {
     // In a real app, this would send the cart to the backend and return an order ID
+    // TODO: Connect this to firestore `orders` collection
     const orderId = `ORD-${Date.now()}`;
+    clearCart();
     router.push(`/order/${orderId}`);
   };
 
-  const cartTotal = useMemo(() => cart.reduce((total, item) => total + item.price, 0), [cart]);
-  const cartItemCount = useMemo(() => cart.reduce((total, item) => total + item.quantity, 0), [cart]);
+  const cartTotal = totalPrice();
+  const cartItemCount = totalItems();
 
   useEffect(() => {
-    if (cart.length > 0) {
+    if (cart.length > 0 && menuItems) {
       setIsSuggestionsLoading(true);
       const fetchSuggestions = async () => {
         const cartItemIds = cart.map(item => item.menuItem.id);
         try {
           const suggestions = await getSuggestedItems(cartItemIds);
-          setSuggestedItems(suggestions);
+          // filter suggestions to only include available items
+          const availableSuggestions = suggestions.filter(suggestion => menuItems.some(item => item.id === suggestion.id));
+          setSuggestedItems(availableSuggestions);
         } finally {
           setIsSuggestionsLoading(false);
         }
       };
-      // Debounce suggestions
       const timer = setTimeout(fetchSuggestions, 500);
       return () => clearTimeout(timer);
     } else {
       setSuggestedItems([]);
     }
-  }, [cart]);
+  }, [cart, menuItems]);
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -92,22 +108,26 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
             <p className="text-muted-foreground mt-2">Select an item to customize and add to your order.</p>
         </div>
 
-        <div className="space-y-12">
-          {categories.map(category => {
-            const items = menuItems.filter(item => item.category === category);
-            if (items.length === 0) return null;
-            return (
-              <div key={category}>
-                <h2 className="text-3xl font-bold font-headline mb-6">{category}</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {items.map(item => (
-                    <MenuItemCard key={item.id} item={item} onSelect={() => handleSelectItem(item)} />
-                  ))}
+        {isLoadingMenu || isLoadingCategories ? (
+          <div className="text-center p-16">Loading menu...</div>
+        ) : (
+          <div className="space-y-12">
+            {sortedCategories.map(category => {
+              const items = menuItems?.filter(item => item.categoryId === category.id) ?? [];
+              if (items.length === 0) return null;
+              return (
+                <div key={category.id}>
+                  <h2 className="text-3xl font-bold font-headline mb-6">{category.name}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {items.map(item => (
+                      <MenuItemCard key={item.id} item={item} onSelect={() => handleSelectItem(item)} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         <SuggestedItems items={suggestedItems} onSelectItem={handleSelectItem} isLoading={isSuggestionsLoading} />
       </main>
@@ -116,10 +136,9 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
         item={selectedItem}
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
-        onAddToCart={handleAddToCart}
       />
 
-    {cart.length > 0 && (
+    {(cart?.length ?? 0) > 0 && (
       <Sheet>
         <SheetTrigger asChild>
             <Button className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl z-50 text-lg">

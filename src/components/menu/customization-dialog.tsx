@@ -18,19 +18,23 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import { useCartStore } from "@/stores/cart-store"
+import { useToast } from "@/hooks/use-toast"
 
 type CustomizationDialogProps = {
   item: MenuItem | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onAddToCart: (item: CartItem) => void
 }
 
-export function CustomizationDialog({ item, isOpen, onOpenChange, onAddToCart }: CustomizationDialogProps) {
+export function CustomizationDialog({ item, isOpen, onOpenChange }: CustomizationDialogProps) {
   const [quantity, setQuantity] = useState(1)
   const [customizations, setCustomizations] = useState<{ [key: string]: string }>({})
   const [specialNotes, setSpecialNotes] = useState("")
   
+  const addToCart = useCartStore((state) => state.addToCart);
+  const { toast } = useToast();
+
   const imagePlaceholder = PlaceHolderImages.find(p => p.id === item?.image)
 
   const handleAddToCartClick = () => {
@@ -38,13 +42,17 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, onAddToCart }:
 
     const finalPrice = item.price * quantity; // In a real app, option prices would be added here
 
-    onAddToCart({
+    addToCart({
       id: `${item.id}-${Date.now()}`,
       menuItem: item,
       quantity,
       customizations,
       specialNotes,
       price: finalPrice
+    })
+    toast({
+        title: "Added to order",
+        description: `${item.name} has been added to your order.`,
     })
     onOpenChange(false)
   }
@@ -70,7 +78,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, onAddToCart }:
         </DialogHeader>
         <div className="flex-grow overflow-y-auto pr-4 -mr-4 grid gap-6 md:grid-cols-2">
             <div className="relative aspect-video rounded-lg overflow-hidden">
-                {imagePlaceholder && (
+                {imagePlaceholder?.imageUrl && (
                     <Image
                         src={imagePlaceholder.imageUrl}
                         alt={item.name}
