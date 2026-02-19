@@ -2,6 +2,16 @@
 
 This document outlines the development plan to build the Qordia application based on the project's design and architectural documents.
 
+## 📂 Source of Truth Documents
+- [README.md](./README.md)
+- [CONCEPT.md](./CONCEPT.md)
+- [APP-FLOWS.md](./APP-FLOWS.md)
+- [UI_UX_Wireframe.md](./UI_UX_Wireframe.md)
+- [Animation-flow.md](./Animation-flow.md)
+- [Devs-Onboarding.md](./Devs-Onboarding.md)
+
+---
+
 ## 1. Core & Theming
 - [ ] **Task:** Align UI with Brand Identity.
 - **Details:** Refine existing styles, colors, and fonts to perfectly match the `CONCEPT.md` guide.
@@ -36,3 +46,14 @@ This document outlines the development plan to build the Qordia application base
 - [ ] **Task:** Build the internal SaaS administration panel.
 - **Details:** Create a separate interface for platform administrators to manage tenants (outlets), monitor system health, and oversee the entire platform as specified in `APP-FLOWS.md`.
 - **Sprint:** [sprints/sprint-07-platform-admin.md](./sprints/sprint-07-platform-admin.md)
+
+---
+
+## 🤖 Reminders for Gemini
+
+1.  **Never delete sprint tasks.** If changes are required, create a sub-sprint file (e.g., `sprint-02-A-updates.md`) and link to it.
+2.  **Always update sprint progress.** Mark tasks as `[x]` for done, `[s]` for skipped, or `[u]` for updated in a sub-sprint.
+3.  **Always refer to the Source of Truth files.** If confused, stuck, or considering a new approach, re-read the linked documents above.
+4.  **Focus on the planned design.** Adhere strictly to the established plans and develop from the existing codebase.
+5.  **Implement real features, not placeholders.** Break down large tasks into smaller, fully functional atomic tasks.
+6.  **Request review after each task.** Announce task completion, state the next step, and always re-read these reminders before starting a new task.
