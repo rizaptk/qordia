@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2 } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -59,9 +59,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               </SidebarMenuButton>
             </SidebarMenuItem>
              <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link href="#">
-                  <Table />
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
+                <Link href="/staff/tables">
+                  <Table2 />
                   <span className="group-data-[collapsible=icon]:hidden">Tables</span>
                 </Link>
               </SidebarMenuButton>

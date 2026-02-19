@@ -12,12 +12,12 @@ Build the essential operational management tools for the outlet manager, as defi
     - [x] The form should allow editing all `MenuItem` properties: name, description, price, category, image, isPopular, etc.
     - [x] All CRUD operations (Create, Read, Update, Delete) must persist to the `/menuItems` collection in Firestore.
 
-- [ ] **Create New Route: Table Management (`/staff/tables`):**
-    - [ ] Create a new page component for table/seating zone management.
-    - [ ] Display a list or grid of configured tables from Firestore.
-    - [ ] Show the status of each table (e.g., Available, Active/Occupied) by checking for active orders linked to that `tableId`.
-    - [ ] Implement a feature to "Generate QR Code" for a selected table, which opens a printable modal displaying the QR code that links to `/menu/[tableId]`.
-    - [ ] Add a simple form to create new tables/zones in Firestore.
+- [x] **Create New Route: Table Management (`/staff/tables`):**
+    - [x] Create a new page component for table/seating zone management.
+    - [x] Display a list or grid of configured tables from Firestore.
+    - [x] Show the status of each table (e.g., Available, Active/Occupied) by checking for active orders linked to that `tableId`.
+    - [x] Implement a feature to "Generate QR Code" for a selected table, which opens a printable modal displaying the QR code that links to `/menu/[tableId]`.
+    - [x] Add a simple form to create new tables/zones in Firestore.
 
 - [x] **Add Navigation Links (`StaffLayout.tsx`):**
     - [x] Add links for "Menu Management" and "Table Management" to the staff sidebar.
