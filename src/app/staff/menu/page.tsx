@@ -55,7 +55,7 @@ export default function MenuManagementPage() {
     return (
         <>
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold tracking-tight font-headline">Menu Management</h1>
+                <h1 className="text-xl font-bold tracking-tight">Menu Management</h1>
                 <Button onClick={handleAddNew}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
                 </Button>
@@ -86,7 +86,7 @@ export default function MenuManagementPage() {
                                 menuItems.map(item => (
                                     <TableRow key={item.id}>
                                         <TableCell>
-                                            <Badge variant={item.isAvailable ? 'default' : 'destructive'} className="bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700">
+                                            <Badge variant={item.isAvailable ? 'accent' : 'destructive'}>
                                                 {item.isAvailable ? 'Available' : 'Sold Out'}
                                             </Badge>
                                         </TableCell>

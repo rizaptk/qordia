@@ -22,14 +22,8 @@ export default function Home() {
         <div className="mx-auto max-w-md space-y-4">
             <div className="inline-block rounded-lg bg-primary/10 p-4 text-primary">
                 <div className="h-16 w-16 relative flex items-center justify-center">
-                    <svg width="64" height="64" viewBox="0 0 100 100">
-                        <path fill="currentColor" d="M10 10h30v30h-30z M15 15v20h20v-20z M20 20h10v10h-10z"></path>
-                        <path fill="currentColor" d="M60 10h30v30h-30z M65 15v20h20v-20z"></path>
-                        <path fill="currentColor" d="M10 60h30v30h-30z M15 65v20h20v-20z"></path>
-                        <path fill="currentColor" d="M45 10h10v10h-10z M45 35h10v10h-10z M10 45h10v10h-10z M35 45h10v10h-10z M45 45h10v10h-10z M25 25h-10v10h10z"></path>
-                        <path fill="currentColor" d="M60 60h30v30h-30z M65 65v20h20v-20z M70 70h10v10h-10z"></path>
-                        <path fill="currentColor" d="M45 60h10v10h-10z M45 85h10v10h-10z M60 45h10v10h-10z M85 45h10v10h-10z"></path>
-                        <path fill="currentColor" d="M45 60h10v10h-10z M45 85h10v10h-10z M60 45h10v10h-10z M85 45h10v10h-10z M75 55h10v10h-10z M55 75h10v10h-10z M75 75h-10v10h10z"></path>
+                    <svg viewBox="0 0 100 100" fill="currentColor">
+                        <path d="M50,10A40,40,0,1,0,90,50,40,40,0,0,0,50,10ZM73,65H65V73H57V65H49V57H57V49H65V57H73Zm-23.5-5.5h-11v-11h11Zm-5.5-17h-11v-11h11Zm17-17h-11v-11h11Zm-17,5.5h-11v-11h11Z"></path>
                     </svg>
                 </div>
             </div>

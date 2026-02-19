@@ -35,11 +35,11 @@ export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
           </div>
         )}
         {item.isPopular && item.isAvailable && (
-             <Badge className="absolute top-2 right-2 bg-amber-500 text-white hover:bg-amber-600">Popular</Badge>
+             <Badge variant="warning" className="absolute top-2 right-2">Popular</Badge>
         )}
       </div>
       <CardHeader>
-        <CardTitle className="font-headline text-lg">{item.name}</CardTitle>
+        <CardTitle>{item.name}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>

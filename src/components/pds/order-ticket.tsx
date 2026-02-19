@@ -70,8 +70,8 @@ export function OrderTicket({ order }: { order: Order }) {
             <Badge className={
                 `text-sm
                 ${order.status === 'Placed' ? 'bg-primary/20 text-primary border-primary/50' : ''} 
-                ${order.status === 'In Progress' ? 'bg-yellow-500/20 text-yellow-600 border-yellow-500/50' : ''}
-                ${order.status === 'Ready' ? 'bg-accent/20 text-accent border-accent/50' : ''}`
+                ${order.status === 'In Progress' ? 'bg-warning/20 text-warning-foreground border-warning/50' : ''}
+                ${order.status === 'Ready' ? 'bg-accent/20 text-accent-foreground border-accent/50' : ''}`
             }>{order.status}</Badge>
         </div>
       </CardHeader>
