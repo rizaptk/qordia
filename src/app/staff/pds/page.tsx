@@ -1,11 +1,39 @@
-import { mockOrders } from "@/lib/data";
+"use client";
+
+import { useMemo } from 'react';
+import type { Order } from "@/lib/types";
 import { OrderTicket } from "@/components/pds/order-ticket";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebase } from '@/firebase/provider';
+import { collection, query, where } from 'firebase/firestore';
+
+const TENANT_ID = 'qordiapro-tenant';
 
 export default function PDSPage() {
-    const placedOrders = mockOrders.filter(o => o.status === 'Placed').sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());
-    const inProgressOrders = mockOrders.filter(o => o.status === 'In Progress').sort((a,b) => a.timestamp.getTime() - b.timestamp.getTime());;
-    const readyOrders = mockOrders.filter(o => o.status === 'Ready').sort((a,b) => b.timestamp.getTime() - a.timestamp.getTime());;
+    const { firestore } = useFirebase();
+
+    const ordersQuery = useMemoFirebase(() => 
+        firestore 
+        ? query(
+            collection(firestore, `tenants/${TENANT_ID}/orders`), 
+            where('status', 'not-in', ['Completed', 'Served'])
+          )
+        : null, 
+        [firestore]
+    );
+    const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+
+    const { placedOrders, inProgressOrders, readyOrders } = useMemo(() => {
+        const placed = orders?.filter(o => o.status === 'Placed').sort((a,b) => (a.orderedAt.seconds || 0) - (b.orderedAt.seconds || 0)) ?? [];
+        const inProgress = orders?.filter(o => o.status === 'In Progress').sort((a,b) => (a.orderedAt.seconds || 0) - (b.orderedAt.seconds || 0)) ?? [];
+        const ready = orders?.filter(o => o.status === 'Ready').sort((a,b) => (b.orderedAt.seconds || 0) - (a.orderedAt.seconds || 0)) ?? [];
+        return { placedOrders: placed, inProgressOrders: inProgress, readyOrders: ready };
+    }, [orders]);
+
+    if (isLoading) {
+        return <div className="text-center text-muted-foreground py-16">Loading orders...</div>
+    }
 
     return (
         <Tabs defaultValue="new" className="flex flex-col h-full">

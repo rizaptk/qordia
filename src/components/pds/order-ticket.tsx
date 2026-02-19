@@ -1,53 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Order, CartItem } from "@/lib/types";
+import type { Order, OrderItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight, Check } from "lucide-react";
+import { useFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { doc } from "firebase/firestore";
 
-function formatTime(date: Date) {
+const TENANT_ID = 'qordiapro-tenant';
+
+function formatTime(date: any) {
+    if (!date) return '...';
+    // Handle both Date objects and Firestore Timestamps
+    const dateObj = date.seconds ? new Date(date.seconds * 1000) : date;
     const now = new Date();
-    const diff = Math.round((now.getTime() - date.getTime()) / 1000); // difference in seconds
+    const diff = Math.round((now.getTime() - dateObj.getTime()) / 1000);
 
     if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function OrderTicket({ order: initialOrder }: { order: Order }) {
-  const [order, setOrder] = useState(initialOrder);
-  const [time, setTime] = useState(formatTime(initialOrder.timestamp));
+export function OrderTicket({ order }: { order: Order }) {
+  const [time, setTime] = useState(formatTime(order.orderedAt));
+  const { firestore } = useFirebase();
 
   useEffect(() => {
     const timer = setInterval(() => {
-        setTime(formatTime(order.timestamp));
+        setTime(formatTime(order.orderedAt));
     }, 1000);
     return () => clearInterval(timer);
-  }, [order.timestamp]);
+  }, [order.orderedAt]);
 
   const handleNextStatus = () => {
-    setOrder(prev => {
-      if (prev.status === 'Placed') return { ...prev, status: 'In Progress' };
-      if (prev.status === 'In Progress') return { ...prev, status: 'Ready' };
-      return prev;
-    });
-  };
+    if (!firestore) return;
+    const orderRef = doc(firestore, `tenants/${TENANT_ID}/orders/${order.id}`);
 
-  const getStatusColor = (status: Order['status']): "default" | "secondary" | "outline" | "destructive" => {
-    switch(status) {
-        case 'Placed': return 'default';
-        case 'In Progress': return 'secondary';
-        case 'Ready': return 'outline';
-        default: return 'default';
+    let nextStatus: Order['status'] | null = null;
+    if (order.status === 'Placed') nextStatus = 'In Progress';
+    if (order.status === 'In Progress') nextStatus = 'Ready';
+    if (order.status === 'Ready') nextStatus = 'Served';
+    
+    if (nextStatus) {
+        updateDocumentNonBlocking(orderRef, { status: nextStatus });
     }
-  }
+  };
 
   const getButtonText = () => {
       if(order.status === 'Placed') return 'Start Preparing';
       if(order.status === 'In Progress') return 'Mark as Ready';
+      if(order.status === 'Ready') return 'Mark as Served';
       return 'Completed';
   }
 
@@ -71,10 +76,10 @@ export function OrderTicket({ order: initialOrder }: { order: Order }) {
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-3 overflow-y-auto">
-        {order.items.map((item, index) => (
-            <div key={item.id}>
+        {(order.items as OrderItem[]).map((item, index) => (
+            <div key={`${item.menuItemId}-${index}`}>
                 <div>
-                    <p className="font-semibold">{item.quantity}x {item.menuItem.name}</p>
+                    <p className="font-semibold">{item.quantity}x {item.name}</p>
                     <div className="pl-4 text-sm text-muted-foreground">
                         {Object.entries(item.customizations).map(([key, value]) => (
                             <p key={key}>- {key}: {value}</p>
@@ -87,9 +92,9 @@ export function OrderTicket({ order: initialOrder }: { order: Order }) {
         ))}
       </CardContent>
       <CardFooter>
-        <Button onClick={handleNextStatus} className="w-full" disabled={order.status === 'Ready' || order.status === 'Completed'}>
+        <Button onClick={handleNextStatus} className="w-full" disabled={order.status === 'Served' || order.status === 'Completed'}>
             <span>{getButtonText()}</span>
-            <ArrowRight className="w-4 h-4 ml-2"/>
+            {order.status !== 'Ready' ? <ArrowRight className="w-4 h-4 ml-2"/> : <Check className="w-4 h-4 ml-2"/>}
         </Button>
       </CardFooter>
     </Card>

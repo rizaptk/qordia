@@ -26,11 +26,23 @@ export type CartItem = {
 export type Order = {
   id: string;
   tableId: string;
-  items: CartItem[];
-  status: 'Placed' | 'In Progress' | 'Ready' | 'Completed';
-  timestamp: Date;
+  items: CartItem[] | OrderItem[];
+  status: 'Placed' | 'In Progress' | 'Ready' | 'Served' | 'Completed';
+  timestamp: Date | { seconds: number; nanoseconds: number }; // Support both Date and Firestore Timestamp
   total: number;
+  customerId?: string;
+  totalAmount?: number;
+  orderedAt?: any;
 };
+
+export type OrderItem = {
+    menuItemId: string;
+    name: string;
+    quantity: number;
+    price: number;
+    customizations: { [key: string]: string };
+    specialNotes: string;
+}
 
 export type AnalyticsData = {
   bestSellers: { item: string, sales: number }[];

@@ -85,11 +85,36 @@
         "id": { "type": "string" },
         "customerId": { "type": "string" },
         "tableId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "preparing", "ready", "served", "completed"] },
+        "status": {
+          "type": "string",
+          "enum": ["Placed", "In Progress", "Ready", "Served", "Completed"]
+        },
         "totalAmount": { "type": "number" },
-        "orderedAt": { "type": "string", "format": "date-time" }
+        "orderedAt": { "type": "string", "format": "date-time" },
+        "items": {
+          "type": "array",
+          "description": "The items included in the order.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "menuItemId": { "type": "string" },
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "customizations": { "type": "object" },
+              "specialNotes": { "type": "string" },
+              "price": { "type": "number" }
+            },
+            "required": ["menuItemId", "name", "quantity", "price"]
+          }
+        }
       },
-      "required": ["id", "tableId", "status", "totalAmount", "orderedAt"]
+      "required": [
+        "tableId",
+        "status",
+        "totalAmount",
+        "orderedAt",
+        "items"
+      ]
     }
   },
   "auth": {

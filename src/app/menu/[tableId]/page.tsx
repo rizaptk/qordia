@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, use } from "react";
-import type { MenuItem, CartItem } from "@/lib/types";
+import type { MenuItem, CartItem, Order, OrderItem } from "@/lib/types";
 import { getSuggestedItems } from "@/app/actions/suggest-items";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
 import { CustomizationDialog } from "@/components/menu/customization-dialog";
@@ -14,9 +14,11 @@ import { SuggestedItems } from "@/components/menu/suggested-items";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCartStore } from "@/stores/cart-store";
-import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useCollection, useMemoFirebase, useUser, addDocumentNonBlocking } from "@/firebase";
+import { collection, Timestamp } from "firebase/firestore";
 import { useFirebase } from "@/firebase/provider";
+import { useToast } from "@/hooks/use-toast";
+
 
 const TENANT_ID = 'qordiapro-tenant';
 
@@ -27,11 +29,15 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [suggestedItems, setSuggestedItems] = useState<MenuItem[]>([]);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
   const router = useRouter();
+  const { toast } = useToast();
 
   const { firestore } = useFirebase();
+  const { user, isUserLoading } = useUser();
+
   const menuItemsRef = useMemoFirebase(() => 
     firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
     [firestore]
@@ -58,26 +64,66 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
     removeFromCart(cartItemId);
   };
 
-  const placeOrder = () => {
-    // In a real app, this would send the cart to the backend and return an order ID
-    // TODO: Connect this to firestore `orders` collection
-    const orderId = `ORD-${Date.now()}`;
-    clearCart();
-    router.push(`/order/${orderId}`);
+  const placeOrder = async () => {
+    if (!firestore || !user) {
+        toast({
+            variant: "destructive",
+            title: "Cannot place order",
+            description: "Please sign in to place an order.",
+        });
+        return;
+    }
+    setIsPlacingOrder(true);
+    
+    const orderItems: OrderItem[] = cart.map(item => ({
+        menuItemId: item.menuItem.id,
+        name: item.menuItem.name,
+        quantity: item.quantity,
+        price: item.price,
+        customizations: item.customizations,
+        specialNotes: item.specialNotes
+    }));
+
+    const newOrder = {
+        customerId: user.uid,
+        tableId: resolvedParams.tableId,
+        status: 'Placed' as const,
+        totalAmount: cartTotal,
+        orderedAt: Timestamp.now(),
+        items: orderItems,
+    };
+    
+    try {
+        const ordersRef = collection(firestore, `tenants/${TENANT_ID}/orders`);
+        const docRef = await addDocumentNonBlocking(ordersRef, newOrder);
+        
+        if (docRef?.id) {
+            toast({
+                title: "Order Placed!",
+                description: "Your order has been sent to the kitchen.",
+            });
+            clearCart();
+            router.push(`/order/${docRef.id}`);
+        }
+    } catch(e) {
+        // Error is handled globally by the non-blocking-updates helper
+        // but we can catch it here if we need to stop the loading spinner
+    } finally {
+        setIsPlacingOrder(false);
+    }
   };
 
   const cartTotal = totalPrice();
   const cartItemCount = totalItems();
 
   useEffect(() => {
-    if (cart.length > 0 && menuItems) {
+    if (cart.length > 0 && menuItems && menuItems.length > 0) {
       setIsSuggestionsLoading(true);
       const fetchSuggestions = async () => {
         const cartItemIds = cart.map(item => item.menuItem.id);
         try {
-          const suggestions = await getSuggestedItems(cartItemIds);
-          // filter suggestions to only include available items
-          const availableSuggestions = suggestions.filter(suggestion => menuItems.some(item => item.id === suggestion.id));
+          const suggestions = await getSuggestedItems(cartItemIds, menuItems);
+          const availableSuggestions = suggestions.filter(suggestion => menuItems.some(item => item.id === suggestion.id && item.isAvailable));
           setSuggestedItems(availableSuggestions);
         } finally {
           setIsSuggestionsLoading(false);
@@ -108,7 +154,7 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
             <p className="text-muted-foreground mt-2">Select an item to customize and add to your order.</p>
         </div>
 
-        {isLoadingMenu || isLoadingCategories ? (
+        {isLoadingMenu || isLoadingCategories || isUserLoading ? (
           <div className="text-center p-16">Loading menu...</div>
         ) : (
           <div className="space-y-12">
@@ -129,7 +175,7 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
           </div>
         )}
 
-        <SuggestedItems items={suggestedItems} onSelectItem={handleSelectItem} isLoading={isSuggestionsLoading} />
+        { (menuItems && menuItems.length > 0) && <SuggestedItems items={suggestedItems} onSelectItem={handleSelectItem} isLoading={isSuggestionsLoading} /> }
       </main>
 
       <CustomizationDialog
@@ -180,8 +226,8 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
                     <span>Total</span>
                     <span>${cartTotal.toFixed(2)}</span>
                 </div>
-                <Button size="lg" className="w-full" onClick={placeOrder}>
-                    Place Order
+                <Button size="lg" className="w-full" onClick={placeOrder} disabled={isPlacingOrder || isUserLoading}>
+                    {isPlacingOrder ? "Placing Order..." : "Place Order"}
                 </Button>
             </div>
           </SheetFooter>
