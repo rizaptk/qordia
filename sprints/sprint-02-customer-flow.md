@@ -16,10 +16,10 @@ Build and refine the end-to-end, mobile-first customer ordering experience, inco
     - [x] Implement horizontally scrolling `Category` chips that filter the menu items below.
     - [x] Create a "Popular Items" section to highlight best-sellers, as per the wireframe.
 
-- [ ] **Item Customization (`CustomizationDialog.tsx`):**
-    - [ ] The customization panel should feel fluid. Use accordion-style transitions for add-ons as suggested in `Animation-flow.md`.
-    - [ ] When a customization option changes the price, animate the price update with a subtle count-up effect.
-    - [ ] Ensure the mobile layout is clean, with large tap targets for all options.
+- [x] **Item Customization (`CustomizationDialog.tsx`):**
+    - [x] The customization panel should feel fluid. Use accordion-style transitions for add-ons as suggested in `Animation-flow.md`.
+    - [x] When a customization option changes the price, animate the price update with a subtle count-up effect.
+    - [x] Ensure the mobile layout is clean, with large tap targets for all options.
 
 - [x] **Cart & Order Placement (`Sheet` in `MenuPage`):**
     - [x] **Animation:** When an item is added, the cart icon in the header should have a subtle bounce animation.

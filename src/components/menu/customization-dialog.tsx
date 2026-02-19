@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
-import type { MenuItem, CartItem } from "@/lib/types"
+import type { MenuItem } from "@/lib/types"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { Button } from "@/components/ui/button"
 import {
@@ -13,11 +13,11 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
 import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
 
@@ -34,6 +34,18 @@ export function CustomizationDialog({ item, isOpen, onOpenChange }: Customizatio
   
   const addToCart = useCartStore((state) => state.addToCart);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Pre-fill customizations with default values when the item changes
+    if (item?.options) {
+      const defaultCustomizations = Object.entries(item.options).reduce((acc, [key, values]) => {
+        acc[key] = values[0];
+        return acc;
+      }, {} as { [key: string]: string });
+      setCustomizations(defaultCustomizations);
+    }
+  }, [item]);
+
 
   const imagePlaceholder = PlaceHolderImages.find(p => p.id === item?.image)
 
@@ -88,36 +100,43 @@ export function CustomizationDialog({ item, isOpen, onOpenChange }: Customizatio
                     />
                 )}
             </div>
-          <div className="space-y-4">
-            {item.options && Object.entries(item.options).map(([optionKey, values]) => (
-              <div key={optionKey} className="space-y-2">
-                <Label htmlFor={optionKey} className="font-semibold">{optionKey}</Label>
-                <RadioGroup
-                  id={optionKey}
-                  onValueChange={(value) => setCustomizations(prev => ({ ...prev, [optionKey]: value }))}
-                  defaultValue={values[0]}
-                >
-                  {values.map(value => (
-                    <div key={value} className="flex items-center space-x-2">
-                      <RadioGroupItem value={value} id={`${optionKey}-${value}`} />
-                      <Label htmlFor={`${optionKey}-${value}`}>{value}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-            ))}
-            <Separator />
-            <div className="space-y-2">
+          <div className="flex flex-col space-y-4">
+            {item.options && Object.keys(item.options).length > 0 && (
+              <Accordion type="multiple" className="w-full" defaultValue={Object.keys(item.options)}>
+                {Object.entries(item.options).map(([optionKey, values]) => (
+                  <AccordionItem value={optionKey} key={optionKey}>
+                    <AccordionTrigger className="font-semibold">{optionKey}</AccordionTrigger>
+                    <AccordionContent>
+                      <RadioGroup
+                        id={optionKey}
+                        value={customizations[optionKey]}
+                        onValueChange={(value) => setCustomizations(prev => ({ ...prev, [optionKey]: value }))}
+                        className="pt-2"
+                      >
+                        {values.map(value => (
+                          <div key={value} className="flex items-center space-x-2">
+                            <RadioGroupItem value={value} id={`${optionKey}-${value}`} />
+                            <Label htmlFor={`${optionKey}-${value}`}>{value}</Label>
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
+            
+            <div className="space-y-2 pt-2">
               <Label htmlFor="special-notes" className="font-semibold">Special Notes</Label>
               <Textarea
                 id="special-notes"
-                placeholder="Any special requests? (e.g., allergies, extra hot)"
+                placeholder="Any special requests? (e.g., allergies)"
                 value={specialNotes}
                 onChange={(e) => setSpecialNotes(e.target.value)}
               />
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-2 !mt-auto">
                 <Label htmlFor="quantity" className="font-semibold">Quantity</Label>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q-1))}>-</Button>
