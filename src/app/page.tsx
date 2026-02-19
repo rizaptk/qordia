@@ -17,6 +17,9 @@ export default function Home() {
             <Button asChild variant="outline">
               <Link href="/staff/pds">Staff Portal</Link>
             </Button>
+            <Button asChild>
+                <Link href="/dev/seed">Seed Data</Link>
+            </Button>
           </div>
         </header>
         <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">

@@ -32,7 +32,7 @@ export function OrderStatusTracker({ currentStatus }: OrderStatusTrackerProps) {
                     return (
                         <div key={status.name} className="flex flex-col items-center text-center w-24">
                             <div className={cn(
-                                "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 relative",
+                                "h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 relative z-10",
                                 isActive ? "bg-primary border-primary text-primary-foreground" : "bg-muted border-border text-muted-foreground"
                             )}>
                                 {isCurrent && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>}

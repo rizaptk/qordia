@@ -226,8 +226,13 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
                     <section>
                         <h2 className="text-3xl font-bold font-headline mb-6">Popular Items</h2>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {popularItems.map(item => (
-                            <MenuItemCard key={item.id} item={item} onSelect={() => handleSelectItem(item)} />
+                            {popularItems.map((item, i) => (
+                                <MenuItemCard 
+                                    key={item.id} 
+                                    item={item} 
+                                    onSelect={() => handleSelectItem(item)} 
+                                    style={{ animationDelay: `${i * 50}ms`}}
+                                />
                             ))}
                         </div>
                     </section>
@@ -243,8 +248,13 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
                         </h2>
                     )}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredMenuItems.map(item => (
-                        <MenuItemCard key={item.id} item={item} onSelect={() => handleSelectItem(item)} />
+                        {filteredMenuItems.map((item, i) => (
+                            <MenuItemCard 
+                                key={item.id} 
+                                item={item} 
+                                onSelect={() => handleSelectItem(item)}
+                                style={{ animationDelay: `${i * 50}ms`}}
+                            />
                         ))}
                     </div>
                     {filteredMenuItems.length === 0 && (

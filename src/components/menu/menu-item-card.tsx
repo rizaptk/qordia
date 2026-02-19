@@ -5,18 +5,24 @@ import type { MenuItem } from "@/lib/types"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 type MenuItemCardProps = {
   item: MenuItem
   onSelect: () => void
+  className?: string
 }
 
-export function MenuItemCard({ item, onSelect }: MenuItemCardProps) {
+export function MenuItemCard({ item, onSelect, className }: MenuItemCardProps) {
   const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image)
 
   return (
     <Card 
-        className={`overflow-hidden transition-all duration-300 hover:shadow-lg ${item.isAvailable ? 'cursor-pointer' : 'opacity-50'}`}
+        className={cn(
+            "overflow-hidden transition-all duration-300 hover:shadow-lg animate-fade-in-up",
+            item.isAvailable ? 'cursor-pointer' : 'opacity-50',
+            className
+        )}
         onClick={item.isAvailable ? onSelect : undefined}
     >
       <div className="relative aspect-video">
