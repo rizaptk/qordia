@@ -54,13 +54,8 @@ export default function MenuManagementPage() {
 
     return (
         <>
-            <div className="flex items-center justify-between mb-6">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight font-headline">Menu Management</h1>
-                    <p className="text-muted-foreground">
-                        Add, edit, and manage your cafe's menu items.
-                    </p>
-                </div>
+            <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold tracking-tight font-headline">Menu Management</h1>
                 <Button onClick={handleAddNew}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
                 </Button>
