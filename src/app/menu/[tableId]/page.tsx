@@ -14,9 +14,8 @@ import { SuggestedItems } from "@/components/menu/suggested-items";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCartStore } from "@/stores/cart-store";
-import { useCollection, useMemoFirebase, useUser, addDocumentNonBlocking } from "@/firebase";
+import { useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, useFirebase, initiateAnonymousSignIn } from "@/firebase";
 import { collection, Timestamp } from "firebase/firestore";
-import { useFirebase } from "@/firebase/provider";
 import { useToast } from "@/hooks/use-toast";
 
 
@@ -35,8 +34,14 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { firestore } = useFirebase();
+  const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (auth && !user && !isUserLoading) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [auth, user, isUserLoading]);
 
   const menuItemsRef = useMemoFirebase(() => 
     firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 

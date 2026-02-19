@@ -27,7 +27,7 @@
         "tenantId": { "type": "string", "description": "The tenant this user belongs to. Null for customers and platform_admins." },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "email", "role"]
+      "required": ["id", "role"]
     },
     "Location": {
       "title": "Location",
@@ -109,6 +109,7 @@
         }
       },
       "required": [
+        "customerId",
         "tableId",
         "status",
         "totalAmount",
