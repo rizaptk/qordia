@@ -80,8 +80,7 @@ export default function TableManagementPage() {
 
     return (
         <>
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold tracking-tight font-headline">Table Management</h1>
+            <div className="flex justify-end mb-4">
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button>

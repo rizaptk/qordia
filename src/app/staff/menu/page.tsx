@@ -54,8 +54,7 @@ export default function MenuManagementPage() {
 
     return (
         <>
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-xl font-bold tracking-tight">Menu Management</h1>
+            <div className="flex justify-end mb-4">
                 <Button onClick={handleAddNew}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
                 </Button>
