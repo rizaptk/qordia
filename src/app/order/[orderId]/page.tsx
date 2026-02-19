@@ -37,11 +37,17 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-2xl shadow-xl">
+      <Card className="w-full max-w-2xl shadow-xl animate-fade-in-up">
         <CardHeader>
-          <CardTitle className="text-center font-headline text-3xl">
-            Order #{resolvedParams.orderId}
-          </CardTitle>
+          {order ? (
+             <CardTitle className="text-center font-headline text-3xl">
+                🎉 Order Received!
+              </CardTitle>
+          ) : (
+             <CardTitle className="text-center font-headline text-3xl">
+                Order Status
+              </CardTitle>
+          )}
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
           {isLoading ? (
@@ -54,6 +60,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
             </div>
           ) : order ? (
             <>
+              <p className="text-center text-muted-foreground -mt-4">Order ID: #{resolvedParams.orderId}</p>
               <OrderStatusTracker currentStatus={currentStatus} />
               <div className="text-center bg-primary/10 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg text-primary">Status: {currentStatus}</h3>
