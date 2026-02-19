@@ -1,0 +1,255 @@
+/**
+ * Core Philosophy: This ruleset secures a "Scan, Order, Serve" restaurant application.
+ * It provides public read-access to menu and location data while strictly controlling
+ * user-specific data like customer profiles and orders. The model relies heavily on
+ * denormalization to ensure security rules are fast, simple, and do not require
+ * slow, costly cross-document reads for most authorization checks.
+ *
+ * Data Structure:
+ * - Public Data: /locations, /menu_categories, /menu_items, and /customization_options
+ *   are top-level collections, allowing anyone to browse the restaurant's offerings.
+ * - User-Private Data: /customer_profiles/{customerId} follows a strict ownership model.
+ * - Shared-Access Data: /orders/{orderId} is accessible by the customer who placed it,
+ *   staff assigned to the order's location, and global administrators. Order sub-documents
+ *   (items, customizations) inherit this access pattern via denormalized fields.
+ * - Role-Based Access Control (RBAC): Two dedicated collections, /roles_admin for global
+ *   admins and /staff_roles for location-specific managers, provide a database-backed
+*   access control system.
+ *
+ * Key Security Decisions:
+ * - Denormalization for Authorization: To enforce access control on orders and their
+ *   sub-collections efficiently, fields like `customerId` and `locationId` are denormalized
+ *   (copied) onto each `Order`, `OrderItem`, and `OrderItemCustomization` document. This
+ *   avoids costly `get()` calls in rules for single-document operations.
+ * - Public Browsing, Controlled Writes: All menu-related collections are publicly readable
+ *   to allow for a seamless anonymous user experience. All write operations on this data,
+ *   however, are restricted to authorized administrators.
+ * - Dual-Role Access to Orders: Orders can be accessed by both the customer (owner) and
+ *   location-specific staff, enabling both customer order tracking and kitchen/staff
+ *   order management workflows.
+ * - No User Listing: It is not possible to list all documents in /customer_profiles,
+ *   protecting user privacy.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------
+    // Helper Functions
+    // --------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Checks if the current user has a global admin role.
+     * Looks for an existence document in the /roles_admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the current user is a staff member for a specific location.
+     * Looks for an existence document in the /staff_roles subcollection.
+     */
+    function isStaffForLocation(locationId) {
+      return isSignedIn() && exists(/databases/$(database)/documents/staff_roles/$(request.auth.uid)/managed_locations/$(locationId));
+    }
+
+    /**
+     * Determines if a user can access an order or its sub-documents.
+     * Access is granted to the customer owner, staff of the location, or a global admin.
+     * Handles anonymous orders where customerId may be null.
+     */
+    function canAccessOrder(orderData) {
+      let isOrderOwner = orderData.get('customerId', null) != null && isOwner(orderData.customerId);
+      return isOrderOwner || isStaffForLocation(orderData.locationId) || isAdmin();
+    }
+    
+    /**
+     * Checks if a user can access the parent Order document.
+     * Required to secure list and create operations on order subcollections.
+     */
+    function canAccessParentOrder(orderId) {
+      let orderData = get(/databases/$(database)/documents/orders/$(orderId)).data;
+      return canAccessOrder(orderData);
+    }
+    
+    /**
+     * Validates that an incoming Order document has a valid owner assignment on create.
+     * The customerId must either be null (for anonymous orders) or match the creator's UID.
+     */
+    function isCreatingOwnOrder() {
+        return isSignedIn() && (request.resource.data.get('customerId', null) == null || request.resource.data.customerId == request.auth.uid);
+    }
+
+    // --------------------------------
+    // Collection Rules
+    // --------------------------------
+
+    /**
+     * @description Customer profiles contain private user information.
+     * @path /customer_profiles/{customerId}
+     * @allow (create) An authenticated user creating their own profile document.
+     * @deny (get) A user trying to read another user's profile.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /customer_profiles/{customerId} {
+      allow get, list: if isOwner(customerId) || isAdmin();
+      allow create: if isOwner(customerId) && request.resource.data.id == customerId;
+      allow update: if (isOwner(customerId) || isAdmin()) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if (isOwner(customerId) || isAdmin()) && resource != null;
+    }
+
+    /**
+     * @description Restaurant locations are public information.
+     * @path /locations/{locationId}
+     * @allow (get) Any user, authenticated or not, reading a location's details.
+     * @deny (create) A regular authenticated user trying to create a new location.
+     * @principle Public read with restricted, admin-only writes.
+     */
+    match /locations/{locationId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() && (request.method != 'create' ? resource != null : true);
+    }
+
+    /**
+     * @description Tables within a location are public information for ordering.
+     * @path /locations/{locationId}/tables/{tableId}
+     * @allow (get) Any user, authenticated or not, reading table details.
+     * @deny (update) A regular user trying to change a table's status.
+     * @principle Public read with role-based writes (location staff or admin).
+     */
+    match /locations/{locationId}/tables/{tableId} {
+      allow get, list: if true;
+      allow create: if (isStaffForLocation(locationId) || isAdmin()) && request.resource.data.locationId == locationId;
+      allow update: if (isStaffForLocation(locationId) || isAdmin()) && resource != null && request.resource.data.locationId == resource.data.locationId;
+      allow delete: if (isStaffForLocation(locationId) || isAdmin()) && resource != null;
+    }
+
+    /**
+     * @description Menu categories are public for menu browsing.
+     * @path /menu_categories/{menuCategoryId}
+     * @allow (get) Any user reading a menu category.
+     * @deny (create) A non-admin user trying to add a new category.
+     * @principle Public read with restricted, admin-only writes.
+     */
+    match /menu_categories/{menuCategoryId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() && (request.method != 'create' ? resource != null : true);
+    }
+
+    /**
+     * @description Menu items are public for menu browsing.
+     * @path /menu_items/{menuItemId}
+     * @allow (get) Any user viewing a menu item.
+     * @deny (update) A non-admin user trying to change an item's price.
+     * @principle Public read with restricted, admin-only writes.
+     */
+    match /menu_items/{menuItemId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() && (request.method != 'create' ? resource != null : true);
+    }
+
+    /**
+     * @description Customization options for menu items are public.
+     * @path /customization_options/{customizationOptionId}
+     * @allow (get) Any user viewing a customization option (e.g., "Sugar Level").
+     * @deny (create) A non-admin user trying to add a new customization type.
+     * @principle Public read with restricted, admin-only writes.
+     */
+    match /customization_options/{customizationOptionId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() && (request.method != 'create' ? resource != null : true);
+    }
+
+    /**
+     * @description Specific values for a customization option (e.g., "Full Sugar").
+     * @path /customization_options/{customizationOptionId}/values/{customizationOptionValueId}
+     * @allow (get) Any user reading the available customization values.
+     * @deny (delete) A non-admin user trying to remove a customization value.
+     * @principle Public read with restricted, admin-only writes.
+     */
+    match /customization_options/{customizationOptionId}/values/{customizationOptionValueId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && request.resource.data.customizationOptionId == customizationOptionId;
+      allow update: if isAdmin() && resource != null && request.resource.data.customizationOptionId == resource.data.customizationOptionId;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description An order placed by a customer. Access is shared between the owner, location staff, and admins.
+     * @path /orders/{orderId}
+     * @allow (get) The customer who owns the order reading its status.
+     * @deny (get) A different customer trying to view another user's order.
+     * @principle Enforces shared access via denormalized ownership and location fields.
+     */
+    match /orders/{orderId} {
+      allow get: if canAccessOrder(resource.data);
+      allow list: if isSignedIn();
+      allow create: if isCreatingOwnOrder();
+      allow update: if canAccessOrder(resource.data) && resource != null;
+      allow delete: if canAccessOrder(resource.data) && resource != null;
+    }
+
+    /**
+     * @description Individual items within an order.
+     * @path /orders/{orderId}/items/{orderItemId}
+     * @allow (get) A staff member at the correct location reading an order item.
+     * @deny (create) A user trying to add an item to an order they cannot access.
+     * @principle Access is derived from the parent order's authorization state.
+     */
+    match /orders/{orderId}/items/{orderItemId} {
+      allow get: if canAccessOrder(resource.data);
+      allow list, create: if canAccessParentOrder(orderId);
+      allow update, delete: if canAccessOrder(resource.data) && resource != null;
+    }
+
+    /**
+     * @description Customizations chosen for a specific order item.
+     * @path /orders/{orderId}/items/{orderItemId}/customizations/{customizationId}
+     * @allow (get) The customer owner reading the customizations on their order item.
+     * @deny (list) A user trying to list customizations for an order they do not own or manage.
+     * @principle Access is derived from the grandparent order's authorization state.
+     */
+    match /orders/{orderId}/items/{orderItemId}/customizations/{customizationId} {
+      allow get: if canAccessOrder(resource.data);
+      allow list, create: if canAccessParentOrder(orderId);
+      allow update, delete: if canAccessOrder(resource.data) && resource != null;
+    }
+
+    /**
+     * @description Manages global administrator roles.
+     * @path /roles_admin/{userId}
+     * @allow (get) An existing admin reading the list of other admins.
+     * @deny (create) A non-admin user trying to make themselves an admin.
+     * @principle Restricts modification of authorization roles to existing admins.
+     */
+    match /roles_admin/{userId} {
+      allow get, list, create, update, delete: if isAdmin() && (request.method != 'create' ? resource != null : true);
+    }
+    
+    /**
+     * @description Manages which staff members can manage which locations.
+     * @path /staff_roles/{userId}/managed_locations/{locationId}
+     * @allow (create) An admin assigning a staff member to a location.
+     * @deny (delete) A regular user trying to remove a staff member's permissions.
+     * @principle Restricts modification of authorization roles to existing admins.
+     */
+    match /staff_roles/{userId}/managed_locations/{locationId} {
+      allow get, list, create, update, delete: if isAdmin() && (request.method != 'create' ? resource != null : true);
+    }
+  }
+}

@@ -1,0 +1,741 @@
+{
+  "entities": {
+    "CustomerProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomerProfile",
+      "type": "object",
+      "description": "Represents a customer's profile, used for tracking order history, preferences, and enabling personalized recommendations. It is assumed that an external authentication system manages user login credentials.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CustomerProfile entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The customer's email address, used for communication and optional account identification.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The customer's full name."
+        },
+        "lastOrderDate": {
+          "type": "string",
+          "description": "The date and time of the customer's most recent order.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the customer profile was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the customer profile was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "Location": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Location",
+      "type": "object",
+      "description": "Represents a specific restaurant or food service outlet where orders can be placed and managed.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Location entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the location (e.g., 'Downtown Branch')."
+        },
+        "address": {
+          "type": "string",
+          "description": "The physical address of the location."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The contact phone number for the location."
+        },
+        "operatingHours": {
+          "type": "string",
+          "description": "A descriptive string of the location's operating hours (e.g., 'Mon-Fri: 9 AM - 10 PM, Sat-Sun: 10 AM - 11 PM')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the location record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the location record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address"
+      ]
+    },
+    "Table": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Table",
+      "type": "object",
+      "description": "Represents a specific table or seating area within a restaurant Location, identified by a unique QR code.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Table entity."
+        },
+        "locationId": {
+          "type": "string",
+          "description": "Reference to the Location where this table is situated. (Relationship: Location 1:N Table)"
+        },
+        "tableNumber": {
+          "type": "string",
+          "description": "A human-readable identifier for the table (e.g., 'Table 5', 'Bar Seat 3')."
+        },
+        "qrCodeIdentifier": {
+          "type": "string",
+          "description": "A unique string embedded in the QR code that identifies this specific table."
+        },
+        "capacity": {
+          "type": "number",
+          "description": "The maximum number of people the table can accommodate."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current operational status of the table (e.g., 'available', 'occupied', 'needs cleaning')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the table record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the table record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "locationId",
+        "tableNumber",
+        "qrCodeIdentifier"
+      ]
+    },
+    "MenuCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuCategory",
+      "type": "object",
+      "description": "Organizes menu items into logical categories for easy browsing (e.g., 'Appetizers', 'Main Courses', 'Drinks').",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MenuCategory entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the menu category (e.g., 'Desserts')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the menu category."
+        },
+        "displayOrder": {
+          "type": "number",
+          "description": "A numeric value indicating the order in which categories should be displayed in the UI."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the menu category was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the menu category was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ]
+    },
+    "MenuItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MenuItem",
+      "type": "object",
+      "description": "Represents a single food or drink item available on the digital menu.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MenuItem entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the menu item (e.g., 'Cheeseburger')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the menu item, including ingredients and taste profile."
+        },
+        "price": {
+          "type": "number",
+          "description": "The base price of the menu item."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "The URL of an image representing the menu item.",
+          "format": "uri"
+        },
+        "isAvailable": {
+          "type": "boolean",
+          "description": "Indicates whether the menu item is currently available for order (real-time availability)."
+        },
+        "preparationTimeMinutes": {
+          "type": "number",
+          "description": "Estimated time in minutes required to prepare this menu item."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to the MenuCategory this item belongs to. (Relationship: MenuCategory 1:N MenuItem)"
+        },
+        "locationIds": {
+          "type": "array",
+          "description": "References to Locations where this menu item is available. (Relationship: Location N:N MenuItem)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "customizationOptionIds": {
+          "type": "array",
+          "description": "References to CustomizationOption entities applicable to this menu item. (Relationship: CustomizationOption N:N MenuItem)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the menu item was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the menu item was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "price",
+        "isAvailable",
+        "categoryId",
+        "locationIds"
+      ]
+    },
+    "CustomizationOption": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomizationOption",
+      "type": "object",
+      "description": "Defines a type of customization that can be applied to a menu item (e.g., 'Sugar Level', 'Ice Level', 'Toppings', 'Special Notes').",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CustomizationOption entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the customization option (e.g., 'Sugar Level')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description explaining the customization option."
+        },
+        "optionType": {
+          "type": "string",
+          "description": "Specifies the type of input for this customization (e.g., 'single_select', 'multi_select', 'text_input')."
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Indicates if selecting an option for this customization is mandatory."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the customization option was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the customization option was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "optionType",
+        "isRequired"
+      ]
+    },
+    "CustomizationOptionValue": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CustomizationOptionValue",
+      "type": "object",
+      "description": "Represents a specific selectable value for a CustomizationOption (e.g., 'Full Sugar', 'No Ice', 'Add Boba').",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the CustomizationOptionValue entity."
+        },
+        "customizationOptionId": {
+          "type": "string",
+          "description": "Reference to the CustomizationOption this value belongs to. (Relationship: CustomizationOption 1:N CustomizationOptionValue)"
+        },
+        "value": {
+          "type": "string",
+          "description": "The actual text or name of the customization value (e.g., 'Half Sugar')."
+        },
+        "additionalPrice": {
+          "type": "number",
+          "description": "Any additional cost incurred when this specific customization value is selected."
+        },
+        "displayOrder": {
+          "type": "number",
+          "description": "A numeric value indicating the order in which these values should be displayed within their option."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the customization option value was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the customization option value was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "customizationOptionId",
+        "value",
+        "additionalPrice"
+      ]
+    },
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents a customer's placed order, including overall status, total amount, and associated location and table.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "customerId": {
+          "type": "string",
+          "description": "Optional reference to the CustomerProfile who placed the order. Can be null for anonymous orders. (Relationship: CustomerProfile 1:N Order)"
+        },
+        "locationId": {
+          "type": "string",
+          "description": "Reference to the Location where the order was placed. (Relationship: Location 1:N Order)"
+        },
+        "tableId": {
+          "type": "string",
+          "description": "Reference to the Table from which the order was placed. (Relationship: Table 1:N Order)"
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "A human-readable, often sequential, order identifier for display to customers and staff."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current progress status of the order (e.g., 'pending', 'preparing', 'ready', 'served', 'cancelled')."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "The total monetary amount of the order, including item prices and customization costs."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency code for the total amount (e.g., 'USD', 'EUR')."
+        },
+        "specialNotes": {
+          "type": "string",
+          "description": "General notes or instructions provided for the entire order."
+        },
+        "orderedAt": {
+          "type": "string",
+          "description": "The date and time when the order was placed.",
+          "format": "date-time"
+        },
+        "estimatedReadyAt": {
+          "type": "string",
+          "description": "The estimated date and time when the order is expected to be ready.",
+          "format": "date-time"
+        },
+        "servedAt": {
+          "type": "string",
+          "description": "The date and time when the order was served to the customer.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the order record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the order record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "locationId",
+        "tableId",
+        "orderNumber",
+        "status",
+        "totalAmount",
+        "currency",
+        "orderedAt"
+      ]
+    },
+    "OrderItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItem",
+      "type": "object",
+      "description": "Represents a single menu item included within an Order, specifying the chosen MenuItem and its quantity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OrderItem entity."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "Reference to the Order this item belongs to. (Relationship: Order 1:N OrderItem)"
+        },
+        "menuItemId": {
+          "type": "string",
+          "description": "Reference to the MenuItem that was ordered. (Relationship: MenuItem 1:N OrderItem)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The number of units of this menu item ordered."
+        },
+        "itemPrice": {
+          "type": "number",
+          "description": "The price of the menu item at the time the order was placed (may differ from current menu price)."
+        },
+        "subtotalAmount": {
+          "type": "number",
+          "description": "The calculated subtotal for this order item, including quantity and customization costs."
+        },
+        "specialNotes": {
+          "type": "string",
+          "description": "Specific notes or instructions for this individual item (e.g., 'no pickles')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the order item record was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the order item record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "orderId",
+        "menuItemId",
+        "quantity",
+        "itemPrice",
+        "subtotalAmount"
+      ]
+    },
+    "OrderItemCustomization": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "OrderItemCustomization",
+      "type": "object",
+      "description": "Details the specific customization choices made for an OrderItem.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the OrderItemCustomization entity."
+        },
+        "orderItemId": {
+          "type": "string",
+          "description": "Reference to the OrderItem this customization applies to. (Relationship: OrderItem 1:N OrderItemCustomization)"
+        },
+        "customizationOptionId": {
+          "type": "string",
+          "description": "Reference to the CustomizationOption type that was applied (e.g., 'Sugar Level'). (Relationship: CustomizationOption 1:N OrderItemCustomization)"
+        },
+        "customizationOptionValueId": {
+          "type": "string",
+          "description": "Optional reference to the specific CustomizationOptionValue chosen (e.g., 'Full Sugar'). Null if 'valueText' is used. (Relationship: CustomizationOptionValue 1:N OrderItemCustomization)"
+        },
+        "valueText": {
+          "type": "string",
+          "description": "Custom text input for customization options that allow it (e.g., for 'special notes' customization type)."
+        },
+        "appliedPrice": {
+          "type": "number",
+          "description": "Any additional cost associated with this specific customization choice at the time of order."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when the order item customization was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when the order item customization was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "orderItemId",
+        "customizationOptionId",
+        "appliedPrice"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/customer_profiles/{customerId}",
+        "definition": {
+          "entityName": "CustomerProfile",
+          "schema": {
+            "$ref": "#/backend/entities/CustomerProfile"
+          },
+          "description": "Stores user-specific profile information. Documents are named after the user's UID. Access is restricted to the owner (customer) and authorized staff/admins.",
+          "params": [
+            {
+              "name": "customerId",
+              "description": "The Firebase Authentication UID of the customer whose profile is stored."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/locations/{locationId}",
+        "definition": {
+          "entityName": "Location",
+          "schema": {
+            "$ref": "#/backend/entities/Location"
+          },
+          "description": "Represents specific restaurant or food service outlets. Publicly readable for menu browsing. Write access restricted to staff/admins managing the location or global admins.",
+          "params": [
+            {
+              "name": "locationId",
+              "description": "Unique identifier for the location."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/locations/{locationId}/tables/{tableId}",
+        "definition": {
+          "entityName": "Table",
+          "schema": {
+            "$ref": "#/backend/entities/Table"
+          },
+          "description": "Represents a specific table within a location. Includes denormalized 'locationId' for authorization independence. Publicly readable for order placement. Write access restricted to staff/admins managing the parent location.",
+          "params": [
+            {
+              "name": "locationId",
+              "description": "The unique identifier of the parent Location."
+            },
+            {
+              "name": "tableId",
+              "description": "Unique identifier for the table."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/menu_categories/{menuCategoryId}",
+        "definition": {
+          "entityName": "MenuCategory",
+          "schema": {
+            "$ref": "#/backend/entities/MenuCategory"
+          },
+          "description": "Organizes menu items into logical categories. Publicly readable for all users. Write access restricted to staff/admins.",
+          "params": [
+            {
+              "name": "menuCategoryId",
+              "description": "Unique identifier for the menu category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/menu_items/{menuItemId}",
+        "definition": {
+          "entityName": "MenuItem",
+          "schema": {
+            "$ref": "#/backend/entities/MenuItem"
+          },
+          "description": "Represents a single food or drink item. Publicly readable. Includes 'locationIds' for availability filtering by client. Write access restricted to staff/admins.",
+          "params": [
+            {
+              "name": "menuItemId",
+              "description": "Unique identifier for the menu item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customization_options/{customizationOptionId}",
+        "definition": {
+          "entityName": "CustomizationOption",
+          "schema": {
+            "$ref": "#/backend/entities/CustomizationOption"
+          },
+          "description": "Defines a type of customization for menu items. Publicly readable. Write access restricted to staff/admins.",
+          "params": [
+            {
+              "name": "customizationOptionId",
+              "description": "Unique identifier for the customization option."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/customization_options/{customizationOptionId}/values/{customizationOptionValueId}",
+        "definition": {
+          "entityName": "CustomizationOptionValue",
+          "schema": {
+            "$ref": "#/backend/entities/CustomizationOptionValue"
+          },
+          "description": "Represents selectable values for a customization option. Includes denormalized 'customizationOptionId' for authorization independence. Publicly readable. Write access restricted to staff/admins managing the parent customization option.",
+          "params": [
+            {
+              "name": "customizationOptionId",
+              "description": "The unique identifier of the parent CustomizationOption."
+            },
+            {
+              "name": "customizationOptionValueId",
+              "description": "Unique identifier for the customization option value."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Represents a customer's placed order. Includes denormalized 'customerId' and 'locationId' for authorization independence and QAPs. Access restricted to the customer who placed it (if authenticated), staff managing the 'locationId', and global admins.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "Unique identifier for the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}/items/{orderItemId}",
+        "definition": {
+          "entityName": "OrderItem",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItem"
+          },
+          "description": "Individual items within an order. Includes denormalized 'orderId', 'customerId', and 'locationId' for authorization independence and QAPs. Access restricted to the customer of the parent order, staff managing the associated 'locationId', and global admins.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the parent Order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "Unique identifier for the order item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}/items/{orderItemId}/customizations/{customizationId}",
+        "definition": {
+          "entityName": "OrderItemCustomization",
+          "schema": {
+            "$ref": "#/backend/entities/OrderItemCustomization"
+          },
+          "description": "Details customization choices for an order item. Includes denormalized 'orderId', 'orderItemId', 'customerId', and 'locationId' for authorization independence and QAPs. Access restricted to the customer of the grandparent order, staff managing the associated 'locationId', and global admins.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the grandparent Order."
+            },
+            {
+              "name": "orderItemId",
+              "description": "The unique identifier of the parent OrderItem."
+            },
+            {
+              "name": "customizationId",
+              "description": "Unique identifier for the order item customization."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/AdminRole"
+          },
+          "description": "Stores global admin roles. The existence of a document for a 'userId' signifies global administrative status. Used for DBAC (Database-Backed Access Control).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user with admin privileges."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/staff_roles/{userId}/managed_locations/{locationId}",
+        "definition": {
+          "entityName": "StaffManagedLocation",
+          "schema": {
+            "$ref": "#/backend/entities/StaffManagedLocation"
+          },
+          "description": "Defines which locations a specific staff member can manage. The existence of a document for a 'userId' and 'locationId' signifies management rights over that location. Used for DBAC for location-specific staff.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the staff member."
+            },
+            {
+              "name": "locationId",
+              "description": "The unique identifier of the location the staff member manages."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure for Qordia: Scan, Order, Serve is designed with a strong emphasis on Authorization Independence, Structural Segregation, and consistent Access Modeling to ensure robust security rules, scalability, and debuggability. \n\n**Authorization Independence via Denormalization:**\n*   **Customer Profiles:** Stored in `/customer_profiles/{customerId}`. Access is directly tied to `request.auth.uid`, ensuring immediate authorization without needing to query other documents. The `customerId` in the path matches the user's UID. If an order is placed by an authenticated user, the `customerId` from the `Order` document directly links to `request.auth.uid` for order ownership verification.\n*   **Order Items and Customizations:** For `OrderItem` (`/orders/{orderId}/items/{orderItemId}`) and `OrderItemCustomization` (`/orders/{orderId}/items/{orderItemId}/customizations/{customizationId}`), the critical `customerId` and `locationId` from the parent `Order` document are explicitly denormalized into these subcollection documents. This allows security rules to evaluate access to an order item or its customizations purely based on its own document fields, eliminating the need for expensive and rule-breaking `get()` operations on the parent `Order` document or even the grandparent `Location` or `CustomerProfile` documents. This is paramount for supporting atomic operations like batch writes.\n*   **Location-Specific Data:** `Table` documents (`/locations/{locationId}/tables/{tableId}`) include their `locationId` directly. This allows staff rules to check `exists(/staff_roles/$(request.auth.uid)/managed_locations/$(resource.data.locationId))` directly against the `tableId`'s `locationId` field without a `get()` on the parent `Location` document.\n*   **Customization Option Values:** `CustomizationOptionValue` documents (`/customization_options/{customizationOptionId}/values/{customizationOptionValueId}`) include their `customizationOptionId`. As `CustomizationOption` documents are publicly readable, so are their values, and their relationship is maintained without `get()` calls.\n\n**QAPs (Rules are not Filters) Support:**\n*   **Publicly Readable Data:** Collections like `/locations`, `/menu_categories`, `/menu_items`, `/customization_options`, and their subcollections are designed to be entirely publicly readable. This provides seamless browsing for anonymous users scanning QR codes without complex filtering logic in rules. For example, all `MenuItem` documents are publicly readable, and `locationIds` within `MenuItem` can be used to query specific items for a location from the client side, rather than relying on server-side rule filtering.\n*   **Customer Order Tracking:** Authenticated customers can query their own orders efficiently using `where('customerId', '==', request.auth.uid)` on the `/orders` collection, as `customerId` is a field on each `Order` document.\n*   **Staff Order Management:** Staff members, authorized via `staff_roles/{userId}/managed_locations/{locationId}` existence documents, can efficiently query orders for their managed locations using `where('locationId', '==', managedLocationId)` on the `/orders` collection. Similarly, with denormalized `locationId` in `OrderItem` and `OrderItemCustomization`, staff can potentially list specific order details for a location, crucial for the 'Preparation Display System'.\n*   **Global Roles (DBAC):** Admin and staff roles are managed through dedicated existence-based collections (`/roles_admin/{userId}` and `/staff_roles/{userId}/managed_locations/{locationId}`). This allows security rules to check for administrative or location-specific staff privileges using simple `exists()` checks, which are highly efficient and secure, adhering to the DBAC principle and avoiding custom claims.\n\n**Structural Segregation and Consistency:**\n*   All documents within a collection or subcollection (`/orders/{orderId}/items` vs `/orders/{orderId}/items/{orderItemId}/customizations`) share the same security posture. For example, all `MenuItem` documents are public, while all `CustomerProfile` documents are private to their owners or accessible by specific admin roles.\n*   Consistent naming conventions are used for paths (`{entityId}`), and authorization fields (`customerId`, `locationId`) are standardized. Explicit state modeling is used for `status` fields within `Order` and `Table` entities.\n\nThis structure prioritizes rule simplicity and efficiency by shifting access logic from rule evaluations into the data structure itself through strategic denormalization and segregation. This minimizes complex `get()` operations, supports robust QAPs, and ensures a highly debuggable security model."
+  }
+}
