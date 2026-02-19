@@ -14,7 +14,7 @@ Implement a secure, multi-tenant, role-based authentication system using Firebas
     - [x] Wrap the application in the `FirebaseProvider` and `FirebaseClientProvider` in `src/app/layout.tsx`.
 - [x] **Route Protection (Middleware or Layout Checks):**
     - [x] Protect the entire `/staff` directory. Only authenticated users with a `barista`, `service`, or `manager` role should have access.
-    - [ ] Create and protect a new `/platform` directory. Only authenticated users with a `platform_admin: true` claim should have access.
+    - [x] Create and protect a new `/platform` directory. Only authenticated users with a `platform_admin: true` claim should have access.
     - [x] Unauthenticated users should be redirected to `/login`.
 - [ ] **Role-Based Access Control (RBAC):**
     - [ ] On user creation, assign a role (`manager`, `barista`, etc.) and a `tenantId` in their Firestore user profile (`/users/{uid}`).

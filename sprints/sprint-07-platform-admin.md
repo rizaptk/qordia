@@ -5,10 +5,10 @@ Build the internal SaaS administration panel for platform-wide management, as sp
 
 ### Atomic Tasks:
 
-- [ ] **Initial Setup & Layout:**
-    - [ ] Create a new route group and layout for the platform admin section under `/platform`.
-    - [ ] This layout should have its own sidebar navigation, distinct from the staff/manager portal.
-    - [ ] Protect this entire route, ensuring only users with the `platform_admin` custom claim can access it.
+- [x] **Initial Setup & Layout:**
+    - [x] Create a new route group and layout for the platform admin section under `/platform`.
+    - [x] This layout should have its own sidebar navigation, distinct from the staff/manager portal.
+    - [x] Protect this entire route, ensuring only users with the `platform_admin` custom claim can access it.
 
 - [ ] **Tenant Management Module (`/platform/tenants`):**
     - [ ] **List View:** Create a page to display all tenant accounts from the `/tenants` collection in a table. Show key information like Tenant Name, ID, Subscription Plan, and Status (Active/Disabled).

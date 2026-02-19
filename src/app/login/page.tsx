@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useUserClaims } from '@/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
+  const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
 
@@ -36,11 +37,18 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // If user is logged in, redirect them away from login page
-    if (user) {
-      router.push('/staff');
+    if (isUserLoading || areClaimsLoading) return; // Wait for user and claims to load
+
+    if (user && claims) {
+      if (claims.platform_admin === true) {
+        router.push('/platform');
+      } else if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
+        router.push('/staff');
+      } else {
+        router.push('/'); // Fallback for other logged-in users (e.g., customers with no special role)
+      }
     }
-  }, [user, router]);
+  }, [user, isUserLoading, claims, areClaimsLoading, router]);
 
   const handleEmailLogin = async (data: LoginFormValues) => {
     if (!auth) return;
@@ -65,7 +73,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || user) {
+  if (isUserLoading || areClaimsLoading || user) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
 
@@ -76,8 +84,8 @@ export default function LoginPage() {
             <div className="flex justify-center mb-4">
                 <QordiaLogo className="w-12 h-12 text-primary" />
             </div>
-          <CardTitle>Staff Login</CardTitle>
-          <CardDescription>Access your Qordia dashboard</CardDescription>
+          <CardTitle>Qordia Portal</CardTitle>
+          <CardDescription>Sign in to access your dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
