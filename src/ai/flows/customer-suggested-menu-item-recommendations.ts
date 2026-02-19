@@ -46,7 +46,7 @@ const prompt = ai.definePrompt({
 
 Here are the available menu items:
 {{#each availableMenuItems}}
-- ID: {{{id}}}, Name: {{{name}}}, Description: {{{description}}}, Category: {{{category}}}, Price: ${{{price}}}, Popular: {{{isPopular}}}
+- ID: {{{id}}}, Name: {{{name}}}, Description: {{{description}}}, Category: {{{category}}}, Price: \${{{price}}}, Popular: {{{isPopular}}}
 {{/each}}
 
 Customer's current context:
