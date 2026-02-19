@@ -26,14 +26,21 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
 
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      router.push('/login');
-    }
-  }, [user, isUserLoading, router]);
-
   const isManager = claims?.role === 'manager';
   const isStaff = ['manager', 'barista', 'service'].includes(claims?.role || '');
+
+  useEffect(() => {
+    // This effect handles redirection based on auth state and claims.
+    if (isUserLoading || areClaimsLoading) {
+      return; // Don't redirect until loading is complete.
+    }
+
+    if (!user) {
+      router.push('/login'); // Not authenticated.
+    } else if (!isStaff) {
+      router.push('/'); // Authenticated, but not a staff member.
+    }
+  }, [user, isUserLoading, claims, areClaimsLoading, isStaff, router]);
 
 
   const getPageTitle = () => {
@@ -44,23 +51,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (isUserLoading || areClaimsLoading) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <p>Loading...</p>
-        </div>
-    );
-  }
-  
-  if (!user) {
+  if (isUserLoading || areClaimsLoading || !user || !isStaff) {
+    // Show a loading screen while we verify auth/claims or during redirection.
     return (
         <div className="flex h-screen items-center justify-center">
             <p>Authenticating...</p>
         </div>
     );
   }
-
-
+  
+  // If we reach here, user is authenticated and authorized staff.
   return (
     <SidebarProvider>
       <Sidebar>
