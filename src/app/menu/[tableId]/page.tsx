@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, use } from "react";
 import { menuItems } from "@/lib/data";
 import type { MenuItem, CartItem } from "@/lib/types";
 import { getSuggestedItems } from "@/app/actions/suggest-items";
@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 const categories: MenuItem['category'][] = ['Coffee', 'Tea', 'Pastries', 'Sandwiches', 'Desserts'];
 
 export default function MenuPage({ params }: { params: { tableId: string } }) {
+  const resolvedParams = use(params as any);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -81,7 +82,7 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
                     <UtensilsCrossed className="h-6 w-6 text-primary" />
                     <span className="text-lg font-semibold font-headline">Qordia</span>
                 </Link>
-                <div className="font-semibold">Table {params.tableId}</div>
+                <div className="font-semibold">Table {resolvedParams.tableId}</div>
             </div>
         </header>
 
