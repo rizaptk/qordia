@@ -10,11 +10,11 @@ Build and refine the end-to-end, mobile-first customer ordering experience, inco
     - [ ] This screen should display "You're seated at: Table [tableId]" and have a single, clear "Start Ordering" CTA button.
     - [ ] This replaces the current homepage which is a project overview. The new entry point should simulate scanning a QR for a specific table (e.g., `/menu/12`).
 
-- [ ] **Menu Home Screen (`/menu/[tableId]`):**
-    - [ ] Implement a sticky header that always shows `Table [tableId]` and a `Cart` icon with an animated item count.
-    - [ ] Add a `Search` bar component at the top.
-    - [ ] Implement horizontally scrolling `Category` chips that filter the menu items below.
-    - [ ] Create a "Popular Items" section to highlight best-sellers, as per the wireframe.
+- [x] **Menu Home Screen (`/menu/[tableId]`):**
+    - [x] Implement a sticky header that always shows `Table [tableId]` and a `Cart` icon with an animated item count.
+    - [x] Add a `Search` bar component at the top.
+    - [x] Implement horizontally scrolling `Category` chips that filter the menu items below.
+    - [x] Create a "Popular Items" section to highlight best-sellers, as per the wireframe.
 
 - [ ] **Item Customization (`CustomizationDialog.tsx`):**
     - [ ] The customization panel should feel fluid. Use accordion-style transitions for add-ons as suggested in `Animation-flow.md`.
