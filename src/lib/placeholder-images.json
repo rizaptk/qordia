@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "espresso",
+      "description": "A rich shot of espresso.",
+      "imageUrl": "https://images.unsplash.com/photo-1612509590595-785e974ed690?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxlc3ByZXNzbyUyMGNvZmZlZXxlbnwwfHx8fDE3NzE0OTc0MTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "espresso coffee"
+    },
+    {
+      "id": "cappuccino",
+      "description": "Espresso with steamed milk foam.",
+      "imageUrl": "https://images.unsplash.com/photo-1517958911667-09c05f6cd698?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjYXBwdWNjaW5vJTIwY29mZmVlfGVufDB8fHx8MTc3MTQ5NzQxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cappuccino coffee"
+    },
+    {
+      "id": "latte",
+      "description": "A milky coffee with a thick layer of foam.",
+      "imageUrl": "https://images.unsplash.com/photo-1512568400610-62da28bc8a13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxsYXR0ZSUyMGFydHxlbnwwfHx8fDE3NzE0OTc0MTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "latte art"
+    },
+    {
+      "id": "iced-coffee",
+      "description": "Chilled coffee served over ice.",
+      "imageUrl": "https://images.unsplash.com/photo-1533007716222-4b465613a984?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxpY2VkJTIwY29mZmVlfGVufDB8fHx8MTc3MTQ3MzMwNHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "iced coffee"
+    },
+    {
+      "id": "green-tea",
+      "description": "A classic, refreshing green tea.",
+      "imageUrl": "https://images.unsplash.com/photo-1606441393961-bb2331b77d55?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxncmVlbiUyMHRlYXxlbnwwfHx8fDE3NzE0NzYzODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "green tea"
+    },
+    {
+      "id": "black-tea",
+      "description": "Bold and flavorful black tea.",
+      "imageUrl": "https://images.unsplash.com/photo-1518881922778-bacb4debc3d7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxibGFjayUyMHRlYXxlbnwwfHx8fDE3NzE0MTM3ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black tea"
+    },
+    {
+      "id": "croissant",
+      "description": "Buttery, flaky, and freshly baked.",
+      "imageUrl": "https://images.unsplash.com/photo-1712723246766-3eaea22e52ff?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjcm9pc3NhbnQlMjBwYXN0cnl8ZW58MHx8fHwxNzcxNDkyMDQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "croissant pastry"
+    },
+    {
+      "id": "muffin",
+      "description": "A soft and sweet blueberry muffin.",
+      "imageUrl": "https://images.unsplash.com/photo-1722251172903-cc8774501df7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibHVlYmVycnklMjBtdWZmaW58ZW58MHx8fHwxNzcxNDg1Mzg4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blueberry muffin"
+    },
+    {
+      "id": "turkey-club",
+      "description": "Turkey, bacon, lettuce, and tomato sandwich.",
+      "imageUrl": "https://images.unsplash.com/photo-1678969405738-323f9acb3c18?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjbHViJTIwc2FuZHdpY2h8ZW58MHx8fHwxNzcxMzk3NDIwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "club sandwich"
+    },
+    {
+      "id": "veggie-wrap",
+      "description": "A healthy wrap with fresh vegetables.",
+      "imageUrl": "https://images.unsplash.com/photo-1630914441321-4e353a4c89f9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHx2ZWdldGFibGUlMjB3cmFwfGVufDB8fHx8MTc3MTQ5NzQxN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vegetable wrap"
+    },
+    {
+      "id": "cheesecake",
+      "description": "Creamy New York style cheesecake.",
+      "imageUrl": "https://images.unsplash.com/photo-1638890745037-3f06f2bb47d2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjaGVlc2VjYWtlJTIwc2xpY2V8ZW58MHx8fHwxNzcxNDk3NDE3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cheesecake slice"
+    },
+    {
+      "id": "fruit-tart",
+      "description": "A beautiful tart with fresh seasonal fruits.",
+      "imageUrl": "https://images.unsplash.com/photo-1570145820404-cf22b115b06f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmcnVpdCUyMHRhcnR8ZW58MHx8fHwxNzcxNDkzMTI5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fruit tart"
+    }
+  ]
 }
