@@ -14,4 +14,6 @@
 *   [UI_UX_Wireframe.md](./UI_UX_Wireframe.md): High-fidelity visual design specifications, component hierarchies, and responsive layout structures.
 *   [Animation-flow.md](./Animation-flow.md): Interactive element transition states, micro-interaction specifications, and global motion logic.
 *   [Devs-Onboarding.md](./Devs-Onboarding.md): Deep-dive technical architecture, API integration patterns, coding standards, and developer-specific workflow guidelines.
+*   [Admin-platform.md](./Admin-platform.md): Guide for operating the Qordia Platform Admin section and managing admin privileges.
+
 
