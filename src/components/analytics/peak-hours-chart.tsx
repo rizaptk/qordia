@@ -5,7 +5,6 @@ import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -33,9 +32,6 @@ export function PeakHoursChart({ data }: PeakHoursChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Peak Hours</CardTitle>
-        <CardDescription>
-          Orders placed throughout the day
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">

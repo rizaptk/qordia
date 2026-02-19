@@ -5,7 +5,7 @@ import type { MenuItem } from '@/lib/types';
 import { useCollection, useMemoFirebase, useFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal } from 'lucide-react';
@@ -67,8 +67,7 @@ export default function MenuManagementPage() {
             </div>
             <Card>
                 <CardHeader>
-                    <CardTitle>Menu Items</CardTitle>
-                    <CardDescription>A list of all items on your menu.</CardDescription>
+                    <CardTitle>All Menu Items</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>

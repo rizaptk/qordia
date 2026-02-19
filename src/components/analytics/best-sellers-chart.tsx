@@ -4,7 +4,6 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -32,7 +31,6 @@ export function BestSellersChart({ data }: BestSellersChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Best-Selling Items</CardTitle>
-        <CardDescription>Top 5 items by number of sales</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { menuItems } from '@/lib/data';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import Link from 'next/link';
 
 const TENANT_ID = 'qordiapro-tenant';
@@ -106,13 +106,13 @@ export default function SeedPage() {
       <Card className="max-w-xl mx-auto">
         <CardHeader>
           <CardTitle>Database Seeding Utility</CardTitle>
-          <CardDescription>
-            This action will populate the Firestore database with initial test data for a single tenant ({TENANT_ID}). 
-            This includes a tenant document, menu categories, a sample table, and menu items. 
-            Do not run this in a production environment.
-          </CardDescription>
         </CardHeader>
         <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+                This action will populate the Firestore database with initial test data for a single tenant ({TENANT_ID}). 
+                This includes a tenant document, menu categories, a sample table, and menu items. 
+                Do not run this in a production environment.
+            </p>
           <Button onClick={handleSeedData} disabled={isLoading || !firestore} className="w-full">
             {isLoading ? 'Seeding...' : 'Seed Test Data'}
           </Button>

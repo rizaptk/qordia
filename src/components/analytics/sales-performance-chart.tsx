@@ -5,7 +5,6 @@ import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -33,7 +32,6 @@ export function SalesPerformanceChart({ data }: SalesPerformanceChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Sales Performance</CardTitle>
-        <CardDescription>Monthly revenue for the last 6 months</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">

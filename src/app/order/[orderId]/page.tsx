@@ -40,9 +40,8 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
       <Card className="w-full max-w-2xl shadow-xl">
         <CardHeader>
           <CardTitle className="text-center font-headline text-3xl">
-            Track Your Order
+            Order #{resolvedParams.orderId}
           </CardTitle>
-          <p className="text-center text-muted-foreground">Order ID: {resolvedParams.orderId}</p>
         </CardHeader>
         <CardContent className="space-y-8 pt-6">
           {isLoading ? (

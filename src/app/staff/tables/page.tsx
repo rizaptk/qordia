@@ -12,8 +12,8 @@ import type { Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, QrCode } from 'lucide-react';
@@ -125,7 +125,6 @@ export default function TableManagementPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>Configured Tables</CardTitle>
-                    <CardDescription>A list of all seating areas in your venue.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {isLoadingTables ? (
