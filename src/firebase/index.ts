@@ -2,20 +2,23 @@
 
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore'
 
-export function initializeFirebase() {
-  if (!getApps().length) {
-    // Always initialize with the explicit client config to prevent
-    // the SDK from picking up server-side environment variables on the client,
-    // which can cause authentication errors.
-    const firebaseApp = initializeApp(firebaseConfig);
-    return getSdks(firebaseApp);
+const CLIENT_APP_NAME = 'qordia-client';
+
+export function initializeFirebase(): { firebaseApp: FirebaseApp; auth: Auth; firestore: Firestore; } {
+  // Check if the uniquely named client app is already initialized.
+  const existingApp = getApps().find(app => app.name === CLIENT_APP_NAME);
+
+  if (existingApp) {
+    // If it exists, get the services from it. This ensures we use the same client instance.
+    return getSdks(existingApp);
   }
 
-  // If already initialized, return the SDKs with the already initialized App
-  return getSdks(getApp());
+  // If it doesn't exist, initialize it for the first time with the explicit client config and unique name.
+  const clientApp = initializeApp(firebaseConfig, CLIENT_APP_NAME);
+  return getSdks(clientApp);
 }
 
 export function getSdks(firebaseApp: FirebaseApp) {
