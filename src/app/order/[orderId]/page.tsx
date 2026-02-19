@@ -75,8 +75,8 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
           )}
 
           <div className="text-center">
-            <Button asChild>
-                <Link href="/menu/12">Place Another Order</Link>
+            <Button asChild disabled={!order}>
+                <Link href={order ? `/menu/${order.tableId}` : '#'}>Place Another Order</Link>
             </Button>
           </div>
         </CardContent>
