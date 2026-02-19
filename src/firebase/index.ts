@@ -1,31 +1,34 @@
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore'
+import { getFirestore, Firestore } from 'firebase/firestore';
 
 const CLIENT_APP_NAME = 'qordia-client';
+let clientApp: FirebaseApp | null = null;
+let clientAuth: Auth | null = null;
+let clientFirestore: Firestore | null = null;
 
-export function initializeFirebase(): { firebaseApp: FirebaseApp; auth: Auth; firestore: Firestore; } {
-  // Check if the uniquely named client app is already initialized.
-  const existingApp = getApps().find(app => app.name === CLIENT_APP_NAME);
-
-  if (existingApp) {
-    // If it exists, get the services from it. This ensures we use the same client instance.
-    return getSdks(existingApp);
+function initializeClientFirebase() {
+  if (!clientApp) {
+    const existingApp = getApps().find(app => app.name === CLIENT_APP_NAME);
+    if (existingApp) {
+      clientApp = existingApp;
+    } else {
+      clientApp = initializeApp(firebaseConfig, CLIENT_APP_NAME);
+    }
+    clientAuth = getAuth(clientApp);
+    clientFirestore = getFirestore(clientApp);
   }
-
-  // If it doesn't exist, initialize it for the first time with the explicit client config and unique name.
-  const clientApp = initializeApp(firebaseConfig, CLIENT_APP_NAME);
-  return getSdks(clientApp);
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function initializeFirebase(): { firebaseApp: FirebaseApp; auth: Auth; firestore: Firestore; } {
+  initializeClientFirebase();
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    firebaseApp: clientApp!,
+    auth: clientAuth!,
+    firestore: clientFirestore!,
   };
 }
 
