@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useUser } from "@/firebase";
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2 } from "lucide-react";
 import {
   SidebarProvider,
@@ -20,6 +22,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -27,6 +38,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/menu')) return 'Menu Management';
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
+  }
+
+  if (isUserLoading || !user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <p>Loading...</p>
+        </div>
+    );
   }
 
   return (
@@ -79,12 +98,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         <SidebarFooter className="group-data-[collapsible=icon]:hidden">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarImage src="https://picsum.photos/seed/staff/100/100" data-ai-hint="person portrait" />
-                <AvatarFallback>JD</AvatarFallback>
+                <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
+                <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
-                <span className="font-semibold text-sm">Jane Doe</span>
-                <span className="text-xs text-muted-foreground">Manager</span>
+                <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
+                <span className="text-xs text-muted-foreground">{user.email}</span>
               </div>
             </div>
         </SidebarFooter>
