@@ -16,7 +16,7 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-4">
             <Button asChild variant="outline">
-              <Link href="/staff/pds">Staff Portal</Link>
+              <Link href="/login">Staff Portal</Link>
             </Button>
             <Button asChild>
                 <Link href="/dev/seed">Seed Data</Link>

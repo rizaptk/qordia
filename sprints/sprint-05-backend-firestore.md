@@ -18,8 +18,8 @@ Replace all mock data with a live, multi-tenant Firebase Firestore backend.
         - [x] Platform Admins (`platform_admin` role) have global read/write access to all data for maintenance and support.
 - [x] **Data Migration/Seeding:**
     - [x] Create a script to upload the initial `menuItems` from `lib/data.ts` to a specific tenant in Firestore for testing.
-- [ ] **Refactor Data Access:**
-    - [ ] Replace all imports from `lib/data` with Firestore queries that are tenant-aware (i.e., queries must always include a `tenantId`).
-    - [ ] Update `useCollection` and `useDoc` hooks to accept a `tenantId` and build the correct path.
-    - [ ] Refactor server actions like `getSuggestedItems` to fetch data from the correct tenant's subcollections.
-    - [ ] Refactor order placement logic to create new orders in the correct tenant's `/orders` subcollection (e.g., `/tenants/{tenantId}/orders/{orderId}`).
+- [x] **Refactor Data Access:**
+    - [x] Replace all imports from `lib/data` with Firestore queries that are tenant-aware (i.e., queries must always include a `tenantId`).
+    - [x] Update `useCollection` and `useDoc` hooks to accept a `tenantId` and build the correct path.
+    - [x] Refactor server actions like `getSuggestedItems` to fetch data from the correct tenant's subcollections.
+    - [x] Refactor order placement logic to create new orders in the correct tenant's `/orders` subcollection (e.g., `/tenants/{tenantId}/orders/{orderId}`).
