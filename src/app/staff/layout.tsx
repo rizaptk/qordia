@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useUser } from "@/firebase";
+import { useUser, useUserClaims } from "@/firebase";
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2 } from "lucide-react";
 import {
   SidebarProvider,
@@ -24,12 +24,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+  const { claims, isLoading: areClaimsLoading } = useUserClaims();
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push('/login');
     }
   }, [user, isUserLoading, router]);
+
+  const isManager = claims?.role === 'manager';
+  const isStaff = ['manager', 'barista', 'service'].includes(claims?.role || '');
 
 
   const getPageTitle = () => {
@@ -40,13 +44,22 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (isUserLoading || !user) {
+  if (isUserLoading || areClaimsLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
             <p>Loading...</p>
         </div>
     );
   }
+  
+  if (!user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <p>Authenticating...</p>
+        </div>
+    );
+  }
+
 
   return (
     <SidebarProvider>
@@ -61,38 +74,44 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
-                <Link href="/staff/pds">
-                  <LayoutDashboard />
-                  <span className="group-data-[collapsible=icon]:hidden">Prep Display</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
-                <Link href="/staff/menu">
-                  <BookOpen />
-                  <span className="group-data-[collapsible=icon]:hidden">Menu</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
-                <Link href="/staff/tables">
-                  <Table2 />
-                  <span className="group-data-[collapsible=icon]:hidden">Tables</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
-                <Link href="/staff/analytics">
-                  <BarChart3 />
-                  <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {isStaff && (
+                <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
+                    <Link href="/staff/pds">
+                    <LayoutDashboard />
+                    <span className="group-data-[collapsible=icon]:hidden">Prep Display</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+            )}
+            {isManager && (
+                <>
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
+                        <Link href="/staff/menu">
+                        <BookOpen />
+                        <span className="group-data-[collapsible=icon]:hidden">Menu</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
+                        <Link href="/staff/tables">
+                        <Table2 />
+                        <span className="group-data-[collapsible=icon]:hidden">Tables</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
+                        <Link href="/staff/analytics">
+                        <BarChart3 />
+                        <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                </>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="group-data-[collapsible=icon]:hidden">
