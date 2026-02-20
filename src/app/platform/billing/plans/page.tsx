@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,6 +9,7 @@ import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, u
 import { collection, doc } from 'firebase/firestore';
 import type { SubscriptionPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { availableFeatures } from '@/lib/features';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,15 +44,6 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
-
-const availableFeatures = [
-  { id: 'Analytics', label: 'Analytics Dashboard' },
-  { id: 'Advanced Reporting', label: 'Advanced Reporting' },
-  { id: 'Priority Support', label: 'Priority Support' },
-  { id: 'API Access', label: 'API Access' },
-  { id: 'Menu Customization', label: 'Advanced Menu Customization' },
-  { id: 'Staff Roles', label: 'Custom Staff Roles' },
-];
 
 const planSchema = z.object({
   name: z.string().min(3, { message: "Plan name must be at least 3 characters." }),

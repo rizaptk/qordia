@@ -32,15 +32,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { 
     setUser, 
     setUserProfile,
-    setTenantAndPlan,
+    setTenant,
+    setPlan,
     setIsUserLoading, 
     setIsProfileLoading, 
     clearAll 
   } = useAuthStore();
   
   const userProfile = useAuthStore(state => state.userProfile);
+  const tenant = useAuthStore(state => state.tenant);
   const tenantId = userProfile?.tenantId;
+  const planId = tenant?.planId;
 
+  // Effect for handling Firebase Authentication state changes
   useEffect(() => {
     if (!auth || !firestore) return;
 
@@ -52,14 +56,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         const profile = await syncUserProfile(firestore, user);
         
-        // This makes the security claim the single source of truth for platform admin status.
         const idTokenResult = await user.getIdTokenResult();
         if (profile && idTokenResult.claims.platform_admin === true) {
             profile.role = 'platform_admin';
         }
         
         setUserProfile(profile);
-        
         setIsUserLoading(false);
       } else {
         clearAll();
@@ -69,48 +71,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribeAuth();
   }, [auth, firestore, setUser, setUserProfile, setIsUserLoading, setIsProfileLoading, clearAll]);
 
-
+  // Effect for fetching Tenant data based on the user's profile
   useEffect(() => {
     if (!firestore || !tenantId) {
-        setTenantAndPlan({ tenant: null, plan: null });
-        setIsProfileLoading(false);
-        return;
+      setTenant(null);
+      return;
     }
-    
     setIsProfileLoading(true);
-    let unsubscribePlan: Unsubscribe | null = null;
-
     const tenantRef = doc(firestore, 'tenants', tenantId);
-    const unsubscribeTenant = onSnapshot(tenantRef, (tenantSnap) => {
-        // Clean up any previous plan listener when tenant data changes
-        if (unsubscribePlan) {
-            unsubscribePlan();
-            unsubscribePlan = null;
-        }
-
-        const tenantData = tenantSnap.exists() ? { ...tenantSnap.data(), id: tenantSnap.id } as Tenant : null;
-
-        if (tenantData?.planId) {
-            const planRef = doc(firestore, 'subscription_plans', tenantData.planId);
-            unsubscribePlan = onSnapshot(planRef, (planSnap) => {
-                const planData = planSnap.exists() ? { ...planSnap.data(), id: planSnap.id } as SubscriptionPlan : null;
-                setTenantAndPlan({ tenant: tenantData, plan: planData });
-                setIsProfileLoading(false);
-            });
-        } else {
-            // If there's no planId, update the store accordingly
-            setTenantAndPlan({ tenant: tenantData, plan: null });
-            setIsProfileLoading(false);
-        }
+    const unsubscribe = onSnapshot(tenantRef, (snap) => {
+      const tenantData = snap.exists() ? { ...snap.data(), id: snap.id } as Tenant : null;
+      setTenant(tenantData);
+      // Let the plan effect handle setting loading to false
     });
+    return () => unsubscribe();
+  }, [firestore, tenantId, setTenant, setIsProfileLoading]);
 
-    return () => {
-        unsubscribeTenant();
-        if (unsubscribePlan) {
-            unsubscribePlan();
-        }
-    };
-  }, [firestore, tenantId, setTenantAndPlan, setIsProfileLoading]);
+  // Effect for fetching Plan data, which depends on the tenant's planId
+  useEffect(() => {
+    if (!firestore || !planId) {
+      setPlan(null);
+      setIsProfileLoading(false); // If no planId, loading is finished
+      return;
+    }
+    // Loading is already true from the tenant effect
+    const planRef = doc(firestore, 'subscription_plans', planId);
+    const unsubscribe = onSnapshot(planRef, (snap) => {
+      const planData = snap.exists() ? { ...snap.data(), id: snap.id } as SubscriptionPlan : null;
+      setPlan(planData);
+      setIsProfileLoading(false); // Loading is complete once the plan is fetched (or not found)
+    });
+    return () => unsubscribe();
+  }, [firestore, planId, setPlan, setIsProfileLoading]);
+
 
   return <>{children}</>;
 }

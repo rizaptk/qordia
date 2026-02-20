@@ -25,7 +25,8 @@ export interface AuthState {
   // Actions
   setUser: (user: User | null) => void;
   setUserProfile: (userProfile: UserProfile | null) => void;
-  setTenantAndPlan: (data: { tenant: Tenant | null; plan: SubscriptionPlan | null; }) => void;
+  setTenant: (tenant: Tenant | null) => void;
+  setPlan: (plan: SubscriptionPlan | null) => void;
   setIsUserLoading: (isLoading: boolean) => void;
   setIsProfileLoading: (isLoading: boolean) => void;
   clearAll: () => void;
@@ -61,10 +62,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
   
-  setTenantAndPlan: ({ tenant, plan }) => {
+  setTenant: (tenant) => set({ tenant }),
+  
+  setPlan: (plan) => {
     const features = new Set(plan?.features || []);
     set({
-      tenant,
       plan,
       hasAnalyticsFeature: features.has('Analytics'),
     });
