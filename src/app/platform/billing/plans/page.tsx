@@ -147,7 +147,7 @@ export default function PlansPage() {
             </div>
 
             <Card>
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 grid grid-cols-1 w-full overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>

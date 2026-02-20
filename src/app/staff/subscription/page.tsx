@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc, Timestamp } from 'firebase/firestore';
 import type { SubscriptionPlan } from '@/lib/types';
@@ -8,7 +9,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Check, Gem } from 'lucide-react';
+import { Check, Gem, Table2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function SubscriptionPage() {
@@ -21,6 +22,11 @@ export default function SubscriptionPage() {
         [firestore]
     );
     const { data: plans, isLoading } = useCollection<SubscriptionPlan>(plansRef);
+
+    const sortedPlans = useMemo(() => {
+        if (!plans) return [];
+        return [...plans].sort((a, b) => a.price - b.price);
+    }, [plans]);
 
     const handleSubscribe = (plan: SubscriptionPlan) => {
         if (!firestore || !tenant) {
@@ -56,7 +62,7 @@ export default function SubscriptionPage() {
                 </CardHeader>
             </Card>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {plans?.map(plan => {
+                {sortedPlans?.map(plan => {
                     const isCurrent = plan.id === currentPlan?.id;
                     return (
                         <Card key={plan.id} className={cn(
@@ -78,6 +84,12 @@ export default function SubscriptionPage() {
                             </CardHeader>
                             <CardContent className="flex-grow">
                                 <ul className="space-y-2">
+                                    <li className="flex items-center gap-2">
+                                        <Table2 className="h-4 w-4 text-green-500" />
+                                        <span className="text-muted-foreground">
+                                            {plan.tableLimit === 0 || plan.tableLimit === undefined ? 'Unlimited tables' : `Up to ${plan.tableLimit} tables`}
+                                        </span>
+                                    </li>
                                     {plan.features.map(feature => (
                                         <li key={feature} className="flex items-center gap-2">
                                             <Check className="h-4 w-4 text-green-500" />
