@@ -101,3 +101,16 @@ export type ApiKey = {
     keyTruncated: string;
     createdAt: { seconds: number; nanoseconds: number; };
 }
+
+export type SupportTicket = {
+    id: string;
+    tenantId: string;
+    tenantName: string;
+    submittedByUid: string;
+    subject: string;
+    message: string;
+    priority: 'normal' | 'high' | 'urgent';
+    status: 'new' | 'in-progress' | 'resolved';
+    createdAt: { seconds: number; nanoseconds: number; };
+    resolvedAt?: { seconds: number; nanoseconds: number; };
+}

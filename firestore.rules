@@ -69,6 +69,11 @@ service cloud.firestore {
         // An invited user can update their own invitation (e.g., to accept/decline it).
         allow update: if isSignedIn() && request.auth.token.email == resource.data.email;
     }
+    
+    match /support_tickets/{ticketId} {
+      allow read, update: if isPlatformAdmin();
+      allow create: if isManagerOfTenant(request.resource.data.tenantId);
+    }
 
     // Tenant-specific sub-collections
     match /tenants/{tenantId}/menu_categories/{categoryId} {

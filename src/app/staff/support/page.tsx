@@ -11,6 +11,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Send } from 'lucide-react';
+import { useAuthStore } from '@/stores/auth-store';
+import { useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { collection, Timestamp } from 'firebase/firestore';
 
 const supportTicketSchema = z.object({
   subject: z.string().min(5, 'Subject must be at least 5 characters.'),
@@ -21,20 +24,48 @@ type SupportTicketFormValues = z.infer<typeof supportTicketSchema>;
 
 export default function PrioritySupportPage() {
     const { toast } = useToast();
+    const firestore = useFirestore();
+    const { user, tenant } = useAuthStore();
 
     const form = useForm<SupportTicketFormValues>({
         resolver: zodResolver(supportTicketSchema),
         defaultValues: { subject: '', priority: 'normal', message: '' },
     });
 
-    const onSubmit = (data: SupportTicketFormValues) => {
-        // Placeholder for submission logic
-        console.log('Support Ticket Submitted:', data);
-        toast({
-            title: 'Ticket Submitted',
-            description: 'Our support team has received your request and will get back to you shortly.',
-        });
-        form.reset();
+    const onSubmit = async (data: SupportTicketFormValues) => {
+        if (!firestore || !user || !tenant) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'You must be logged in to submit a ticket.'
+            });
+            return;
+        }
+
+        const newTicket = {
+            ...data,
+            tenantId: tenant.id,
+            tenantName: tenant.name,
+            submittedByUid: user.uid,
+            status: 'new',
+            createdAt: Timestamp.now(),
+        };
+
+        try {
+            await addDocumentNonBlocking(collection(firestore, 'support_tickets'), newTicket);
+            toast({
+                title: 'Ticket Submitted',
+                description: 'Our support team has received your request and will get back to you shortly.',
+            });
+            form.reset();
+        } catch (error) {
+            console.error('Error submitting ticket:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Submission Failed',
+                description: 'Could not submit your support ticket. Please try again.',
+            });
+        }
     };
 
   return (

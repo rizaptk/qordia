@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { LayoutGrid, Building2, Activity, CreditCard, LogOut, Loader2 } from "lucide-react";
+import { LayoutGrid, Building2, Activity, CreditCard, LogOut, Loader2, LifeBuoy } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -41,6 +41,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
     if (pathname.includes('/tenants')) return 'Tenant Management';
     if (pathname.includes('/monitoring')) return 'System Monitoring';
     if (pathname.includes('/billing')) return 'Billing & Subscriptions';
+    if (pathname.includes('/support')) return 'Support Tickets';
     return 'Platform Dashboard';
   }
 
@@ -95,6 +96,14 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
                 <Link href="/platform/billing">
                   <CreditCard />
                   <span className="group-data-[collapsible=icon]:hidden">Billing</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/platform/support")}>
+                <Link href="/platform/support">
+                  <LifeBuoy />
+                  <span className="group-data-[collapsible=icon]:hidden">Support</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

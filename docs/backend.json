@@ -176,6 +176,24 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["name", "keyPrefix", "keyTruncated", "createdAt"]
+    },
+    "SupportTicket": {
+      "title": "Support Ticket",
+      "type": "object",
+      "description": "A support request submitted by a tenant manager.",
+      "properties": {
+        "id": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "tenantName": { "type": "string" },
+        "submittedByUid": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "priority": { "type": "string", "enum": ["normal", "high", "urgent"] },
+        "status": { "type": "string", "enum": ["new", "in-progress", "resolved"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "resolvedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tenantId", "tenantName", "submittedByUid", "subject", "message", "priority", "status", "createdAt"]
     }
   },
   "auth": {
@@ -198,6 +216,10 @@
       {
         "path": "/invitations/{invitationId}",
         "definition": { "schema": { "$ref": "#/entities/Invitation" }, "description": "Pending and completed staff invitations." }
+      },
+      {
+        "path": "/support_tickets/{ticketId}",
+        "definition": { "schema": { "$ref": "#/entities/SupportTicket" }, "description": "Support tickets submitted by tenant managers." }
       },
       {
         "path": "/tenants/{tenantId}/locations/{locationId}",
