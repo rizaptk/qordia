@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users } from "lucide-react";
+import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -41,6 +41,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     userProfile,
     plan,
     isManager,
+    isBarista,
+    isService,
+    isCashier,
     hasAnalyticsFeature,
     hasAdvancedReportingFeature,
     hasPrioritySupportFeature,
@@ -56,7 +59,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   }, [isLoading, user, userProfile, router]);
   
   const getPageTitle = () => {
-    if (pathname.includes('/pds')) return 'Preparation Display';
+    if (pathname.includes('/pds')) return 'Kitchen Display System';
+    if (pathname.includes('/runner')) return 'Runner View';
+    if (pathname.includes('/cashier')) return 'Cashier Terminal';
     if (pathname.includes('/analytics')) return 'Analytics Dashboard';
     if (pathname.includes('/menu')) return 'Menu Management';
     if (pathname.includes('/tables')) return 'Table Management';
@@ -83,21 +88,45 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         <SidebarHeader>
           <div className="flex items-center gap-2">
              <div className="p-2 bg-primary rounded-lg">
-                <UtensilsCrossed className="w-6 h-6 text-primary-foreground" />
+                <ChefHat className="w-6 h-6 text-primary-foreground" />
              </div>
              <h2 className="text-lg font-bold font-headline">Qordia Staff</h2>
           </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
-                <Link href="/staff/pds">
-                <LayoutDashboard />
-                <span className="group-data-[collapsible=icon]:hidden">Prep Display</span>
-                </Link>
-            </SidebarMenuButton>
-            </SidebarMenuItem>
+            { (isManager || isBarista) && (
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
+                  <Link href="/staff/pds">
+                  <ChefHat />
+                  <span className="group-data-[collapsible=icon]:hidden">Kitchen Display</span>
+                  </Link>
+              </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            { (isManager || isService) && (
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/runner")}>
+                  <Link href="/staff/runner">
+                  <Truck />
+                  <span className="group-data-[collapsible=icon]:hidden">Runner View</span>
+                  </Link>
+              </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
+
+            { (isManager || isCashier) && (
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/cashier")}>
+                  <Link href="/staff/cashier">
+                  <Banknote />
+                  <span className="group-data-[collapsible=icon]:hidden">Cashier</span>
+                  </Link>
+              </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             
             {isManager && (
               <>

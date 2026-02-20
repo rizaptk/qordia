@@ -15,6 +15,9 @@ export interface AuthState {
   isAuthenticated: boolean;
   isManager: boolean;
   isPlatformAdmin: boolean;
+  isBarista: boolean;
+  isService: boolean;
+  isCashier: boolean;
   hasAnalyticsFeature: boolean;
   hasMenuCustomizationFeature: boolean;
   hasAdvancedReportingFeature: boolean;
@@ -41,6 +44,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   isAuthenticated: false,
   isManager: false,
   isPlatformAdmin: false,
+  isBarista: false,
+  isService: false,
+  isCashier: false,
   hasAnalyticsFeature: false,
   hasMenuCustomizationFeature: false,
   hasAdvancedReportingFeature: false,
@@ -60,6 +66,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       isAuthenticated: !!user,
       isManager: userProfile?.role === 'manager',
       isPlatformAdmin: userProfile?.role === 'platform_admin',
+      isBarista: userProfile?.role === 'barista',
+      isService: userProfile?.role === 'service',
+      isCashier: userProfile?.role === 'cashier',
       hasAnalyticsFeature: features.has('Analytics'),
       hasMenuCustomizationFeature: features.has('Menu Customization'),
       hasAdvancedReportingFeature: features.has('Advanced Reporting'),
