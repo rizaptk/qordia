@@ -4,11 +4,12 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ChefHat, BookOpen, Table2, BarChart3, Users, Cog } from 'lucide-react';
+import { ChefHat, BookOpen, Table2, BarChart3, Users, Cog, Gem } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function StaffDashboardPage() {
-    const { user, tenant, isLoading } = useAuthStore();
+    const { user, tenant, isLoading, hasAnalyticsFeature, hasCustomRolesFeature } = useAuthStore();
 
     const welcomeMessage = user ? `Welcome back, ${user.displayName || user.email?.split('@')[0]}!` : 'Welcome!';
     const shopName = tenant ? tenant.name : 'your business';
@@ -89,12 +90,59 @@ export default function StaffDashboardPage() {
                      <Button variant="outline" className="flex-col h-24" asChild>
                         <Link href="/staff/tables"><Table2 className="w-6 h-6 mb-2" />Manage Tables</Link>
                     </Button>
-                    <Button variant="outline" className="flex-col h-24" asChild>
-                        <Link href="/staff/analytics"><BarChart3 className="w-6 h-6 mb-2" />View Analytics</Link>
-                    </Button>
-                     <Button variant="outline" className="flex-col h-24" asChild>
-                        <Link href="/staff/roles"><Users className="w-6 h-6 mb-2" />Manage Staff</Link>
-                    </Button>
+                    
+                    {hasAnalyticsFeature ? (
+                        <Button variant="outline" className="flex-col h-24" asChild>
+                            <Link href="/staff/analytics"><BarChart3 className="w-6 h-6 mb-2" />View Analytics</Link>
+                        </Button>
+                    ) : (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="relative w-full h-24">
+                                    <Button variant="outline" className="flex-col h-24 w-full" disabled>
+                                        <BarChart3 className="w-6 h-6 mb-2" />
+                                        View Analytics
+                                    </Button>
+                                    <div className="absolute top-1 right-1 p-1 bg-yellow-400 rounded-full pointer-events-none">
+                                        <Gem className="w-3 h-3 text-white" />
+                                    </div>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>This is a premium feature.</p>
+                                <Button asChild variant="link" size="sm" className="p-0 h-auto text-primary">
+                                    <Link href="/staff/subscription">Upgrade to unlock</Link>
+                                </Button>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+
+                    {hasCustomRolesFeature ? (
+                         <Button variant="outline" className="flex-col h-24" asChild>
+                            <Link href="/staff/roles"><Users className="w-6 h-6 mb-2" />Manage Staff</Link>
+                        </Button>
+                    ) : (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="relative w-full h-24">
+                                    <Button variant="outline" className="flex-col h-24 w-full" disabled>
+                                        <Users className="w-6 h-6 mb-2" />
+                                        Manage Staff
+                                    </Button>
+                                     <div className="absolute top-1 right-1 p-1 bg-yellow-400 rounded-full pointer-events-none">
+                                        <Gem className="w-3 h-3 text-white" />
+                                    </div>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                <p>This is a premium feature.</p>
+                                <Button asChild variant="link" size="sm" className="p-0 h-auto text-primary">
+                                    <Link href="/staff/subscription">Upgrade to unlock</Link>
+                                </Button>
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
+                    
                      <Button variant="outline" className="flex-col h-24" asChild>
                         <Link href="/staff/settings"><Cog className="w-6 h-6 mb-2" />Shop Settings</Link>
                     </Button>
