@@ -1,11 +1,11 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useAuthStore } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useAuthStore } from '@/stores/auth-store';
 import { collection, doc } from 'firebase/firestore';
 import type { CustomRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
