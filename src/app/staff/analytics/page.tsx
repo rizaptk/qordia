@@ -10,35 +10,36 @@ import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
 import type { Order, OrderItem, MenuItem } from '@/lib/types';
 import { format } from 'date-fns';
-
-const TENANT_ID = 'qordiapro-tenant';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function AnalyticsPage() {
     const firestore = useFirestore();
+    const { tenant, isLoading: isAuthLoading } = useAuthStore();
+    const TENANT_ID = tenant?.id;
 
     // Fetch completed orders for revenue-based analytics
     const completedOrdersQuery = useMemoFirebase(() => 
-        firestore 
+        firestore && TENANT_ID
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`), 
             where('status', 'in', ['Served', 'Completed'])
           )
         : null, 
-        [firestore]
+        [firestore, TENANT_ID]
     );
     const { data: completedOrders, isLoading: isLoadingCompleted } = useCollection<Order>(completedOrdersQuery);
 
     // Fetch all orders for operational analytics (like peak hours)
     const allOrdersQuery = useMemoFirebase(() => 
-        firestore ? collection(firestore, `tenants/${TENANT_ID}/orders`) : null, 
-        [firestore]
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/orders`) : null, 
+        [firestore, TENANT_ID]
     );
     const { data: allOrders, isLoading: isLoadingAll } = useCollection<Order>(allOrdersQuery);
     
     // Fetch menu items to map IDs to names for best-sellers chart
     const menuItemsRef = useMemoFirebase(() =>
-        firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null,
-        [firestore]
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null,
+        [firestore, TENANT_ID]
     );
     const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 
@@ -109,7 +110,7 @@ export default function AnalyticsPage() {
 
     }, [completedOrders, allOrders, menuItems]);
     
-    const isLoading = isLoadingAll || isLoadingCompleted || isLoadingMenu;
+    const isLoading = isLoadingAll || isLoadingCompleted || isLoadingMenu || isAuthLoading;
 
     if (isLoading || !analyticsData) {
         return <div className="text-center text-muted-foreground py-16">Loading analytics...</div>;

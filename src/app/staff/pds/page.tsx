@@ -7,22 +7,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
-
-const TENANT_ID = 'qordiapro-tenant';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function PDSPage() {
     const firestore = useFirestore();
+    const { tenant, isLoading: isAuthLoading } = useAuthStore();
+    const TENANT_ID = tenant?.id;
 
     const ordersQuery = useMemoFirebase(() => 
-        firestore 
+        firestore && TENANT_ID
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`), 
             where('status', 'not-in', ['Completed', 'Served'])
           )
         : null, 
-        [firestore]
+        [firestore, TENANT_ID]
     );
-    const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+    const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
     const { placedOrders, inProgressOrders, readyOrders } = useMemo(() => {
         const placed = orders?.filter(o => o.status === 'Placed').sort((a,b) => (a.orderedAt.seconds || 0) - (b.orderedAt.seconds || 0)) ?? [];
@@ -31,7 +32,7 @@ export default function PDSPage() {
         return { placedOrders: placed, inProgressOrders: inProgress, readyOrders: ready };
     }, [orders]);
 
-    if (isLoading) {
+    if (isLoadingOrders || isAuthLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading orders...</div>
     }
 
@@ -45,7 +46,7 @@ export default function PDSPage() {
             <TabsContent value="new" className="flex-grow">
                  {placedOrders.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {placedOrders.map(order => <OrderTicket key={order.id} order={order} />)}
+                        {placedOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
                     <div className="text-center text-muted-foreground py-16">No new orders.</div>
@@ -54,7 +55,7 @@ export default function PDSPage() {
             <TabsContent value="preparing" className="flex-grow">
                 {inProgressOrders.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {inProgressOrders.map(order => <OrderTicket key={order.id} order={order} />)}
+                        {inProgressOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
                     <div className="text-center text-muted-foreground py-16">No orders in progress.</div>
@@ -63,7 +64,7 @@ export default function PDSPage() {
             <TabsContent value="ready" className="flex-grow">
                 {readyOrders.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {readyOrders.map(order => <OrderTicket key={order.id} order={order} />)}
+                        {readyOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
                     <div className="text-center text-muted-foreground py-16">No orders are ready for pickup.</div>

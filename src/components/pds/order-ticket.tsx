@@ -10,8 +10,6 @@ import { Clock, ArrowRight, Check } from "lucide-react";
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 
-const TENANT_ID = 'qordiapro-tenant';
-
 function formatTime(date: any) {
     if (!date) return '...';
     // Handle both Date objects and Firestore Timestamps
@@ -24,7 +22,7 @@ function formatTime(date: any) {
     return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-export function OrderTicket({ order }: { order: Order }) {
+export function OrderTicket({ order, tenantId }: { order: Order, tenantId: string }) {
   const [time, setTime] = useState(formatTime(order.orderedAt));
   const firestore = useFirestore();
 
@@ -37,7 +35,7 @@ export function OrderTicket({ order }: { order: Order }) {
 
   const handleNextStatus = () => {
     if (!firestore) return;
-    const orderRef = doc(firestore, `tenants/${TENANT_ID}/orders/${order.id}`);
+    const orderRef = doc(firestore, `tenants/${tenantId}/orders/${order.id}`);
 
     let nextStatus: Order['status'] | null = null;
     if (order.status === 'Placed') nextStatus = 'In Progress';
