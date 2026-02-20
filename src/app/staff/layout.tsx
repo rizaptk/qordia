@@ -3,10 +3,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, AlertTriangle } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const staffRoles = ['manager', 'barista', 'service'];
@@ -30,6 +30,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const {
     user,
@@ -41,45 +46,30 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     isProfileLoading,
   } = useAuthStore();
   
-  const isLoading = isUserLoading || isProfileLoading;
+  const isAuthorizing = isUserLoading || isProfileLoading;
   
   useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-    if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
+    if (!isAuthorizing && (!user || !userProfile || !staffRoles.includes(userProfile.role))) {
         router.replace('/login');
     }
-  }, [isLoading, user, userProfile, router]);
+  }, [isAuthorizing, user, userProfile, router]);
   
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
     if (pathname.includes('/analytics')) return 'Analytics Dashboard';
     if (pathname.includes('/menu')) return 'Menu Management';
     if (pathname.includes('/tables')) return 'Table Management';
+    if (pathname.includes('/subscription')) return 'Subscription';
     return 'Staff Portal';
   }
 
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="flex h-full items-center justify-center">
+  if (!isClient || isAuthorizing) {
+    return (
+        <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Verifying access...</p>
         </div>
-      );
-    }
-
-    if (!userProfile || !staffRoles.includes(userProfile.role)) {
-       return (
-        <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Redirecting...</p>
-        </div>
-      );
-    }
-    
-    return children;
+    );
   }
 
   return (
@@ -122,6 +112,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
+                 <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/subscription")}>
+                        <Link href="/staff/subscription">
+                        <CreditCard />
+                        <span className="group-data-[collapsible=icon]:hidden">Subscription</span>
+                        </Link>
+                    </SidebarMenuButton>
+                </SidebarMenuItem>
                 {hasAnalyticsFeature && (
                     <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
@@ -146,7 +144,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-3 pt-0">
-                         <Button variant="outline" size="sm" className="w-full">Upgrade Plan</Button>
+                         <Button asChild variant="outline" size="sm" className="w-full">
+                            <Link href="/staff/subscription">Upgrade Plan</Link>
+                        </Button>
                     </CardContent>
                 </Card>
             )}
@@ -188,7 +188,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {renderContent()}
+          {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
