@@ -83,3 +83,13 @@ export type CustomRole = {
   name: string;
   permissions: string[];
 };
+
+export type TenantInvitation = {
+    id: string;
+    tenantId: string;
+    tenantName: string;
+    email: string;
+    role: string;
+    status: 'pending' | 'accepted' | 'declined';
+    createdAt: { seconds: number; nanoseconds: number; };
+}

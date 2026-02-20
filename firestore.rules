@@ -11,17 +11,17 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.platform_admin == true;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
     function isStaffOfTenant(tenantId) {
-      let userData = getUserData();
+      let userData = getUserData(request.auth.uid);
       return isSignedIn() && userData.tenantId == tenantId && (userData.role == 'manager' || userData.role == 'barista' || userData.role == 'service' || userData.role == 'cashier');
     }
 
     function isManagerOfTenant(tenantId) {
-      let userData = getUserData();
+      let userData = getUserData(request.auth.uid);
       return isSignedIn() && userData.tenantId == tenantId && userData.role == 'manager';
     }
 
@@ -31,65 +31,68 @@ service cloud.firestore {
 
     // Rules for top-level collections
     match /tenants/{tenantId} {
-      allow read: if isStaffOfTenant(tenantId) || isPlatformAdmin();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid || isPlatformAdmin();
-      allow update, delete: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow get: if isStaffOfTenant(tenantId) || isPlatformAdmin();
       allow list: if isPlatformAdmin();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid || isPlatformAdmin();
+      allow update: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow delete: if isPlatformAdmin();
     }
 
     match /users/{userId} {
-      // A user can be read by its owner, a platform admin, or a manager of the same tenant.
-      allow get: if isOwner(userId) || isPlatformAdmin() || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager');
-      // Listing all users is restricted to platform admins to prevent data leakage.
+      allow get: if isOwner(userId) || isPlatformAdmin() || isManagerOfTenant(getUserData(userId).tenantId);
       allow list: if isPlatformAdmin();
-      // Users can update their own profile; platform admins can update any.
-      allow update: if isOwner(userId) || isPlatformAdmin();
       allow create: if isOwner(userId);
+      // Allow users to update their own profile, or managers to update profiles of users within their tenant, or admins to update any profile.
+      allow update: if isOwner(userId) || isPlatformAdmin() || (isManagerOfTenant(resource.data.tenantId));
       allow delete: if isPlatformAdmin();
     }
     
-    // Subscription plans can be read by any authenticated user (for UI purposes), but only managed by platform admin.
     match /subscription_plans/{planId} {
       allow read: if isSignedIn();
       allow write: if isPlatformAdmin();
     }
+    
+    match /invitations/{invitationId} {
+        // A manager can create an invitation for their own tenant.
+        allow create: if isManagerOfTenant(request.resource.data.tenantId);
+        
+        // A manager can view/delete invitations for their tenant. The invited user can view their own invitation.
+        allow read, delete: if isManagerOfTenant(resource.data.tenantId) || (isSignedIn() && request.auth.token.email == resource.data.email);
+        
+        // An invited user can update their own invitation (e.g., to accept it).
+        allow update: if isSignedIn() && request.auth.token.email == resource.data.email;
+    }
 
     // Tenant-specific sub-collections
-    match /tenants/{tenantId}/{document=**} {
-        // Platform Admins have full access to all tenant sub-collections
-        allow read, write: if isPlatformAdmin();
-    }
-    
-    // Menu data is public-readable for customers (including anonymous)
     match /tenants/{tenantId}/menu_categories/{categoryId} {
       allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId);
+      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/menu_items/{itemId} {
       allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId);
+      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/locations/{locationId} {
       allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId);
+      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/tables/{tableId} {
       allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId);
+      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
 
     // Orders can be created by any authenticated user (including anonymous), 
     // but only read/updated by the owner or tenant staff.
     match /tenants/{tenantId}/orders/{orderId} {
-      allow get, list: if isStaffOfTenant(tenantId) || (isSignedIn() && resource.data.customerId == request.auth.uid);
+      allow get, list: if isStaffOfTenant(tenantId) || (isSignedIn() && resource.data.customerId == request.auth.uid) || isPlatformAdmin();
       allow create: if isSignedIn();
-      allow update: if isStaffOfTenant(tenantId) || (isSignedIn() && resource.data.customerId == request.auth.uid);
-      allow delete: if isManagerOfTenant(tenantId);
+      allow update: if isStaffOfTenant(tenantId) || (isSignedIn() && resource.data.customerId == request.auth.uid) || isPlatformAdmin();
+      allow delete: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     
     // Custom roles can only be managed by the tenant manager.
     match /tenants/{tenantId}/roles/{roleId} {
-        allow read, write: if isManagerOfTenant(tenantId);
+        allow read, write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
   }
 }

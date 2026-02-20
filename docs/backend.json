@@ -148,6 +148,21 @@
         }
       },
       "required": ["name", "permissions"]
+    },
+    "Invitation": {
+      "title": "Invitation",
+      "type": "object",
+      "description": "An invitation for a user to join a tenant as a staff member.",
+      "properties": {
+        "id": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "tenantName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tenantId", "email", "role", "status"]
     }
   },
   "auth": {
@@ -166,6 +181,10 @@
       {
         "path": "/subscription_plans/{planId}",
         "definition": { "schema": { "$ref": "#/entities/SubscriptionPlan" }, "description": "Available subscription plans for tenants." }
+      },
+      {
+        "path": "/invitations/{invitationId}",
+        "definition": { "schema": { "$ref": "#/entities/Invitation" }, "description": "Pending and completed staff invitations." }
       },
       {
         "path": "/tenants/{tenantId}/locations/{locationId}",

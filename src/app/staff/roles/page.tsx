@@ -2,25 +2,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, useForm as useSubForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useAuthStore } from '@/stores/auth-store';
-import { collection, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
-import type { CustomRole, UserProfile } from '@/lib/types';
+import { collection, doc, updateDoc, arrayUnion, getDoc, query, where, Timestamp } from 'firebase/firestore';
+import type { CustomRole, UserProfile, TenantInvitation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, MoreHorizontal, UserPlus } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, UserPlus, Send, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -38,14 +38,13 @@ const roleSchema = z.object({
     message: "You must select at least one permission.",
   }),
 });
-
 type RoleFormValues = z.infer<typeof roleSchema>;
 
-const addUserSchema = z.object({
-    uid: z.string().min(1, "User ID cannot be empty."),
+const inviteUserSchema = z.object({
+    email: z.string().email("Please enter a valid email address."),
     role: z.string().min(1, "Please select a role."),
 });
-type AddUserFormValues = z.infer<typeof addUserSchema>;
+type InviteUserFormValues = z.infer<typeof inviteUserSchema>;
 
 
 export default function StaffManagementPage() {
@@ -60,11 +59,19 @@ export default function StaffManagementPage() {
 
     const TENANT_ID = tenant?.id;
 
+    // --- Data Fetching ---
     const rolesRef = useMemoFirebase(() =>
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/roles`) : null,
         [firestore, TENANT_ID]
     );
     const { data: customRoles, isLoading: isLoadingRoles } = useCollection<CustomRole>(rolesRef);
+
+    const invitationsRef = useMemoFirebase(() => 
+        firestore && TENANT_ID ? query(collection(firestore, 'invitations'), where('tenantId', '==', TENANT_ID), where('status', '==', 'pending')) : null,
+        [firestore, TENANT_ID]
+    );
+    const { data: pendingInvitations, isLoading: isLoadingInvites } = useCollection<TenantInvitation>(invitationsRef);
+
 
     useEffect(() => {
         if (!firestore || !tenant?.staffUids || tenant.staffUids.length === 0) {
@@ -93,14 +100,15 @@ export default function StaffManagementPage() {
         fetchStaff();
     }, [firestore, tenant, toast]);
 
+    // --- Forms ---
     const roleForm = useForm<RoleFormValues>({
         resolver: zodResolver(roleSchema),
         defaultValues: { name: '', permissions: [] },
     });
 
-     const addUserForm = useSubForm<AddUserFormValues>({
-      resolver: zodResolver(addUserSchema),
-      defaultValues: { uid: '', role: 'barista' }
+     const inviteUserForm = useForm<InviteUserFormValues>({
+      resolver: zodResolver(inviteUserSchema),
+      defaultValues: { email: '', role: 'barista' }
     });
 
     useEffect(() => {
@@ -111,9 +119,10 @@ export default function StaffManagementPage() {
         }
     }, [isRoleFormOpen, editingRole, roleForm]);
 
+
+    // --- Handlers ---
     const onRoleSubmit = async (data: RoleFormValues) => {
         if (!firestore || !TENANT_ID) return;
-        
         try {
              if (editingRole) {
                 const roleRef = doc(firestore, `tenants/${TENANT_ID}/roles`, editingRole.id);
@@ -130,45 +139,29 @@ export default function StaffManagementPage() {
         }
     };
     
-    const onAddUserSubmit = async (data: AddUserFormValues) => {
-      if (!firestore || !TENANT_ID) return;
+    const onInviteUserSubmit = async (data: InviteUserFormValues) => {
+        if (!firestore || !TENANT_ID || !tenant?.name) return;
 
-      const userDocRef = doc(firestore, 'users', data.uid);
-      const tenantDocRef = doc(firestore, 'tenants', TENANT_ID);
-
-      try {
-        // Update user's profile
-        await updateDoc(userDocRef, {
+        const newInvitation = {
             tenantId: TENANT_ID,
-            role: data.role
-        });
+            tenantName: tenant.name,
+            email: data.email.toLowerCase(),
+            role: data.role,
+            status: 'pending',
+            createdAt: Timestamp.now(),
+        };
 
-        // Add user's UID to the tenant's staff list
-        await updateDoc(tenantDocRef, {
-            staffUids: arrayUnion(data.uid)
-        });
-        
-        // Manually trigger a refresh of staff list
-        const newStaffMemberSnap = await getDoc(userDocRef);
-        if (newStaffMemberSnap.exists()) {
-            const newStaffMember = { id: newStaffMemberSnap.id, ...newStaffMemberSnap.data() } as UserProfile;
-            setStaff(currentStaff => [...currentStaff.filter(s => s.id !== newStaffMember.id), newStaffMember]);
+        try {
+            await addDocumentNonBlocking(collection(firestore, 'invitations'), newInvitation);
+            toast({
+                title: "Invitation Sent",
+                description: `${data.email} has been invited to join your team.`
+            });
+            inviteUserForm.reset();
+        } catch (error) {
+            console.error("Error sending invitation:", error);
+            toast({ variant: "destructive", title: "Invitation Failed", description: "Could not send the invitation." });
         }
-
-        toast({
-            title: "User Assigned",
-            description: `User has been assigned the ${data.role} role.`
-        });
-        addUserForm.reset();
-
-      } catch (error) {
-        console.error("Error assigning user role:", error);
-        toast({
-            variant: "destructive",
-            title: "Assignment Failed",
-            description: "Could not assign role to the user. Check the UID and permissions."
-        });
-      }
     }
 
     const handleDeleteRole = (roleId: string) => {
@@ -204,31 +197,31 @@ export default function StaffManagementPage() {
             <div className="grid md:grid-cols-2 gap-6">
               <Card>
                   <CardHeader>
-                      <CardTitle>Assign Role to User</CardTitle>
-                      <CardDescription>Assign a role to an existing user via their UID.</CardDescription>
+                      <CardTitle>Invite Staff Member</CardTitle>
+                      <CardDescription>Invite a new team member via their email address.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                      <Form {...addUserForm}>
-                          <form onSubmit={addUserForm.handleSubmit(onAddUserSubmit)} className="space-y-4">
+                      <Form {...inviteUserForm}>
+                          <form onSubmit={inviteUserForm.handleSubmit(onInviteUserSubmit)} className="space-y-4">
                               <FormField
-                                  control={addUserForm.control}
-                                  name="uid"
+                                  control={inviteUserForm.control}
+                                  name="email"
                                   render={({ field }) => (
                                       <FormItem>
-                                          <FormLabel>User ID (UID)</FormLabel>
+                                          <FormLabel>Staff Email</FormLabel>
                                           <FormControl>
-                                              <Input placeholder="Enter the user's Firebase UID" {...field} />
+                                              <Input type="email" placeholder="new.employee@example.com" {...field} />
                                           </FormControl>
                                           <FormMessage />
                                       </FormItem>
                                   )}
                               />
                               <FormField
-                                  control={addUserForm.control}
+                                  control={inviteUserForm.control}
                                   name="role"
                                   render={({ field }) => (
                                       <FormItem>
-                                          <FormLabel>Role</FormLabel>
+                                          <FormLabel>Assign Role</FormLabel>
                                           <Select onValueChange={field.onChange} value={field.value}>
                                               <FormControl>
                                                   <SelectTrigger>
@@ -245,9 +238,9 @@ export default function StaffManagementPage() {
                                       </FormItem>
                                   )}
                               />
-                              <Button type="submit" disabled={addUserForm.formState.isSubmitting}>
-                                  <UserPlus className="mr-2 h-4 w-4"/>
-                                  {addUserForm.formState.isSubmitting ? 'Assigning...' : 'Assign Role'}
+                              <Button type="submit" disabled={inviteUserForm.formState.isSubmitting}>
+                                  <Send className="mr-2 h-4 w-4"/>
+                                  {inviteUserForm.formState.isSubmitting ? 'Sending Invite...' : 'Send Invite'}
                               </Button>
                           </form>
                       </Form>
@@ -324,38 +317,65 @@ export default function StaffManagementPage() {
 
             <Separator />
             
-            <Card>
-                <CardHeader>
-                    <CardTitle>Current Staff</CardTitle>
-                    <CardDescription>All users assigned to your business.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Role</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoadingStaff ? (
-                                <TableRow><TableCell colSpan={3} className="text-center h-24">Loading staff...</TableCell></TableRow>
-                            ) : staff && staff.length > 0 ? (
-                                staff.map(user => (
-                                    <TableRow key={user.id}>
-                                        <TableCell className="font-medium">{user.name}</TableCell>
-                                        <TableCell>{user.email}</TableCell>
-                                        <TableCell><Badge>{user.role}</Badge></TableCell>
-                                    </TableRow>
-                                ))
-                            ) : (
-                                <TableRow><TableCell colSpan={3} className="text-center h-24">No staff members found.</TableCell></TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+            <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Current Staff</CardTitle>
+                        <CardDescription>All users assigned to your business.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Email</TableHead>
+                                    <TableHead>Role</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {isLoadingStaff ? (
+                                    <TableRow><TableCell colSpan={3} className="text-center h-24">Loading staff...</TableCell></TableRow>
+                                ) : staff && staff.length > 0 ? (
+                                    staff.map(user => (
+                                        <TableRow key={user.id}>
+                                            <TableCell className="font-medium">{user.name}</TableCell>
+                                            <TableCell>{user.email}</TableCell>
+                                            <TableCell><Badge>{user.role}</Badge></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={3} className="text-center h-24">No staff members found.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pending Invitations</CardTitle>
+                        <CardDescription>Invitations that have been sent but not yet accepted.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Email</TableHead><TableHead>Role</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {isLoadingInvites ? (
+                                     <TableRow><TableCell colSpan={2} className="text-center h-24">Loading invites...</TableCell></TableRow>
+                                ) : pendingInvitations && pendingInvitations.length > 0 ? (
+                                    pendingInvitations.map(invite => (
+                                        <TableRow key={invite.id}>
+                                            <TableCell>{invite.email}</TableCell>
+                                            <TableCell><Badge variant="outline">{invite.role}</Badge></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow><TableCell colSpan={2} className="text-center h-24">No pending invitations.</TableCell></TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
 
 
              <Dialog open={isRoleFormOpen} onOpenChange={closeRoleForm}>
