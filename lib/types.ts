@@ -52,6 +52,7 @@ export type Tenant = {
     planId?: string;
     subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';
     nextBillingDate?: { seconds: number; nanoseconds: number };
+    staffUids?: string[];
 }
 
 export type UserProfile = {
@@ -75,10 +76,42 @@ export type SubscriptionPlan = {
   name: string;
   price: number;
   features: string[];
-}
+  tableLimit?: number;
+};
 
 export type CustomRole = {
   id: string;
   name: string;
   permissions: string[];
 };
+
+export type TenantInvitation = {
+    id: string;
+    tenantId: string;
+    tenantName: string;
+    email: string;
+    role: string;
+    status: 'pending' | 'accepted' | 'declined';
+    createdAt: { seconds: number; nanoseconds: number; };
+}
+
+export type ApiKey = {
+    id: string;
+    name: string;
+    keyPrefix: string;
+    keyTruncated: string;
+    createdAt: { seconds: number; nanoseconds: number; };
+}
+
+export type SupportTicket = {
+    id: string;
+    tenantId: string;
+    tenantName: string;
+    submittedByUid: string;
+    subject: string;
+    message: string;
+    priority: 'normal' | 'high' | 'urgent';
+    status: 'new' | 'in-progress' | 'resolved';
+    createdAt: { seconds: number; nanoseconds: number; };
+    resolvedAt?: { seconds: number; nanoseconds: number; };
+}

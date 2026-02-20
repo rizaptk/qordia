@@ -18,12 +18,15 @@ export interface AuthState {
   isBarista: boolean;
   isService: boolean;
   isCashier: boolean;
+  tableLimit: number | null;
   hasAnalyticsFeature: boolean;
   hasMenuCustomizationFeature: boolean;
   hasAdvancedReportingFeature: boolean;
   hasPrioritySupportFeature: boolean;
   hasApiAccessFeature: boolean;
   hasCustomRolesFeature: boolean;
+  hasCashierRoleFeature: boolean;
+  hasServiceRoleFeature: boolean;
 
   setAuthData: (data: { 
     user: User | null, 
@@ -47,12 +50,15 @@ export const useAuthStore = create<AuthState>((set) => ({
   isBarista: false,
   isService: false,
   isCashier: false,
+  tableLimit: null,
   hasAnalyticsFeature: false,
   hasMenuCustomizationFeature: false,
   hasAdvancedReportingFeature: false,
   hasPrioritySupportFeature: false,
   hasApiAccessFeature: false,
   hasCustomRolesFeature: false,
+  hasCashierRoleFeature: false,
+  hasServiceRoleFeature: false,
   
   setIsLoading: (loading) => set({ isLoading: loading }),
 
@@ -69,12 +75,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       isBarista: userProfile?.role === 'barista',
       isService: userProfile?.role === 'service',
       isCashier: userProfile?.role === 'cashier',
+      tableLimit: plan?.tableLimit ?? null,
       hasAnalyticsFeature: features.has('Analytics'),
       hasMenuCustomizationFeature: features.has('Menu Customization'),
       hasAdvancedReportingFeature: features.has('Advanced Reporting'),
       hasPrioritySupportFeature: features.has('Priority Support'),
       hasApiAccessFeature: features.has('API Access'),
       hasCustomRolesFeature: features.has('Staff Roles'),
+      hasCashierRoleFeature: features.has('Cashier Role'),
+      hasServiceRoleFeature: features.has('Service Role'),
       isLoading: false, // We have all data, so we are done loading.
     });
   },

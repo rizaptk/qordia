@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -18,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { PlusCircle, QrCode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 type Table = {
     id: string;
@@ -32,7 +34,7 @@ type NewTableFormValues = z.infer<typeof newTableSchema>;
 
 export default function TableManagementPage() {
     const firestore = useFirestore();
-    const { tenant } = useAuthStore();
+    const { tenant, tableLimit } = useAuthStore();
     const TENANT_ID = tenant?.id;
 
     const { toast } = useToast();
@@ -59,6 +61,9 @@ export default function TableManagementPage() {
     const { data: activeOrders } = useCollection<Order>(activeOrdersQuery);
 
     const activeTableIds = new Set(activeOrders?.map(order => order.tableId));
+    const tableCount = tables?.length ?? 0;
+    const isLimitReached = tableLimit !== null && tableLimit !== 0 && tableCount >= tableLimit;
+
 
     const onAddNewTable = async (data: NewTableFormValues) => {
         if (!firestore || !TENANT_ID) return;
@@ -84,7 +89,7 @@ export default function TableManagementPage() {
             <div className="flex justify-end mb-4">
                 <Dialog>
                     <DialogTrigger asChild>
-                        <Button>
+                        <Button disabled={isLimitReached}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add New Table
                         </Button>
                     </DialogTrigger>
@@ -117,6 +122,18 @@ export default function TableManagementPage() {
                     </DialogContent>
                 </Dialog>
             </div>
+
+            {isLimitReached && (
+                 <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-md text-center">
+                    <p className="text-sm text-destructive-foreground">
+                        You have reached your limit of {tableLimit} tables.
+                    </p>
+                    <Button asChild variant="link" className="text-destructive-foreground h-auto p-0">
+                         <Link href="/staff/subscription">Please upgrade your plan to add more.</Link>
+                    </Button>
+                </div>
+            )}
+            
             <Card>
                 <CardHeader>
                     <CardTitle>Configured Tables</CardTitle>
@@ -128,7 +145,7 @@ export default function TableManagementPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {tables.sort((a,b) => a.tableNumber.localeCompare(b.tableNumber, undefined, {numeric: true})).map(table => {
                                 const isActive = activeTableIds.has(table.id);
-                                const qrData = encodeURIComponent(`${origin}/${TENANT_ID}/menu/${table.id}`);
+                                const qrData = encodeURIComponent(`${origin}/${TENANT_ID}/table/${table.id}`);
                                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
                                 return (

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -50,7 +50,7 @@ type InviteUserFormValues = z.infer<typeof inviteUserSchema>;
 export default function StaffManagementPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { user, tenant, hasCustomRolesFeature } = useAuthStore();
+    const { user, tenant, hasCustomRolesFeature, hasCashierRoleFeature, hasServiceRoleFeature } = useAuthStore();
     
     const [isRoleFormOpen, setIsRoleFormOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<CustomRole | null>(null);
@@ -120,6 +120,20 @@ export default function StaffManagementPage() {
     }, [isRoleFormOpen, editingRole, roleForm]);
 
 
+    // --- Role and Permission Computations ---
+    const availableBuiltInRoles = useMemo(() => {
+        const roles = [{id: 'manager', name: 'Manager'}, {id: 'barista', name: 'Barista'}];
+        if(hasServiceRoleFeature) roles.push({id: 'service', name: 'Service'});
+        if(hasCashierRoleFeature) roles.push({id: 'cashier', name: 'Cashier'});
+        return roles;
+    }, [hasServiceRoleFeature, hasCashierRoleFeature]);
+
+    const allRoles = useMemo(() => [
+        ...availableBuiltInRoles,
+        ...(customRoles || []).map(r => ({id: r.name, name: r.name}))
+    ], [availableBuiltInRoles, customRoles]);
+
+
     // --- Handlers ---
     const onRoleSubmit = async (data: RoleFormValues) => {
         if (!firestore || !TENANT_ID) return;
@@ -185,12 +199,6 @@ export default function StaffManagementPage() {
         setIsRoleFormOpen(false);
         setEditingRole(null);
     }
-    
-    const builtInRoles = ['manager', 'barista', 'service', 'cashier'];
-    const allRoles = [
-        ...builtInRoles.map(r => ({id: r, name: r.charAt(0).toUpperCase() + r.slice(1)})),
-        ...(customRoles || []).map(r => ({id: r.name, name: r.name}))
-    ];
 
     return (
         <div className="space-y-6">

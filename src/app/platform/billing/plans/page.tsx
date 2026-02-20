@@ -48,7 +48,8 @@ import Link from 'next/link';
 const planSchema = z.object({
   name: z.string().min(3, { message: "Plan name must be at least 3 characters." }),
   price: z.coerce.number().min(0, { message: "Price must be a non-negative number." }),
-  features: z.array(z.string()).refine(value => value.length > 0, {
+  tableLimit: z.coerce.number().int().min(0, { message: "Table limit must be 0 or a positive number." }),
+  features: z.array(z.string()).refine(value => value.some(item => item), {
     message: "You must select at least one feature.",
   }),
 });
@@ -69,7 +70,7 @@ export default function PlansPage() {
 
     const form = useForm<PlanFormValues>({
         resolver: zodResolver(planSchema),
-        defaultValues: { name: '', price: 0, features: [] },
+        defaultValues: { name: '', price: 0, tableLimit: 5, features: [] },
     });
 
     useEffect(() => {
@@ -78,11 +79,13 @@ export default function PlansPage() {
                 name: editingPlan.name,
                 price: editingPlan.price,
                 features: editingPlan.features,
+                tableLimit: editingPlan.tableLimit ?? 0,
             });
         } else {
             form.reset({
                 name: '',
                 price: 0,
+                tableLimit: 5,
                 features: [],
             });
         }
@@ -150,6 +153,7 @@ export default function PlansPage() {
                             <TableRow>
                                 <TableHead>Plan Name</TableHead>
                                 <TableHead>Price</TableHead>
+                                <TableHead>Table Limit</TableHead>
                                 <TableHead>Features</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -157,13 +161,14 @@ export default function PlansPage() {
                         <TableBody>
                             {isLoading ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">Loading plans...</TableCell>
+                                    <TableCell colSpan={5} className="h-24 text-center">Loading plans...</TableCell>
                                 </TableRow>
                             ) : plans && plans.length > 0 ? (
                                 plans.map(plan => (
                                     <TableRow key={plan.id}>
                                         <TableCell className="font-medium">{plan.name}</TableCell>
                                         <TableCell>${plan.price.toFixed(2)} / mo</TableCell>
+                                        <TableCell>{plan.tableLimit === 0 ? 'Unlimited' : plan.tableLimit}</TableCell>
                                         <TableCell className="max-w-xs truncate">{plan.features.join(', ')}</TableCell>
                                         <TableCell className="text-right">
                                             <AlertDialog>
@@ -203,7 +208,7 @@ export default function PlansPage() {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="h-24 text-center">No subscription plans found.</TableCell>
+                                    <TableCell colSpan={5} className="h-24 text-center">No subscription plans found.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
@@ -218,28 +223,44 @@ export default function PlansPage() {
                     </DialogHeader>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                            <FormField
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Plan Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="e.g., Pro Plan" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="price"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Monthly Price (USD)</FormLabel>
+                                            <FormControl>
+                                                <Input type="number" step="0.01" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                             <FormField
                                 control={form.control}
-                                name="name"
+                                name="tableLimit"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Plan Name</FormLabel>
+                                        <FormLabel>Table Limit</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="e.g., Pro Plan" {...field} />
+                                            <Input type="number" step="1" {...field} />
                                         </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="price"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Monthly Price (USD)</FormLabel>
-                                        <FormControl>
-                                            <Input type="number" step="0.01" {...field} />
-                                        </FormControl>
+                                        <FormDescription>Set the max number of tables. Use 0 for unlimited.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}

@@ -130,7 +130,8 @@
         "id": { "type": "string" },
         "name": { "type": "string" },
         "price": { "type": "number", "description": "Monthly price in USD." },
-        "features": { "type": "array", "items": { "type": "string" } }
+        "features": { "type": "array", "items": { "type": "string" } },
+        "tableLimit": { "type": "number", "description": "The maximum number of tables this plan allows. 0 for unlimited." }
       },
       "required": ["id", "name", "price"]
     },
