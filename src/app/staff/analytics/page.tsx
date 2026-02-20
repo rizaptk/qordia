@@ -6,7 +6,7 @@ import { PeakHoursChart } from "@/components/analytics/peak-hours-chart";
 import { SalesPerformanceChart } from "@/components/analytics/sales-performance-chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCollection, useMemoFirebase } from '@/firebase';
-import { useFirebase } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
 import type { Order, OrderItem, MenuItem } from '@/lib/types';
 import { format } from 'date-fns';
@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 const TENANT_ID = 'qordiapro-tenant';
 
 export default function AnalyticsPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
 
     // Fetch completed orders for revenue-based analytics
     const completedOrdersQuery = useMemoFirebase(() => 

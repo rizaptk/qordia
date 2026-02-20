@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Tenant } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 type UserProfile = { id: string };
 
 export default function PlatformDashboardPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
 
     const tenantsRef = useMemoFirebase(() => 
         firestore ? collection(firestore, 'tenants') : null, 

@@ -5,13 +5,13 @@ import type { Order } from "@/lib/types";
 import { OrderTicket } from "@/components/pds/order-ticket";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCollection, useMemoFirebase } from '@/firebase';
-import { useFirebase } from '@/firebase/provider';
+import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
 
 const TENANT_ID = 'qordiapro-tenant';
 
 export default function PDSPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
 
     const ordersQuery = useMemoFirebase(() => 
         firestore 

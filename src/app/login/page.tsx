@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,8 +6,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useUserClaims } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useAuthStore } from '@/stores/auth-store';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -17,7 +19,6 @@ import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Loader2 } from 'lucide-react';
 
-
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
   password: z.string().min(1, { message: "Password is required." }),
@@ -27,9 +28,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
-  const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
+  const { isAuthenticated, isManager, isPlatformAdmin, isUserLoading, isProfileLoading } = useAuthStore();
   const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -37,40 +37,36 @@ export default function LoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
+  const isLoading = isUserLoading || isProfileLoading;
+
   useEffect(() => {
-    // Don't redirect until we have a definitive auth state
-    if (isUserLoading || areClaimsLoading || !user) {
+    if (isLoading || !isAuthenticated) {
       return;
     }
 
-    if (claims) {
-      if (claims.platform_admin === true) {
-        router.replace('/platform');
-        return;
-      }
-      if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
-        router.replace('/staff');
-        return;
-      }
+    if (isPlatformAdmin) {
+      router.replace('/platform');
+      return;
+    }
+    if (isManager) { // This will now correctly use the role from the store
+      router.replace('/staff');
+      return;
     }
     
-    // Fallback for anyone else (customers, users with no role)
     router.replace('/');
     
-  }, [user, isUserLoading, claims, areClaimsLoading, router]);
+  }, [isAuthenticated, isManager, isPlatformAdmin, isLoading, router]);
 
   const handleEmailLogin = async (data: LoginFormValues) => {
     if (!auth) return;
     setAuthError(null);
     try {
         const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
-        // Check if the user's email is verified, but only if they used email/password provider.
         if (userCredential.user.providerData.some(p => p.providerId === 'password') && !userCredential.user.emailVerified) {
-          await auth.signOut(); // Log them out immediately
+          await auth.signOut();
           setAuthError('Please verify your email address before signing in. Check your inbox for a verification link.');
-          return; // Stop execution
+          return;
         }
-        // Successful sign-in will be handled by the useEffect
     } catch (error: any) {
         setAuthError(error.message);
     }
@@ -82,17 +78,14 @@ export default function LoginPage() {
     try {
         const provider = new GoogleAuthProvider();
         await signInWithPopup(auth, provider);
-        // Successful sign-in will be handled by the useEffect
     } catch(error: any) {
         setAuthError(error.message);
     }
   };
 
-  const isLoading = isUserLoading || areClaimsLoading;
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      { (isLoading || user) ? (
+      { isLoading || isAuthenticated ? (
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         ) : (
           <Card className="w-full max-w-sm">

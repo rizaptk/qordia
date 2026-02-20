@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
-import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -33,7 +32,7 @@ const newTableSchema = z.object({
 type NewTableFormValues = z.infer<typeof newTableSchema>;
 
 export default function TableManagementPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
     const { toast } = useToast();
     const [origin, setOrigin] = useState('');
     const form = useForm<NewTableFormValues>({

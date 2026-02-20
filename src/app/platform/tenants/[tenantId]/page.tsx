@@ -4,7 +4,7 @@ import { use, useEffect, useState } from 'react';
 import { useForm, useForm as useSubForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirebase, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, collection, query, where, Timestamp } from 'firebase/firestore';
 import type { Tenant, UserProfile, SubscriptionPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -41,7 +41,7 @@ type AddUserFormValues = z.infer<typeof addUserSchema>;
 
 export default function TenantDetailPage({ params }: { params: { tenantId: string } }) {
   const resolvedParams = use(params);
-  const { firestore } = useFirebase();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const tenantRef = useMemoFirebase(() => 

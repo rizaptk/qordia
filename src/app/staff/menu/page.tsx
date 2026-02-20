@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { MenuItem } from '@/lib/types';
-import { useCollection, useMemoFirebase, useFirebase } from '@/firebase';
+import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -18,7 +18,7 @@ import { doc } from 'firebase/firestore';
 const TENANT_ID = 'qordiapro-tenant';
 
 export default function MenuManagementPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
 

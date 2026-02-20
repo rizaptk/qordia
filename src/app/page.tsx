@@ -1,49 +1,41 @@
+
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useUserClaims } from '@/firebase';
+import { useAuthStore } from '@/stores/auth-store';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { QordiaLogo } from '@/components/logo';
 
 export default function Home() {
-  const { user, isUserLoading } = useUser();
-  const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
+  const { isAuthenticated, isManager, isPlatformAdmin, isUserLoading, isProfileLoading } = useAuthStore();
   
-  const isAuthenticating = isUserLoading || areClaimsLoading;
+  const isAuthenticating = isUserLoading || isProfileLoading;
 
   useEffect(() => {
-    // Wait until auth state is fully determined
     if (isAuthenticating) {
       return;
     }
 
-    // If no user is logged in, do nothing (stay on homepage).
-    if (!user) {
+    if (!isAuthenticated) {
       return;
     }
 
-    // If we have claims, redirect based on role.
-    if (claims) {
-      if (claims.platform_admin === true) {
-        router.replace('/platform');
-        return;
-      }
-      if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
-        router.replace('/staff');
-        return;
-      }
+    if (isPlatformAdmin) {
+      router.replace('/platform');
+      return;
     }
+    if (isManager) {
+      router.replace('/staff');
+      return;
+    }
+    
+    // If authenticated but not a manager or admin (e.g., customer or barista), stay on homepage.
+  }, [isAuthenticated, isManager, isPlatformAdmin, isAuthenticating, router]);
 
-    // If user is logged in but has no special role (i.e., is a customer), they stay on the homepage.
-  }, [user, claims, isAuthenticating, router]);
-
-
-  // Show a loader while we determine where the user should go, but only if a user is potentially logged in.
-  // This prevents the public homepage from flashing for logged-in users during redirect.
   if (isAuthenticating) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
@@ -53,7 +45,6 @@ export default function Home() {
     );
   }
 
-  // If not redirecting, show the public homepage.
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="flex h-16 items-center justify-between border-b px-4 md:px-6">

@@ -1,16 +1,14 @@
+
 "use client";
 
-import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { OrderStatusTracker } from '@/components/order/order-status-tracker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { useDoc, useMemoFirebase } from '@/firebase';
+import { useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { useFirebase } from '@/firebase/provider';
 import { Skeleton } from '@/components/ui/skeleton';
-
 
 const TENANT_ID = 'qordiapro-tenant';
 
@@ -23,7 +21,7 @@ const statusMessages = {
 };
 
 export default function OrderTrackingPage({ params }: { params: { orderId: string } }) {
-  const { firestore } = useFirebase();
+  const firestore = useFirestore();
 
   const orderRef = useMemoFirebase(
     () => (firestore ? doc(firestore, `tenants/${TENANT_ID}/orders`, params.orderId) : null),

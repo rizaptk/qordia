@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -13,12 +14,15 @@ import { ShoppingCart, Search, Trash2 } from "lucide-react";
 import { SuggestedItems } from "@/components/menu/suggested-items";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
-import { useCollection, useMemoFirebase, useUser, addDocumentNonBlocking, useFirebase, initiateAnonymousSignIn } from "@/firebase";
+import { useCollection, useMemoFirebase, addDocumentNonBlocking, useAuth, useFirestore } from "@/firebase";
 import { collection, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { CategoryChips } from "@/components/menu/category-chips";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth-store";
+import { signInAnonymously } from "firebase/auth";
+
 
 const TENANT_ID = 'qordiapro-tenant';
 
@@ -37,14 +41,14 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const { firestore, auth } = useFirebase();
-  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+  const auth = useAuth();
+  const { user, isUserLoading } = useAuthStore();
 
   useEffect(() => {
     // For customers, if they are not logged in, sign them in anonymously.
-    // This allows them to place orders without creating an account.
     if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
+      signInAnonymously(auth);
     }
   }, [auth, user, isUserLoading]);
 

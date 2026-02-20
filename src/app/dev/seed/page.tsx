@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useFirebase } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { doc, writeBatch, Timestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +13,7 @@ import Link from 'next/link';
 const TENANT_ID = 'qordiapro-tenant';
 
 export default function SeedPage() {
-  const { firestore } = useFirebase();
+  const firestore = useFirestore();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 

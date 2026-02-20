@@ -1,6 +1,6 @@
 'use client';
 
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Tenant, SubscriptionPlan } from '@/lib/types';
 import { format } from 'date-fns';
@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function BillingPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
 
     const tenantsRef = useMemoFirebase(() => 
         firestore ? collection(firestore, 'tenants') : null, 

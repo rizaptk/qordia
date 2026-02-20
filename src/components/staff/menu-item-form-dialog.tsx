@@ -4,8 +4,8 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@/lib/types';
 
@@ -67,7 +67,7 @@ type MenuItemFormDialogProps = {
 };
 
 export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categories }: MenuItemFormDialogProps) {
-  const { firestore } = useFirebase();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(formSchema),

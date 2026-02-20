@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { SubscriptionPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +28,7 @@ const newPlanSchema = z.object({
 type NewPlanFormValues = z.infer<typeof newPlanSchema>;
 
 export default function PlansPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
     const { toast } = useToast();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 

@@ -1,12 +1,12 @@
+
 'use client';
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useUser, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from 'firebase/firestore';
-import type { Tenant, SubscriptionPlan, UserProfile } from '@/lib/types';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut } from "lucide-react";
+import { useEffect } from "react";
+import { useAuthStore } from "@/stores/auth-store";
+import { useAuth } from '@/firebase';
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, AlertTriangle } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -21,57 +21,36 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
-  // --- ALL HOOKS ARE CALLED AT THE TOP LEVEL ---
-  const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { firestore, auth } = useFirebase();
-  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
 
-  const userProfileRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
-    [firestore, user]
-  );
-  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
+  const {
+    user,
+    userProfile,
+    plan,
+    isManager,
+    hasAnalyticsFeature,
+    isUserLoading,
+    isProfileLoading,
+  } = useAuthStore();
   
-  const tenantId = userProfile?.tenantId;
-
-  const tenantRef = useMemoFirebase(
-    () => (firestore && tenantId ? doc(firestore, 'tenants', tenantId) : null),
-    [firestore, tenantId]
-  );
-  const { data: tenant, isLoading: isLoadingTenant } = useDoc<Tenant>(tenantRef);
-
-  const planRef = useMemoFirebase(
-    () => (firestore && tenant?.planId ? doc(firestore, 'subscription_plans', tenant.planId) : null),
-    [firestore, tenant]
-  );
-  const { data: plan, isLoading: isLoadingPlan } = useDoc<SubscriptionPlan>(planRef);
-
-  const features = useMemo(() => new Set(plan?.features || []), [plan]);
-  
-  // --- DERIVED STATE AND EFFECTS ---
-  const isAuthorizing = isUserLoading || isLoadingProfile;
-  const isManager = userProfile?.role === 'manager';
-  const hasAnalyticsFeature = features.has('Analytics');
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isLoading = isUserLoading || isProfileLoading;
   
   useEffect(() => {
-    if (isAuthorizing || !isClient) return;
-
+    if (isLoading) {
+      return;
+    }
     if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
         router.replace('/login');
     }
-  }, [isAuthorizing, user, userProfile, router, isClient]);
+  }, [isLoading, user, userProfile, router]);
   
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -81,30 +60,28 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  // --- RENDER LOGIC ---
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+        <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Verifying access...</p>
+        </div>
+      );
+    }
 
-  // Show a loader while waiting for client-side hydration and authorization.
-  // This happens AFTER all hooks have been called, so it is safe.
-  if (!isClient || isAuthorizing) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">Verifying access...</p>
-      </div>
-    );
+    if (!userProfile || !staffRoles.includes(userProfile.role)) {
+       return (
+        <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Redirecting...</p>
+        </div>
+      );
+    }
+    
+    return children;
   }
-  
-  // If, after loading, the user is still not valid, show a loader while redirecting.
-  if (!userProfile || !staffRoles.includes(userProfile.role)) {
-    return (
-       <div className="flex h-screen items-center justify-center bg-background">
-         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-         <p className="ml-4 text-muted-foreground">Redirecting...</p>
-       </div>
-     );
-   }
 
-  // Only one stable return path for the main component structure.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -165,7 +142,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     <CardHeader className="p-3">
                          <CardTitle className="flex items-center gap-2 text-sm">
                             <Gem className="w-4 h-4 text-primary" />
-                            Current Plan: {isLoadingPlan ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name}
+                            Current Plan: {isProfileLoading ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name ?? '...'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-3 pt-0">
@@ -211,7 +188,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {children}
+          {renderContent()}
         </main>
       </SidebarInset>
     </SidebarProvider>

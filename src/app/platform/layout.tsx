@@ -1,10 +1,12 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useUser, useUserClaims } from "@/firebase";
-import { LayoutGrid, Building2, Activity, CreditCard, LogOut } from "lucide-react";
+import { useAuthStore } from "@/stores/auth-store";
+import { useAuth } from '@/firebase';
+import { LayoutGrid, Building2, Activity, CreditCard, LogOut, Loader2 } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -19,27 +21,23 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useAuth } from '@/firebase';
 
 export default function PlatformAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isUserLoading } = useUser();
-  const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const auth = useAuth();
-
-  const isPlatformAdmin = claims?.platform_admin === true;
+  const { user, isPlatformAdmin, isUserLoading, isProfileLoading } = useAuthStore();
+  
+  const isLoading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
-    if (isUserLoading || areClaimsLoading) {
+    if (isLoading) {
       return; 
     }
-
     if (!user || !isPlatformAdmin) {
       router.push('/login'); 
     }
-  }, [user, isUserLoading, claims, areClaimsLoading, isPlatformAdmin, router]);
-
+  }, [user, isPlatformAdmin, isLoading, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/tenants')) return 'Tenant Management';
@@ -48,10 +46,11 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
     return 'Platform Dashboard';
   }
 
-  if (isUserLoading || areClaimsLoading || !user || !isPlatformAdmin) {
+  if (isLoading || !user || !isPlatformAdmin) {
     return (
         <div className="flex h-screen items-center justify-center">
-            <p>Verifying admin access...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4">Verifying admin access...</p>
         </div>
     );
   }

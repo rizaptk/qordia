@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Clock, ArrowRight, Check } from "lucide-react";
-import { useFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
 
 const TENANT_ID = 'qordiapro-tenant';
@@ -26,7 +26,7 @@ function formatTime(date: any) {
 
 export function OrderTicket({ order }: { order: Order }) {
   const [time, setTime] = useState(formatTime(order.orderedAt));
-  const { firestore } = useFirebase();
+  const firestore = useFirestore();
 
   useEffect(() => {
     const timer = setInterval(() => {

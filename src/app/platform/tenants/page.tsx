@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, Timestamp } from 'firebase/firestore';
 import type { Tenant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ const newTenantSchema = z.object({
 type NewTenantFormValues = z.infer<typeof newTenantSchema>;
 
 export default function TenantManagementPage() {
-    const { firestore } = useFirebase();
+    const firestore = useFirestore();
     const { toast } = useToast();
     const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
