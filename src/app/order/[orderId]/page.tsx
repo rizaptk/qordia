@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from 'react';
+import { useMemo } from 'react';
 import type { Order } from '@/lib/types';
 import { OrderStatusTracker } from '@/components/order/order-status-tracker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,12 +23,11 @@ const statusMessages = {
 };
 
 export default function OrderTrackingPage({ params }: { params: { orderId: string } }) {
-  const resolvedParams = use(params as any);
   const { firestore } = useFirebase();
 
   const orderRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, `tenants/${TENANT_ID}/orders`, resolvedParams.orderId) : null),
-    [firestore, resolvedParams.orderId]
+    () => (firestore ? doc(firestore, `tenants/${TENANT_ID}/orders`, params.orderId) : null),
+    [firestore, params.orderId]
   );
   const { data: order, isLoading } = useDoc<Order>(orderRef);
 
@@ -60,7 +59,7 @@ export default function OrderTrackingPage({ params }: { params: { orderId: strin
             </div>
           ) : order ? (
             <>
-              <p className="text-center text-muted-foreground -mt-4">Order ID: #{resolvedParams.orderId}</p>
+              <p className="text-center text-muted-foreground -mt-4">Order ID: #{params.orderId}</p>
               <OrderStatusTracker currentStatus={currentStatus} />
               <div className="text-center bg-primary/10 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg text-primary">Status: {currentStatus}</h3>

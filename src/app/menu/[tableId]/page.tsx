@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, use } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { MenuItem } from "@/lib/types";
 import { getSuggestedItems } from "@/app/actions/suggest-items";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
@@ -23,8 +23,6 @@ import { cn } from "@/lib/utils";
 const TENANT_ID = 'qordiapro-tenant';
 
 export default function MenuPage({ params }: { params: { tableId: string } }) {
-  const resolvedParams = use(params as any);
-  
   const { cart, removeFromCart, clearCart, totalItems, totalPrice } = useCartStore();
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -112,7 +110,7 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
 
     const newOrder = {
         customerId: user.uid,
-        tableId: resolvedParams.tableId,
+        tableId: params.tableId,
         status: 'Placed' as const,
         totalAmount: cartTotal,
         orderedAt: Timestamp.now(),
@@ -178,7 +176,7 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
         <div className="min-h-screen bg-muted/30">
             <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-                    <div className="font-semibold">Table {resolvedParams.tableId}</div>
+                    <div className="font-semibold">Table {params.tableId}</div>
                     
                     {(cart?.length ?? 0) > 0 && (
                         <SheetTrigger asChild>
