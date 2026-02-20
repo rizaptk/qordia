@@ -29,14 +29,16 @@ To grant a user platform admin privileges, their Firebase Auth user record must 
 }
 ```
 
-### How to Set Custom Claims
+### How to Set Custom Claims for Platform Admins
 
-Setting custom claims is a **privileged, server-side operation**. It cannot be done from the client-side application for security reasons. This action requires the **Firebase Admin SDK**.
+Setting custom claims is a **privileged, server-side operation** used to grant special, system-wide permissions. It cannot be done from the client-side application for security reasons and requires the **Firebase Admin SDK**.
 
-#### Recommended Process:
-1.  **Identify the User's UID:** Get the unique Firebase UID of the user you want to make an admin. You can find this in the Firebase Console under the "Authentication" section.
+In Qordia, this process is **only required to create a Platform Admin**. Roles for regular staff and managers are handled automatically through their user profile in the database.
+
+#### To make a user a Platform Admin:
+1.  **Identify the User's UID:** Get the unique Firebase UID of the user from the Firebase Console's "Authentication" section.
 2.  **Use a Secure Server Environment:** Run a script in a secure environment (like your local machine with authenticated credentials or a secure cloud function) that uses the Firebase Admin SDK.
-3.  **Run the Script:** The script will programmatically set the custom claim for the specified user UID.
+3.  **Run the Script:** The script will programmatically set the `platform_admin` custom claim for the specified user UID.
 
 #### Conceptual Script Example (Node.js):
 This is a conceptual example. Do not run this directly in the app.
@@ -54,15 +56,10 @@ admin.initializeApp({
 // The UID of the user you want to make an admin
 const uid = 'USER_UID_TO_MAKE_ADMIN';
 
-// The custom claim payload
-const customClaims = {
-  platform_admin: true,
-};
-
 // Set the custom claim for the user
-admin.auth().setCustomUserClaims(uid, customClaims)
+admin.auth().setCustomUserClaims(uid, { platform_admin: true })
   .then(() => {
-    console.log(`Successfully set admin claim for user ${uid}`);
+    console.log(`Successfully set platform_admin claim for user ${uid}`);
     // The user will have the new role the next time they sign in and their ID token is refreshed.
   })
   .catch(error => {
@@ -70,7 +67,7 @@ admin.auth().setCustomUserClaims(uid, customClaims)
   });
 ```
 
-Once the claim is set, the user must sign out and sign back in for the new claim to be included in their ID token and for access to be granted.
+Once the claim is set, the user must sign out and sign back in for the new claim to be included in their ID token and for access to the Platform Admin area to be granted.
 
 ---
 

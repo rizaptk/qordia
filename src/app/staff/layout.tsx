@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import { useUser, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { Tenant, SubscriptionPlan, UserProfile } from '@/lib/types';
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut } from "lucide-react";
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const staffRoles = ['manager', 'barista', 'service'];
@@ -32,15 +32,15 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
-  const { claims, isLoading: areClaimsLoading } = useUserClaims();
 
+  // Get the user's profile from the database, which is now the source of truth for roles.
   const userProfileRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
   const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
   
-  const tenantId = claims?.tenantId || userProfile?.tenantId;
+  const tenantId = userProfile?.tenantId;
 
   const tenantRef = useMemoFirebase(
     () => (firestore && tenantId ? doc(firestore, 'tenants', tenantId) : null),
@@ -58,21 +58,37 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     setIsClient(true);
   }, []);
   
-  const roleFromClaims = claims?.role;
-  const roleFromDB = userProfile?.role;
+  const isAuthorizing = isUserLoading || isLoadingProfile;
   
-  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingProfile;
-  
-  const isAuthorizedByClaims = roleFromClaims && staffRoles.includes(roleFromClaims);
-  const isPotentiallyAuthorizedByDB = !isAuthorizedByClaims && roleFromDB && staffRoles.includes(roleFromDB);
-
   useEffect(() => {
     if (isAuthorizing) return;
 
-    if (!user || (!isAuthorizedByClaims && !isPotentiallyAuthorizedByDB)) {
+    // If there's no user, or the user's profile doesn't exist, or their role is not a staff role, redirect.
+    if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
         router.replace('/login');
     }
-  }, [isAuthorizing, user, isAuthorizedByClaims, isPotentiallyAuthorizedByDB, router]);
+  }, [isAuthorizing, user, userProfile, router]);
+  
+  if (!isClient || isAuthorizing) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Verifying access...</p>
+        </div>
+    );
+  }
+  
+  // After authorization check, if user is not a staff member, they will be redirected.
+  // We can return null or a loader here to prevent rendering the layout for unauthorized users
+  // before the redirect happens.
+  if (!userProfile || !staffRoles.includes(userProfile.role)) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Redirecting...</p>
+        </div>
+    );
+  }
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -82,49 +98,9 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  const isManager = roleFromClaims === 'manager';
+  const isManager = userProfile.role === 'manager';
   const features = useMemo(() => new Set(plan?.features || []), [plan]);
   const hasAnalyticsFeature = features.has('Analytics');
-  
-  if (!isClient) {
-    return null;
-  }
-  
-  if (isAuthorizing) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Verifying access...</p>
-        </div>
-    );
-  }
-
-  if (isPotentiallyAuthorizedByDB) {
-     return (
-        <div className="flex h-screen w-full items-center justify-center bg-background p-4">
-            <Card className="w-full max-w-lg text-center animate-fade-in-up">
-                <CardHeader>
-                    <CardTitle className="text-2xl font-bold">Almost There!</CardTitle>
-                    <CardDescription>Your manager account is ready, but your session needs to be refreshed to access all features.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground mb-6">
-                        To activate your manager permissions, please sign out and sign back in. This one-time step ensures your account is fully secure.
-                    </p>
-                    <Button size="lg" onClick={() => auth?.signOut()}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out Now
-                    </Button>
-                </CardContent>
-                <CardFooter>
-                     <p className="text-xs text-muted-foreground mx-auto">
-                        If you still see this screen after signing back in, your account permissions may need to be set by an administrator.
-                    </p>
-                </CardFooter>
-            </Card>
-        </div>
-    );
-  }
   
   return (
     <SidebarProvider>

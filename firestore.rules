@@ -11,12 +11,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.platform_admin == true;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isStaffOfTenant(tenantId) {
-      return isSignedIn() && request.auth.token.tenantId == tenantId && (request.auth.token.role == 'manager' || request.auth.token.role == 'barista' || request.auth.token.role == 'service');
+      let userData = getUserData();
+      return isSignedIn() && userData.tenantId == tenantId && (userData.role == 'manager' || userData.role == 'barista' || userData.role == 'service');
     }
 
     function isManagerOfTenant(tenantId) {
-      return isSignedIn() && request.auth.token.tenantId == tenantId && request.auth.token.role == 'manager';
+      let userData = getUserData();
+      return isSignedIn() && userData.tenantId == tenantId && userData.role == 'manager';
     }
 
     function isOwner(userId) {
