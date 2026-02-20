@@ -24,7 +24,7 @@ const tenantFormSchema = z.object({
 type TenantFormValues = z.infer<typeof tenantFormSchema>;
 
 export default function TenantDetailPage({ params }: { params: { tenantId: string } }) {
-  const resolvedParams = use(params as any);
+  const resolvedParams = use(params);
   const { firestore } = useFirebase();
   const { toast } = useToast();
 
@@ -42,6 +42,9 @@ export default function TenantDetailPage({ params }: { params: { tenantId: strin
 
   const form = useForm<TenantFormValues>({
     resolver: zodResolver(tenantFormSchema),
+    defaultValues: {
+      name: '',
+    },
   });
 
   useEffect(() => {
