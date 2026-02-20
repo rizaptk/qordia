@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -14,32 +15,32 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export default function AnalyticsPage() {
     const firestore = useFirestore();
-    const { tenant, isLoading: isAuthLoading } = useAuthStore();
+    const { user, tenant, isLoading: isAuthLoading } = useAuthStore();
     const TENANT_ID = tenant?.id;
 
     // Fetch completed orders for revenue-based analytics
     const completedOrdersQuery = useMemoFirebase(() => 
-        firestore && TENANT_ID
+        firestore && TENANT_ID && user
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`), 
             where('status', 'in', ['Served', 'Completed'])
           )
         : null, 
-        [firestore, TENANT_ID]
+        [firestore, TENANT_ID, user]
     );
     const { data: completedOrders, isLoading: isLoadingCompleted } = useCollection<Order>(completedOrdersQuery);
 
     // Fetch all orders for operational analytics (like peak hours)
     const allOrdersQuery = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/orders`) : null, 
-        [firestore, TENANT_ID]
+        firestore && TENANT_ID && user ? collection(firestore, `tenants/${TENANT_ID}/orders`) : null, 
+        [firestore, TENANT_ID, user]
     );
     const { data: allOrders, isLoading: isLoadingAll } = useCollection<Order>(allOrdersQuery);
     
     // Fetch menu items to map IDs to names for best-sellers chart
     const menuItemsRef = useMemoFirebase(() =>
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null,
-        [firestore, TENANT_ID]
+        firestore && TENANT_ID && user ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null,
+        [firestore, TENANT_ID, user]
     );
     const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 

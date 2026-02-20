@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -22,22 +23,24 @@ export default function StaffDashboardPage() {
     const shopName = tenant ? tenant.name : 'your business';
 
     // --- Data fetching ---
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
+    const { todayStart, todayEnd } = useMemo(() => {
+        const now = new Date();
+        return { todayStart: startOfDay(now), todayEnd: endOfDay(now) };
+    }, []);
 
     const activeOrdersQuery = useMemoFirebase(() =>
-      firestore && TENANT_ID
+      (firestore && TENANT_ID && user)
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`),
             where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])
           )
         : null,
-      [firestore, TENANT_ID]
+      [firestore, TENANT_ID, user]
     );
     const { data: activeOrders, isLoading: isLoadingActive } = useCollection<Order>(activeOrdersQuery);
     
     const todaysCompletedOrdersQuery = useMemoFirebase(() =>
-        firestore && TENANT_ID
+        (firestore && TENANT_ID && user)
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`),
             where('status', '==', 'Completed'),
@@ -45,12 +48,12 @@ export default function StaffDashboardPage() {
             where('orderedAt', '<=', Timestamp.fromDate(todayEnd))
         )
         : null,
-    [firestore, TENANT_ID, todayStart, todayEnd]);
+    [firestore, TENANT_ID, todayStart, todayEnd, user]);
     const { data: todaysCompletedOrders, isLoading: isLoadingRevenue } = useCollection<Order>(todaysCompletedOrdersQuery);
 
     const tablesQuery = useMemoFirebase(() =>
-      firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null,
-      [firestore, TENANT_ID]
+      (firestore && TENANT_ID && user) ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null,
+      [firestore, TENANT_ID, user]
     );
     const { data: tables, isLoading: isLoadingTables } = useCollection<{id: string}>(tablesQuery);
 
@@ -85,6 +88,10 @@ export default function StaffDashboardPage() {
                 </div>
             </div>
         )
+    }
+
+    if (!user) {
+        return null;
     }
 
     const RevenueCardContent = () => (
