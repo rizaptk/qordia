@@ -7,7 +7,8 @@ import { QordiaLogo } from '@/components/logo';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function Home() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isPlatformAdmin } = useAuthStore();
+  const dashboardUrl = isPlatformAdmin ? '/platform' : '/staff';
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -19,7 +20,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
              <Button asChild>
-                <Link href="/staff">Go to Dashboard</Link>
+                <Link href={dashboardUrl}>Go to Dashboard</Link>
              </Button>
           ) : (
             <>
