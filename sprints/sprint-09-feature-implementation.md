@@ -12,11 +12,11 @@ Implement the UI and logic for all subscription-based features defined in `src/l
 - [x] **Task 2: Build 'Custom Staff Roles' UI**
     - [x] Develop the UI on the `/staff/roles` page to allow managers to create, view, and manage custom roles within their tenant.
     - [x] Create a UI to assign users to these custom roles via an invitation system.
-- [ ] **Task 3: Build 'Advanced Reporting' UI**
+- [x] **Task 3: Build 'Advanced Reporting' UI**
     - [x] Replace the placeholder on the `/staff/reports` page with more detailed charts and data export options.
         - [x] Add a "Table Turnover" chart to show order counts per table.
         - [x] Add data export buttons for Orders and Sales data (UI only for now).
-- [ ] **Task 4: Build 'API Access' UI**
-    - [ ] Replace the placeholder on the `/staff/api` page with a UI to display and manage API keys.
-- [ ] **Task 5: Build 'Priority Support' UI**
-    - [ ] Replace the placeholder on the `/staff/support` page with a functional contact form for submitting support tickets.
+- [x] **Task 4: Build 'API Access' UI**
+    - [x] Replace the placeholder on the `/staff/api` page with a UI to display and manage API keys.
+- [x] **Task 5: Build 'Priority Support' UI**
+    - [x] Replace the placeholder on the `/staff/support` page with a functional contact form for submitting support tickets.
