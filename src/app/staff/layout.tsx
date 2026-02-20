@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const staffRoles = ['manager', 'barista', 'service'];
@@ -33,7 +33,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
 
-  // Get the user's profile from the database, which is now the source of truth for roles.
+  // --- All hooks are now at the top level ---
   const userProfileRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
@@ -54,41 +54,24 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   );
   const { data: plan, isLoading: isLoadingPlan } = useDoc<SubscriptionPlan>(planRef);
 
+  const features = useMemo(() => new Set(plan?.features || []), [plan]);
+  const hasAnalyticsFeature = features.has('Analytics');
+
   useEffect(() => {
     setIsClient(true);
   }, []);
   
   const isAuthorizing = isUserLoading || isLoadingProfile;
-  
-  useEffect(() => {
-    if (isAuthorizing) return;
+  const isManager = userProfile?.role === 'manager';
 
-    // If there's no user, or the user's profile doesn't exist, or their role is not a staff role, redirect.
+  useEffect(() => {
+    // This effect handles redirection but doesn't change the component structure
+    if (isAuthorizing || !isClient) return;
+
     if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
         router.replace('/login');
     }
-  }, [isAuthorizing, user, userProfile, router]);
-  
-  if (!isClient || isAuthorizing) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Verifying access...</p>
-        </div>
-    );
-  }
-  
-  // After authorization check, if user is not a staff member, they will be redirected.
-  // We can return null or a loader here to prevent rendering the layout for unauthorized users
-  // before the redirect happens.
-  if (!userProfile || !staffRoles.includes(userProfile.role)) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Redirecting...</p>
-        </div>
-    );
-  }
+  }, [isAuthorizing, user, userProfile, router, isClient]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -97,11 +80,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
   }
-
-  const isManager = userProfile.role === 'manager';
-  const features = useMemo(() => new Set(plan?.features || []), [plan]);
-  const hasAnalyticsFeature = features.has('Analytics');
   
+  // --- Single return path ---
   return (
     <SidebarProvider>
       <Sidebar>
@@ -208,7 +188,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-           {children}
+          {(!isClient || isAuthorizing) ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Verifying access...</p>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </SidebarInset>
     </SidebarProvider>
