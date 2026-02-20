@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
-import type { Tenant, SubscriptionPlan } from '@/lib/types';
+import type { Tenant, SubscriptionPlan, UserProfile } from '@/lib/types';
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut } from "lucide-react";
 import {
   SidebarProvider,
@@ -27,15 +27,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
-  // --- Hooks must be called at the top level and unconditionally ---
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
+
+  const userProfileRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
+    [firestore, user]
+  );
+  const { data: userProfile, isLoading: isLoadingProfile } = useDoc<UserProfile>(userProfileRef);
   
-  const tenantId = claims?.tenantId;
+  const tenantId = claims?.tenantId || userProfile?.tenantId;
 
   const tenantRef = useMemoFirebase(
     () => (firestore && tenantId ? doc(firestore, 'tenants', tenantId) : null),
@@ -49,28 +54,26 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   );
   const { data: plan, isLoading: isLoadingPlan } = useDoc<SubscriptionPlan>(planRef);
 
-  const features = useMemo(() => new Set(plan?.features || []), [plan]);
-  const hasAnalyticsFeature = features.has('Analytics');
-
-  const isStaff = claims?.role && staffRoles.includes(claims.role);
-  const isAuthorizing = isUserLoading || areClaimsLoading || (user && isLoadingTenant);
-
-  // This effect runs only on the client, after the initial render.
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
-  // This effect handles redirection logic.
+
+  const roleFromClaims = claims?.role;
+  const isClaimVerifiedStaff = roleFromClaims && staffRoles.includes(roleFromClaims);
+
+  const roleFromDB = userProfile?.role;
+  const isDBStaff = roleFromDB && staffRoles.includes(roleFromDB);
+
+  const isAuthorizing = isUserLoading || areClaimsLoading || (user && (isLoadingProfile || isLoadingTenant));
+
   useEffect(() => {
-    // Wait until we are on the client and all auth data is loaded.
     if (!isClient || isAuthorizing) {
       return; 
     }
-    // If not authorized, redirect to login.
-    if (!user || !isStaff) {
+    if (!user || (!isClaimVerifiedStaff && !isDBStaff)) {
       router.replace('/login'); 
     }
-  }, [user, isClient, isAuthorizing, isStaff, router]);
+  }, [user, isClient, isAuthorizing, isClaimVerifiedStaff, isDBStaff, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -79,9 +82,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
   }
+
+  const finalRole = roleFromClaims || roleFromDB;
+  const isManager = finalRole === 'manager';
+  const claimsAreSynced = !!roleFromClaims;
   
-  // To prevent hydration errors, we only render the complex layout on the client.
-  // The server renders a loader, which matches the initial client render before useEffect runs.
+  const features = useMemo(() => new Set(plan?.features || []), [plan]);
+  const hasAnalyticsFeature = features.has('Analytics');
+  
   if (!isClient) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -90,8 +98,25 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       </div>
     );
   }
+
+  // If the user is determined to be a manager from their DB profile but their
+  // auth claims haven't been updated yet, show a pending state. This prevents
+  // them from accessing routes they don't have Firestore permission for yet.
+  if (isManager && !claimsAreSynced && !isAuthorizing) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <h1 className="mt-6 text-2xl font-bold">Finalizing your manager account...</h1>
+        <p className="mt-2 max-w-md text-muted-foreground">
+          Your permissions are being securely provisioned on the backend. This can take a few minutes. Please try refreshing this page shortly.
+        </p>
+        <p className="mt-4 text-xs text-muted-foreground">
+          (For this to complete, your custom authentication claims must be set by an administrator.)
+        </p>
+      </div>
+    );
+  }
   
-  // On the client, we render the full layout, with a loader inside if we are still authorizing.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -114,7 +139,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </SidebarMenuButton>
             </SidebarMenuItem>
             
-            {claims?.role === 'manager' && (
+            {isManager && (
               <>
                 <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
@@ -147,7 +172,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="group-data-[collapsible=icon]:hidden space-y-4">
-            {claims?.role === 'manager' && (
+            {isManager && (
                 <Card className="bg-background/50">
                     <CardHeader className="p-3">
                          <CardTitle className="flex items-center gap-2 text-sm">
