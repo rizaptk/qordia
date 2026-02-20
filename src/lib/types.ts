@@ -76,7 +76,8 @@ export type SubscriptionPlan = {
   name: string;
   price: number;
   features: string[];
-}
+  tableLimit?: number;
+};
 
 export type CustomRole = {
   id: string;
@@ -114,3 +115,5 @@ export type SupportTicket = {
     createdAt: { seconds: number; nanoseconds: number; };
     resolvedAt?: { seconds: number; nanoseconds: number; };
 }
+
+    
