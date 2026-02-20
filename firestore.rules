@@ -16,19 +16,17 @@ service cloud.firestore {
     }
 
     function isStaffOfTenant(tenantId) {
-      if (request.auth == null) {
-        return false;
-      }
-      let userData = getUserData(request.auth.uid);
-      return userData.tenantId == tenantId && (userData.role == 'manager' || userData.role == 'barista' || userData.role == 'service' || userData.role == 'cashier');
+      // Checks if the user is signed in, belongs to the specified tenant, and has a valid staff role.
+      return isSignedIn() &&
+             getUserData(request.auth.uid).tenantId == tenantId &&
+             (getUserData(request.auth.uid).role in ['manager', 'barista', 'service', 'cashier']);
     }
 
     function isManagerOfTenant(tenantId) {
-      if (request.auth == null) {
-        return false;
-      }
-      let userData = getUserData(request.auth.uid);
-      return userData.tenantId == tenantId && userData.role == 'manager';
+      // Checks if the user is signed in, belongs to the specified tenant, and has the 'manager' role.
+      return isSignedIn() &&
+             getUserData(request.auth.uid).tenantId == tenantId &&
+             getUserData(request.auth.uid).role == 'manager';
     }
 
     function isOwner(userId) {
