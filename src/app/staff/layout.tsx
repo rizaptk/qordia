@@ -269,47 +269,45 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
       )}
       
       {/* The main content area */}
-      <div className={isManager ? '' : 'w-full'}>
-        <SidebarInset>
-            {isManager ? (
-                <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10">
-                    <div className="flex items-center gap-4">
-                        <SidebarTrigger className="md:hidden" />
-                        <h1 className="text-xl font-semibold hidden md:block">{getPageTitle()}</h1>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="icon" className="rounded-full">
-                            <Bell className="h-5 w-5" />
-                            <span className="sr-only">Notifications</span>
-                        </Button>
-                        <Link href="/">
-                        <Button variant="outline">
-                            Customer View
-                        </Button>
-                        </Link>
-                    </div>
-                </header>
-            ) : (
-                <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10 shrink-0">
-                    <Link href="#" className="flex items-center gap-2" prefetch={false}>
-                        <QordiaLogo className="w-8 h-8 text-primary" />
-                        <span className="text-lg font-semibold font-headline">Qordia</span>
-                    </Link>
-                    {user && (
-                    <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-                            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
-                                <LogOut className="h-5 w-5" />
-                            </Button>
-                        </div>
-                    )}
-                </header>
-            )}
-            <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-              {children}
-            </main>
-        </SidebarInset>
-      </div>
+      <SidebarInset>
+          {isManager ? (
+              <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10">
+                  <div className="flex items-center gap-4">
+                      <SidebarTrigger className="md:hidden" />
+                      <h1 className="text-xl font-semibold hidden md:block">{getPageTitle()}</h1>
+                  </div>
+                  <div className="flex items-center gap-4">
+                      <Button variant="ghost" size="icon" className="rounded-full">
+                          <Bell className="h-5 w-5" />
+                          <span className="sr-only">Notifications</span>
+                      </Button>
+                      <Link href="/">
+                      <Button variant="outline">
+                          Customer View
+                      </Button>
+                      </Link>
+                  </div>
+              </header>
+          ) : (
+              <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10 shrink-0">
+                  <Link href="#" className="flex items-center gap-2" prefetch={false}>
+                      <QordiaLogo className="w-8 h-8 text-primary" />
+                      <span className="text-lg font-semibold font-headline">Qordia</span>
+                  </Link>
+                  {user && (
+                  <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
+                          <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                              <LogOut className="h-5 w-5" />
+                          </Button>
+                      </div>
+                  )}
+              </header>
+          )}
+          <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
+            {children}
+          </main>
+      </SidebarInset>
     </SidebarProvider>
   );
 }
