@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from 'firebase/firestore';
-import type { Tenant, SubscriptionPlan } from '@/lib/types';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2 } from "lucide-react";
+import { doc, getDoc } from 'firebase/firestore';
+import type { Tenant, SubscriptionPlan, UserProfile } from '@/lib/types';
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2 } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -28,6 +28,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
+  const [authStatus, setAuthStatus] = useState<'pending' | 'authorized' | 'unauthorized'>('pending');
 
   const tenantId = claims?.tenantId;
 
@@ -47,21 +48,58 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   
   const hasAnalyticsFeature = features.has('Analytics');
 
-  const isManager = claims?.role === 'manager';
-  const isStaff = ['manager', 'barista', 'service'].includes(claims?.role || '');
+  useEffect(() => {
+    const authorize = async () => {
+      if (isUserLoading || areClaimsLoading) return; // Wait until auth state is settled
+
+      if (!user) {
+        setAuthStatus('unauthorized');
+        return;
+      }
+
+      // Check 1: Custom Claims (fastest path for returning users)
+      const userIsStaffViaClaims = claims && ['manager', 'barista', 'service'].includes(claims.role || '');
+      if (userIsStaffViaClaims) {
+        setAuthStatus('authorized');
+        return;
+      }
+      
+      // If claims are loaded but don't show a staff role, it might be a customer.
+      if (!areClaimsLoading && claims) {
+          setAuthStatus('unauthorized');
+          return;
+      }
+
+      // Check 2: Database fallback (for new users on their very first login)
+      if (firestore && !claims) { // Only do DB check if claims are not yet populated
+          try {
+              const userDocRef = doc(firestore, 'users', user.uid);
+              const userDocSnap = await getDoc(userDocRef);
+              if (userDocSnap.exists()) {
+                  const userRole = userDocSnap.data().role;
+                  const userIsStaffViaDb = ['manager', 'barista', 'service'].includes(userRole);
+                  if (userIsStaffViaDb) {
+                      setAuthStatus('authorized');
+                      return;
+                  }
+              }
+          } catch (error) {
+              console.error("Staff layout: DB authorization check failed:", error);
+          }
+      }
+
+      // If all checks fail, the user is not authorized.
+      setAuthStatus('unauthorized');
+    };
+
+    authorize();
+  }, [user, isUserLoading, claims, areClaimsLoading, firestore]);
 
   useEffect(() => {
-    // This effect handles redirection based on auth state and claims.
-    if (isUserLoading || areClaimsLoading) {
-      return; // Don't redirect until loading is complete.
+    if (authStatus === 'unauthorized') {
+      router.push('/login'); // Redirect to login page to break the loop
     }
-
-    if (!user) {
-      router.push('/login'); // Not authenticated.
-    } else if (!isStaff) {
-      router.push('/'); // Authenticated, but not a staff member.
-    }
-  }, [user, isUserLoading, claims, areClaimsLoading, isStaff, router]);
+  }, [authStatus, router]);
 
 
   const getPageTitle = () => {
@@ -72,13 +110,19 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (isUserLoading || areClaimsLoading || !user || !isStaff || isLoadingTenant || isLoadingPlan) {
-    // Show a loading screen while we verify auth/claims or during redirection.
+  // Show a loading screen while we verify auth/claims.
+  if (authStatus === 'pending' || isLoadingTenant || isLoadingPlan) {
     return (
         <div className="flex h-screen items-center justify-center">
-            <p>Authenticating...</p>
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4">Authenticating...</p>
         </div>
     );
+  }
+  
+  if (authStatus !== 'authorized' || !user) {
+    // This will be shown briefly during the redirect
+    return null;
   }
   
   // If we reach here, user is authenticated and authorized staff.
@@ -95,45 +139,39 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            {isStaff && (
+            <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
+                <Link href="/staff/pds">
+                <LayoutDashboard />
+                <span className="group-data-[collapsible=icon]:hidden">Prep Display</span>
+                </Link>
+            </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
+                <Link href="/staff/menu">
+                <BookOpen />
+                <span className="group-data-[collapsible=icon]:hidden">Menu</span>
+                </Link>
+            </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
+                <Link href="/staff/tables">
+                <Table2 />
+                <span className="group-data-[collapsible=icon]:hidden">Tables</span>
+                </Link>
+            </SidebarMenuButton>
+            </SidebarMenuItem>
+            {hasAnalyticsFeature && (
                 <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
-                    <Link href="/staff/pds">
-                    <LayoutDashboard />
-                    <span className="group-data-[collapsible=icon]:hidden">Prep Display</span>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
+                    <Link href="/staff/analytics">
+                    <BarChart3 />
+                    <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
-            )}
-            {isManager && (
-                <>
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
-                        <Link href="/staff/menu">
-                        <BookOpen />
-                        <span className="group-data-[collapsible=icon]:hidden">Menu</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
-                        <Link href="/staff/tables">
-                        <Table2 />
-                        <span className="group-data-[collapsible=icon]:hidden">Tables</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    {hasAnalyticsFeature && (
-                        <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
-                            <Link href="/staff/analytics">
-                            <BarChart3 />
-                            <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    )}
-                </>
             )}
           </SidebarMenu>
         </SidebarContent>
