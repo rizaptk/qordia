@@ -44,6 +44,12 @@ export type OrderItem = {
     specialNotes: string;
 }
 
+export type Tenant = {
+    id: string;
+    name: string;
+    createdAt: { seconds: number; nanoseconds: number };
+}
+
 export type AnalyticsData = {
   bestSellers: { item: string, sales: number }[];
   peakHours: { hour: string, orders: number }[];
