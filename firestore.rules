@@ -80,27 +80,25 @@ service cloud.firestore {
       allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/locations/{locationId} {
-      allow read, write: if isStaffOfTenant(tenantId) || isPlatformAdmin();
+      allow read: if isStaffOfTenant(tenantId) || isPlatformAdmin();
+      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/tables/{tableId} {
       allow read: if true; // Publicly readable for QR code scanning
       allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
-
-    // Orders can be created by any authenticated user (including anonymous), 
-    // but only read/updated by the owner or tenant staff.
     match /tenants/{tenantId}/orders/{orderId} {
-      // Customers should only be able to read their own orders. Staff can read all.
       allow get: if isStaffOfTenant(tenantId) || isPlatformAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
       allow list: if isStaffOfTenant(tenantId) || isPlatformAdmin();
-      allow create: if isSignedIn(); // Let any signed-in user create an order
+      allow create: if isSignedIn();
       allow update: if isStaffOfTenant(tenantId) || isPlatformAdmin() || (isSignedIn() && resource.data.customerId == request.auth.uid);
       allow delete: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
-    
-    // Custom roles can only be managed by the tenant manager.
     match /tenants/{tenantId}/roles/{roleId} {
-        allow read, write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow read, write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+    }
+    match /tenants/{tenantId}/api_keys/{apiKeyId} {
+      allow read, write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
   }
 }

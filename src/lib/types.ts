@@ -93,3 +93,11 @@ export type TenantInvitation = {
     status: 'pending' | 'accepted' | 'declined';
     createdAt: { seconds: number; nanoseconds: number; };
 }
+
+export type ApiKey = {
+    id: string;
+    name: string;
+    keyPrefix: string;
+    keyTruncated: string;
+    createdAt: { seconds: number; nanoseconds: number; };
+}

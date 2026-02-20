@@ -4,6 +4,12 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useAuthStore } from '@/stores/auth-store';
+import { collection, doc, Timestamp } from 'firebase/firestore';
+import type { ApiKey } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,64 +18,63 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { PlusCircle, KeyRound, Copy, Trash2, Check } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
 const generateKeySchema = z.object({
   name: z.string().min(3, 'Key name must be at least 3 characters.'),
 });
 type GenerateKeyFormValues = z.infer<typeof generateKeySchema>;
 
-type ApiKey = {
-  id: string;
-  name: string;
-  key: string;
-  createdAt: string;
-};
-
-// Mock initial data
-const initialKeys: ApiKey[] = [
-  {
-    id: '1',
-    name: 'POS Integration Key',
-    key: 'qordia_live_sk_xxxxxx_xxxxxx_pos1',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toLocaleDateString(),
-  },
-  {
-    id: '2',
-    name: 'Analytics Service Key',
-    key: 'qordia_live_sk_xxxxxx_xxxxxx_anly2',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toLocaleDateString(),
-  },
-];
 
 export default function ApiAccessPage() {
-  const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
+  const { tenant } = useAuthStore();
+  const firestore = useFirestore();
+  const TENANT_ID = tenant?.id;
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newKey, setNewKey] = useState<string | null>(null);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const apiKeysRef = useMemoFirebase(() => 
+    firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/api_keys`) : null,
+    [firestore, TENANT_ID]
+  );
+  const { data: keys, isLoading } = useCollection<ApiKey>(apiKeysRef);
 
   const form = useForm<GenerateKeyFormValues>({
     resolver: zodResolver(generateKeySchema),
     defaultValues: { name: '' },
   });
 
-  const handleGenerateKey = (data: GenerateKeyFormValues) => {
-    // This is a placeholder for actual key generation
-    const generatedKey = `qordia_live_sk_${Math.random().toString(36).substring(2, 8)}_${Math.random().toString(36).substring(2, 8)}`;
-    setNewKey(generatedKey);
-    const newApiKey: ApiKey = {
-      id: (keys.length + 1).toString(),
+  const handleGenerateKey = async (data: GenerateKeyFormValues) => {
+    if (!firestore || !TENANT_ID) return;
+
+    // This is a placeholder for actual key generation on a server
+    const generatedKey = `qordia_live_sk_${[...Array(24)].map(() => Math.random().toString(36)[2]).join('')}`;
+    const keyPrefix = generatedKey.slice(0, 15); // e.g., qordia_live_sk_
+    const keyTruncated = generatedKey.slice(-4);
+    
+    const newApiKeyData = {
       name: data.name,
-      key: `qordia_live_sk_xxxxxx_xxxxxx_${Math.random().toString(36).substring(2, 6)}`,
-      createdAt: new Date().toLocaleDateString(),
+      keyPrefix,
+      keyTruncated,
+      createdAt: Timestamp.now(),
     };
-    setKeys(prev => [newApiKey, ...prev]);
-    form.reset();
+
+    try {
+        await addDocumentNonBlocking(collection(firestore, `tenants/${TENANT_ID}/api_keys`), newApiKeyData);
+        setNewKey(generatedKey);
+        form.reset();
+    } catch (error) {
+        console.error("Error generating API key:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not generate API key.' });
+    }
   };
   
   const handleRevokeKey = (keyId: string) => {
-    setKeys(prev => prev.filter(key => key.id !== keyId));
+    if (!firestore || !TENANT_ID) return;
+    const keyRef = doc(firestore, `tenants/${TENANT_ID}/api_keys`, keyId);
+    deleteDocumentNonBlocking(keyRef);
     toast({ title: 'API Key Revoked', description: 'The key has been successfully revoked and can no longer be used.' });
   };
   
@@ -141,7 +146,9 @@ export default function ApiAccessPage() {
                                         )}
                                     />
                                     <DialogFooter>
-                                        <Button type="submit" className="w-full">Generate Key</Button>
+                                        <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                                          {form.formState.isSubmitting ? 'Generating...' : 'Generate Key'}
+                                        </Button>
                                     </DialogFooter>
                                 </form>
                             </Form>
@@ -166,13 +173,17 @@ export default function ApiAccessPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {keys.length > 0 ? keys.map(key => (
+                        {isLoading ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center">Loading keys...</TableCell>
+                            </TableRow>
+                        ) : keys && keys.length > 0 ? keys.map(key => (
                             <TableRow key={key.id}>
                                 <TableCell className="font-medium">{key.name}</TableCell>
                                 <TableCell>
-                                    <code className="font-mono text-sm">{key.key}</code>
+                                    <code className="font-mono text-sm">{key.keyPrefix}....{key.keyTruncated}</code>
                                 </TableCell>
-                                <TableCell>{key.createdAt}</TableCell>
+                                <TableCell>{new Date(key.createdAt.seconds * 1000).toLocaleDateString()}</TableCell>
                                 <TableCell className="text-right">
                                     <AlertDialog>
                                         <AlertDialogTrigger asChild>
