@@ -40,7 +40,10 @@ export default function SeedPage() {
       const tenantRef = doc(firestore, 'tenants', TENANT_ID);
       batch.set(tenantRef, {
         name: 'Qordia Cafe (Test)',
+        ownerId: 'test-owner', // Add a placeholder ownerId
         createdAt: Timestamp.now(),
+        planId: 'plan_basic',
+        subscriptionStatus: 'trialing',
       });
 
       // 2. Seed Menu Categories from unique categories in menuItems
@@ -57,15 +60,30 @@ export default function SeedPage() {
         });
       });
       
-      // Also seed tables
+      // 3. Seed tables
       const tableRef = doc(firestore, `tenants/${TENANT_ID}/tables`, '12');
       batch.set(tableRef, {
         tableNumber: '12',
         qrCodeIdentifier: 'qordia-table-12',
       });
 
+      // 4. Seed Subscription Plans
+      const basicPlanRef = doc(firestore, 'subscription_plans', 'plan_basic');
+      batch.set(basicPlanRef, {
+        name: 'Basic',
+        price: 19,
+        features: ['Analytics'],
+      });
 
-      // 3. Seed Menu Items
+      const proPlanRef = doc(firestore, 'subscription_plans', 'plan_pro');
+      batch.set(proPlanRef, {
+        name: 'Pro',
+        price: 49,
+        features: ['Analytics', 'Advanced Reporting', 'Priority Support'],
+      });
+
+
+      // 5. Seed Menu Items
       menuItems.forEach((item) => {
         const itemRef = doc(firestore, `tenants/${TENANT_ID}/menu_items`, item.id);
         const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image);
@@ -110,7 +128,7 @@ export default function SeedPage() {
         <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
                 This action will populate the Firestore database with initial test data for a single tenant ({TENANT_ID}). 
-                This includes a tenant document, menu categories, a sample table, and menu items. 
+                This includes a tenant, menu categories, a sample table, subscription plans, and menu items.
                 Do not run this in a production environment.
             </p>
           <Button onClick={handleSeedData} disabled={isLoading || !firestore} className="w-full">
