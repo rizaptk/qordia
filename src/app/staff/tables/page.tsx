@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { PlusCircle, QrCode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { Progress } from '@/components/ui/progress';
 
 type Table = {
     id: string;
@@ -85,8 +86,32 @@ export default function TableManagementPage() {
     };
 
     return (
-        <>
-            <div className="flex justify-end mb-4">
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Table Quota</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {tableLimit === null ? (
+                        <p className="text-muted-foreground">Loading quota...</p>
+                    ) : tableLimit === 0 ? (
+                        <p className="text-lg font-medium">You have <span className="text-primary">unlimited</span> tables.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            <p className="text-muted-foreground">
+                                You have used <span className="font-bold text-foreground">{tableCount}</span> of your <span className="font-bold text-foreground">{tableLimit}</span> available tables.
+                            </p>
+                            <Progress value={(tableCount / tableLimit) * 100} />
+                            <p className="text-sm font-medium">
+                                {tableLimit - tableCount} tables remaining.
+                            </p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            
+            <div className="flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Configured Tables</h1>
                 <Dialog>
                     <DialogTrigger asChild>
                         <Button disabled={isLimitReached}>
@@ -124,7 +149,7 @@ export default function TableManagementPage() {
             </div>
 
             {isLimitReached && (
-                 <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-md text-center">
+                 <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md text-center">
                     <p className="text-sm text-destructive-foreground">
                         You have reached your limit of {tableLimit} tables.
                     </p>
@@ -135,10 +160,7 @@ export default function TableManagementPage() {
             )}
             
             <Card>
-                <CardHeader>
-                    <CardTitle>Configured Tables</CardTitle>
-                </CardHeader>
-                <CardContent>
+                <CardContent className="pt-6">
                     {isLoadingTables ? (
                         <p className="text-muted-foreground">Loading tables...</p>
                     ) : tables && tables.length > 0 ? (
@@ -186,8 +208,6 @@ export default function TableManagementPage() {
                     )}
                 </CardContent>
             </Card>
-        </>
+        </div>
     );
 }
-
-    
