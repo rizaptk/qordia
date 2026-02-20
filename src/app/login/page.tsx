@@ -29,7 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
-  const { isAuthenticated, isManager, isPlatformAdmin, isLoading } = useAuthStore();
+  const { isAuthenticated, isManager, isPlatformAdmin, isBarista, isService, isCashier, isLoading } = useAuthStore();
   const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
@@ -42,18 +42,32 @@ export default function LoginPage() {
       return;
     }
 
+    // Redirect based on role priority
     if (isPlatformAdmin) {
       router.replace('/platform');
       return;
     }
-    if (isManager) { // This will now correctly use the role from the store
-      router.replace('/staff');
+    if (isManager) {
+      router.replace('/staff'); // Manager gets the full dashboard
       return;
     }
+    if (isBarista) {
+        router.replace('/staff/pds');
+        return;
+    }
+    if (isService) {
+        router.replace('/staff/runner');
+        return;
+    }
+    if (isCashier) {
+        router.replace('/staff/cashier');
+        return;
+    }
     
+    // Fallback for customer or unexpected roles
     router.replace('/');
     
-  }, [isAuthenticated, isManager, isPlatformAdmin, isLoading, router]);
+  }, [isAuthenticated, isPlatformAdmin, isManager, isBarista, isService, isCashier, isLoading, router]);
 
   const handleEmailLogin = async (data: LoginFormValues) => {
     if (!auth) return;

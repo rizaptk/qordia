@@ -23,8 +23,36 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { QordiaLogo } from "@/components/logo";
 
 const staffRoles = ['manager', 'barista', 'service', 'cashier'];
+
+// A simplified layout for non-manager staff roles for a focused, kiosk-like experience.
+function NonManagerLayout({ children }: { children: React.ReactNode }) {
+    const auth = useAuth();
+    const { user } = useAuthStore();
+    
+    return (
+        <div className="min-h-screen flex flex-col">
+            <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10 shrink-0">
+                <Link href="#" className="flex items-center gap-2" prefetch={false}>
+                    <QordiaLogo className="w-8 h-8 text-primary" />
+                    <span className="text-lg font-semibold font-headline">Qordia</span>
+                </Link>
+                {user && (
+                <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
+                        <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                            <LogOut className="h-5 w-5" />
+                        </Button>
+                    </div>
+                )}
+            </header>
+            <main className="flex-1 p-4 sm:p-6 bg-muted/30">{children}</main>
+        </div>
+    );
+}
+
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -41,9 +69,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     userProfile,
     plan,
     isManager,
-    isBarista,
-    isService,
-    isCashier,
     hasAnalyticsFeature,
     hasAdvancedReportingFeature,
     hasPrioritySupportFeature,
@@ -52,12 +77,32 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     isLoading,
   } = useAuthStore();
   
+  // === TOP-LEVEL ROUTE PROTECTION ===
   useEffect(() => {
     if (!isLoading && (!user || !userProfile || !staffRoles.includes(userProfile.role))) {
         router.replace('/login');
     }
   }, [isLoading, user, userProfile, router]);
   
+  // === NON-MANAGER ROUTE GUARD ===
+  // If a user is NOT a manager, this ensures they can only access their designated page.
+  useEffect(() => {
+    if (isLoading || isManager || !userProfile) return;
+
+    const allowedPaths: { [key: string]: string } = {
+        barista: '/staff/pds',
+        service: '/staff/runner',
+        cashier: '/staff/cashier',
+    };
+    
+    const expectedPath = allowedPaths[userProfile.role];
+
+    if (expectedPath && pathname !== expectedPath) {
+        router.replace(expectedPath);
+    }
+  }, [isLoading, isManager, userProfile, pathname, router]);
+
+
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Kitchen Display System';
     if (pathname.includes('/runner')) return 'Runner View';
@@ -82,6 +127,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // === CONDITIONAL LAYOUT RENDERING ===
+  // If the user is a staff member but NOT a manager, render the simple, focused layout.
+  if (!isManager && userProfile) {
+    return <NonManagerLayout>{children}</NonManagerLayout>;
+  }
+  
+  // If the user IS a manager, render the full dashboard layout.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -95,116 +147,106 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
-            { (isManager || isBarista) && (
-              <SidebarMenuItem>
+            {/* Manager can see all primary staff views */}
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
                   <Link href="/staff/pds">
                   <ChefHat />
                   <span className="group-data-[collapsible=icon]:hidden">Kitchen Display</span>
                   </Link>
               </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
-
-            { (isManager || isService) && (
-              <SidebarMenuItem>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.includes("/staff/runner")}>
                   <Link href="/staff/runner">
                   <Truck />
                   <span className="group-data-[collapsible=icon]:hidden">Runner View</span>
                   </Link>
               </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
-
-            { (isManager || isCashier) && (
-              <SidebarMenuItem>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.includes("/staff/cashier")}>
                   <Link href="/staff/cashier">
                   <Banknote />
                   <span className="group-data-[collapsible=icon]:hidden">Cashier</span>
                   </Link>
               </SidebarMenuButton>
-              </SidebarMenuItem>
-            )}
+            </SidebarMenuItem>
             
-            {isManager && (
-              <>
+            {/* Manager-only tools */}
+            <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
+                <Link href="/staff/menu">
+                <BookOpen />
+                <span className="group-data-[collapsible=icon]:hidden">Menu</span>
+                </Link>
+            </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
+                <Link href="/staff/tables">
+                <Table2 />
+                <span className="group-data-[collapsible=icon]:hidden">Tables</span>
+                </Link>
+            </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/subscription")}>
+                    <Link href="/staff/subscription">
+                    <CreditCard />
+                    <span className="group-data-[collapsible=icon]:hidden">Subscription</span>
+                    </Link>
+                </SidebarMenuButton>
+            </SidebarMenuItem>
+            {hasAnalyticsFeature && (
                 <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
-                    <Link href="/staff/menu">
-                    <BookOpen />
-                    <span className="group-data-[collapsible=icon]:hidden">Menu</span>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
+                    <Link href="/staff/analytics">
+                    <BarChart3 />
+                    <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
+            )}
+            {hasAdvancedReportingFeature && (
                 <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
-                    <Link href="/staff/tables">
-                    <Table2 />
-                    <span className="group-data-[collapsible=icon]:hidden">Tables</span>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/reports")}>
+                    <Link href="/staff/reports">
+                    <FileText />
+                    <span className="group-data-[collapsible=icon]:hidden">Reports</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
-                 <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/subscription")}>
-                        <Link href="/staff/subscription">
-                        <CreditCard />
-                        <span className="group-data-[collapsible=icon]:hidden">Subscription</span>
-                        </Link>
-                    </SidebarMenuButton>
+            )}
+            {hasCustomRolesFeature && (
+                <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/roles")}>
+                    <Link href="/staff/roles">
+                    <Users />
+                    <span className="group-data-[collapsible=icon]:hidden">Staff Roles</span>
+                    </Link>
+                </SidebarMenuButton>
                 </SidebarMenuItem>
-                {hasAnalyticsFeature && (
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
-                        <Link href="/staff/analytics">
-                        <BarChart3 />
-                        <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                )}
-                 {hasAdvancedReportingFeature && (
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/reports")}>
-                        <Link href="/staff/reports">
-                        <FileText />
-                        <span className="group-data-[collapsible=icon]:hidden">Reports</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                )}
-                {hasCustomRolesFeature && (
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/roles")}>
-                        <Link href="/staff/roles">
-                        <Users />
-                        <span className="group-data-[collapsible=icon]:hidden">Staff Roles</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                )}
-                 {hasApiAccessFeature && (
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/api")}>
-                        <Link href="/staff/api">
-                        <Terminal />
-                        <span className="group-data-[collapsible=icon]:hidden">API Access</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                )}
-                 {hasPrioritySupportFeature && (
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/support")}>
-                        <Link href="/staff/support">
-                        <LifeBuoy />
-                        <span className="group-data-[collapsible=icon]:hidden">Support</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                )}
-              </>
+            )}
+            {hasApiAccessFeature && (
+                <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/api")}>
+                    <Link href="/staff/api">
+                    <Terminal />
+                    <span className="group-data-[collapsible=icon]:hidden">API Access</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+            )}
+            {hasPrioritySupportFeature && (
+                <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/support")}>
+                    <Link href="/staff/support">
+                    <LifeBuoy />
+                    <span className="group-data-[collapsible=icon]:hidden">Support</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
             )}
           </SidebarMenu>
         </SidebarContent>
