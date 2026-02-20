@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { use, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,18 +24,19 @@ const tenantFormSchema = z.object({
 type TenantFormValues = z.infer<typeof tenantFormSchema>;
 
 export default function TenantDetailPage({ params }: { params: { tenantId: string } }) {
+  const resolvedParams = use(params as any);
   const { firestore } = useFirebase();
   const { toast } = useToast();
 
   const tenantRef = useMemoFirebase(() => 
-    firestore ? doc(firestore, 'tenants', params.tenantId) : null,
-    [firestore, params.tenantId]
+    firestore ? doc(firestore, 'tenants', resolvedParams.tenantId) : null,
+    [firestore, resolvedParams.tenantId]
   );
   const { data: tenant, isLoading: isLoadingTenant } = useDoc<Tenant>(tenantRef);
 
   const usersQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'users'), where('tenantId', '==', params.tenantId)) : null,
-    [firestore, params.tenantId]
+    firestore ? query(collection(firestore, 'users'), where('tenantId', '==', resolvedParams.tenantId)) : null,
+    [firestore, resolvedParams.tenantId]
   );
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
 
