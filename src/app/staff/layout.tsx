@@ -27,13 +27,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
+  // --- ALL HOOKS ARE CALLED AT THE TOP LEVEL ---
   const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
 
-  // --- All hooks are now at the top level ---
   const userProfileRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
@@ -55,24 +55,24 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const { data: plan, isLoading: isLoadingPlan } = useDoc<SubscriptionPlan>(planRef);
 
   const features = useMemo(() => new Set(plan?.features || []), [plan]);
+  
+  // --- DERIVED STATE AND EFFECTS ---
+  const isAuthorizing = isUserLoading || isLoadingProfile;
+  const isManager = userProfile?.role === 'manager';
   const hasAnalyticsFeature = features.has('Analytics');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
   
-  const isAuthorizing = isUserLoading || isLoadingProfile;
-  const isManager = userProfile?.role === 'manager';
-
   useEffect(() => {
-    // This effect handles redirection but doesn't change the component structure
     if (isAuthorizing || !isClient) return;
 
     if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
         router.replace('/login');
     }
   }, [isAuthorizing, user, userProfile, router, isClient]);
-
+  
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
     if (pathname.includes('/analytics')) return 'Analytics Dashboard';
@@ -80,8 +80,31 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
   }
+
+  // --- RENDER LOGIC ---
+
+  // Show a loader while waiting for client-side hydration and authorization.
+  // This happens AFTER all hooks have been called, so it is safe.
+  if (!isClient || isAuthorizing) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Verifying access...</p>
+      </div>
+    );
+  }
   
-  // --- Single return path ---
+  // If, after loading, the user is still not valid, show a loader while redirecting.
+  if (!userProfile || !staffRoles.includes(userProfile.role)) {
+    return (
+       <div className="flex h-screen items-center justify-center bg-background">
+         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <p className="ml-4 text-muted-foreground">Redirecting...</p>
+       </div>
+     );
+   }
+
+  // Only one stable return path for the main component structure.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -188,14 +211,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {(!isClient || isAuthorizing) ? (
-            <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="ml-4 text-muted-foreground">Verifying access...</p>
-            </div>
-          ) : (
-            children
-          )}
+          {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
