@@ -84,10 +84,12 @@ export default function ApiAccessPage() {
     setTimeout(() => setCopiedKeyId(null), 2000);
   };
   
-  const closeDialog = () => {
-    setIsDialogOpen(false);
-    setNewKey(null);
-  }
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      setNewKey(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -104,7 +106,7 @@ export default function ApiAccessPage() {
                 </p>
             </CardContent>
              <CardFooter>
-                 <Dialog open={isDialogOpen} onOpenChange={closeDialog}>
+                 <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
                     <DialogTrigger asChild>
                         <Button>
                             <PlusCircle className="mr-2 h-4 w-4" />
@@ -127,7 +129,7 @@ export default function ApiAccessPage() {
                                         {copiedKeyId === 'new' ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                                     </Button>
                                 </div>
-                                <Button onClick={closeDialog} className="w-full">Done</Button>
+                                <Button onClick={() => handleOpenChange(false)} className="w-full">Done</Button>
                             </div>
                         ) : (
                             <Form {...form}>
