@@ -48,11 +48,30 @@ export type Tenant = {
     id: string;
     name: string;
     createdAt: { seconds: number; nanoseconds: number };
+    planId?: string;
+    subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';
+    nextBillingDate?: { seconds: number; nanoseconds: number };
 }
+
+export type UserProfile = {
+  id: string;
+  name: string;
+  email: string;
+  role: 'customer' | 'barista' | 'service' | 'manager' | 'platform_admin';
+  tenantId?: string;
+};
+
 
 export type AnalyticsData = {
   bestSellers: { item: string, sales: number }[];
   peakHours: { hour: string, orders: number }[];
   salesPerformance: { month: string, revenue: number }[];
   tableTurnover: { table: string, count: number }[];
+}
+
+export type SubscriptionPlan = {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
 }
