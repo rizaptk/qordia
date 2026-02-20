@@ -15,32 +15,31 @@ import type { Order } from '@/lib/types';
 import { startOfDay, endOfDay } from 'date-fns';
 
 export default function StaffDashboardPage() {
-    const { user, tenant, isLoading, hasAnalyticsFeature, hasCustomRolesFeature } = useAuthStore();
+    const { user, tenant, isLoading: isAuthLoading, hasAnalyticsFeature, hasCustomRolesFeature } = useAuthStore();
     const firestore = useFirestore();
     const TENANT_ID = tenant?.id;
 
     const welcomeMessage = user ? `Welcome back, ${user.displayName || user.email?.split('@')[0]}!` : 'Welcome!';
     const shopName = tenant ? tenant.name : 'your business';
 
-    // --- Data fetching ---
     const { todayStart, todayEnd } = useMemo(() => {
         const now = new Date();
         return { todayStart: startOfDay(now), todayEnd: endOfDay(now) };
     }, []);
 
     const activeOrdersQuery = useMemoFirebase(() =>
-      (firestore && TENANT_ID && user)
+      (firestore && TENANT_ID && user && !isAuthLoading)
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`),
             where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])
           )
         : null,
-      [firestore, TENANT_ID, user]
+      [firestore, TENANT_ID, user, isAuthLoading]
     );
     const { data: activeOrders, isLoading: isLoadingActive } = useCollection<Order>(activeOrdersQuery);
     
     const todaysCompletedOrdersQuery = useMemoFirebase(() =>
-        (firestore && TENANT_ID && user)
+        (firestore && TENANT_ID && user && !isAuthLoading)
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`),
             where('status', '==', 'Completed'),
@@ -48,12 +47,12 @@ export default function StaffDashboardPage() {
             where('orderedAt', '<=', Timestamp.fromDate(todayEnd))
         )
         : null,
-    [firestore, TENANT_ID, todayStart, todayEnd, user]);
+    [firestore, TENANT_ID, todayStart, todayEnd, user, isAuthLoading]);
     const { data: todaysCompletedOrders, isLoading: isLoadingRevenue } = useCollection<Order>(todaysCompletedOrdersQuery);
 
     const tablesQuery = useMemoFirebase(() =>
-      (firestore && TENANT_ID && user) ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null,
-      [firestore, TENANT_ID, user]
+      (firestore && TENANT_ID && user && !isAuthLoading) ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null,
+      [firestore, TENANT_ID, user, isAuthLoading]
     );
     const { data: tables, isLoading: isLoadingTables } = useCollection<{id: string}>(tablesQuery);
 
@@ -74,9 +73,9 @@ export default function StaffDashboardPage() {
         };
     }, [activeOrders, todaysCompletedOrders, tables]);
 
-    const isDataLoading = isLoading || isLoadingActive || isLoadingRevenue || isLoadingTables;
+    const isDataLoading = isLoadingActive || isLoadingRevenue || isLoadingTables;
 
-    if (isLoading) {
+    if (isAuthLoading) {
         return (
             <div className="space-y-6">
                 <Skeleton className="h-10 w-1/2" />

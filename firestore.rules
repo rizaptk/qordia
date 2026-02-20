@@ -16,13 +16,19 @@ service cloud.firestore {
     }
 
     function isStaffOfTenant(tenantId) {
+      if (request.auth == null) {
+        return false;
+      }
       let userData = getUserData(request.auth.uid);
-      return isSignedIn() && userData.tenantId == tenantId && (userData.role == 'manager' || userData.role == 'barista' || userData.role == 'service' || userData.role == 'cashier');
+      return userData.tenantId == tenantId && (userData.role == 'manager' || userData.role == 'barista' || userData.role == 'service' || userData.role == 'cashier');
     }
 
     function isManagerOfTenant(tenantId) {
+      if (request.auth == null) {
+        return false;
+      }
       let userData = getUserData(request.auth.uid);
-      return isSignedIn() && userData.tenantId == tenantId && userData.role == 'manager';
+      return userData.tenantId == tenantId && userData.role == 'manager';
     }
 
     function isOwner(userId) {
