@@ -1,9 +1,11 @@
-"use client";
+'use client';
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { useUser, useUserClaims } from "@/firebase";
+import { useEffect, useMemo } from "react";
+import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
+import { doc } from 'firebase/firestore';
+import type { Tenant, SubscriptionPlan } from '@/lib/types';
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2 } from "lucide-react";
 import {
   SidebarProvider,
@@ -23,8 +25,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
+
+  const tenantId = claims?.tenantId;
+
+  const tenantRef = useMemoFirebase(
+    () => (firestore && tenantId ? doc(firestore, 'tenants', tenantId) : null),
+    [firestore, tenantId]
+  );
+  const { data: tenant, isLoading: isLoadingTenant } = useDoc<Tenant>(tenantRef);
+
+  const planRef = useMemoFirebase(
+    () => (firestore && tenant?.planId ? doc(firestore, 'subscription_plans', tenant.planId) : null),
+    [firestore, tenant]
+  );
+  const { data: plan, isLoading: isLoadingPlan } = useDoc<SubscriptionPlan>(planRef);
+
+  const features = useMemo(() => new Set(plan?.features || []), [plan]);
+  
+  const hasAnalyticsFeature = features.has('Analytics');
 
   const isManager = claims?.role === 'manager';
   const isStaff = ['manager', 'barista', 'service'].includes(claims?.role || '');
@@ -51,7 +72,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (isUserLoading || areClaimsLoading || !user || !isStaff) {
+  if (isUserLoading || areClaimsLoading || !user || !isStaff || isLoadingTenant || isLoadingPlan) {
     // Show a loading screen while we verify auth/claims or during redirection.
     return (
         <div className="flex h-screen items-center justify-center">
@@ -102,14 +123,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
-                        <Link href="/staff/analytics">
-                        <BarChart3 />
-                        <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
+                    {hasAnalyticsFeature && (
+                        <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
+                            <Link href="/staff/analytics">
+                            <BarChart3 />
+                            <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
+                            </Link>
+                        </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    )}
                 </>
             )}
           </SidebarMenu>
