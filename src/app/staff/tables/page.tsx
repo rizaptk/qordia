@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { useAuthStore } from '@/stores/auth-store';
 import { collection, query, where } from 'firebase/firestore';
@@ -14,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, QrCode } from 'lucide-react';
@@ -39,16 +38,10 @@ export default function TableManagementPage() {
     const TENANT_ID = tenant?.id;
 
     const { toast } = useToast();
-    const [origin, setOrigin] = useState('');
     const form = useForm<NewTableFormValues>({
         resolver: zodResolver(newTableSchema),
         defaultValues: { tableNumber: '' },
     });
-
-    useEffect(() => {
-        // Get the base URL on the client side
-        setOrigin(window.location.origin);
-    }, []);
 
     const tablesRef = useMemoFirebase(() => 
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
@@ -167,9 +160,6 @@ export default function TableManagementPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {tables.sort((a,b) => a.tableNumber.localeCompare(b.tableNumber, undefined, {numeric: true})).map(table => {
                                 const isActive = activeTableIds.has(table.id);
-                                const qrData = encodeURIComponent(`${origin}/${TENANT_ID}/table/${table.id}`);
-                                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
-
                                 return (
                                     <Card key={table.id} className="flex flex-col">
                                         <CardHeader className="flex-row items-center justify-between">
@@ -179,25 +169,12 @@ export default function TableManagementPage() {
                                             </Badge>
                                         </CardHeader>
                                         <CardContent className="flex-grow flex items-center justify-center">
-                                             <Dialog>
-                                                <DialogTrigger asChild>
-                                                    <Button variant="outline" className="w-full">
-                                                        <QrCode className="mr-2 h-4 w-4" />
-                                                        Show QR Code
-                                                    </Button>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-xs">
-                                                    <DialogHeader>
-                                                        <DialogTitle>QR Code for Table {table.tableNumber}</DialogTitle>
-                                                        <DialogDescription>
-                                                            Customers can scan this code to order directly from their table. Print and place it on the table.
-                                                        </DialogDescription>
-                                                    </DialogHeader>
-                                                    <div className="p-4 bg-white rounded-md flex items-center justify-center">
-                                                        <Image src={qrUrl} alt={`QR Code for Table ${table.tableNumber}`} width={250} height={250} />
-                                                    </div>
-                                                </DialogContent>
-                                            </Dialog>
+                                            <Button asChild variant="outline" className="w-full">
+                                                <Link href={`/staff/tables/${table.id}/print`}>
+                                                    <QrCode className="mr-2 h-4 w-4" />
+                                                    Get QR Code
+                                                </Link>
+                                            </Button>
                                         </CardContent>
                                     </Card>
                                 );
