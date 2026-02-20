@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@/firebase/provider';
+import { useAuthStore } from '@/stores/auth-store';
 
 interface UserClaims {
   role?: 'manager' | 'barista' | 'service' | 'customer' | 'platform_admin';
@@ -20,7 +20,7 @@ interface UseUserClaimsResult {
  * This is the single source of truth for user roles and permissions.
  */
 export function useUserClaims(): UseUserClaimsResult {
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading } = useAuthStore();
   const [claims, setClaims] = useState<UserClaims | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 

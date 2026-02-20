@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useUserClaims, useFirestore } from '@/firebase';
+import { useAuth, useUserClaims, useFirestore } from '@/firebase';
+import { useAuthStore } from '@/stores/auth-store';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { addDoc, collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
@@ -28,7 +29,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const firestore = useFirestore();
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
+  const { user, isUserLoading } = useAuthStore();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
