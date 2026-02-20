@@ -5,8 +5,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useUserClaims } from '@/firebase';
+import { useAuth, useUser, useUserClaims, useFirebase } from '@/firebase';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { addDoc, collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
-  const auth = useAuth();
+  const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
@@ -52,14 +53,39 @@ export default function RegisterPage() {
   }, [user, isUserLoading, claims, areClaimsLoading, router]);
 
   const handleEmailRegister = async (data: RegisterFormValues) => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setAuthError(null);
     try {
+        // Create the user in Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        const newUser = userCredential.user;
+
+        // Create the associated Tenant document in Firestore
+        const tenantData = {
+            name: `${newUser.displayName || data.email.split('@')[0]}'s Cafe`,
+            ownerId: newUser.uid,
+            createdAt: Timestamp.now(),
+            planId: 'plan_basic', // Assign a default trial/basic plan
+            subscriptionStatus: 'trialing',
+            nextBillingDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30-day trial
+        };
+        const tenantRef = await addDoc(collection(firestore, 'tenants'), tenantData);
+
+        // Create the user's profile document in Firestore with the manager role
+        const userProfileData = {
+            email: newUser.email,
+            name: newUser.displayName || data.email.split('@')[0],
+            role: 'manager',
+            tenantId: tenantRef.id,
+            createdAt: Timestamp.now(),
+        };
+        await setDoc(doc(firestore, 'users', newUser.uid), userProfileData);
+        
+        // Send verification email and sign out to force verification
         await sendEmailVerification(userCredential.user);
         setIsSuccess(true);
-        // Sign the user out to force them to log in after verification
         await auth.signOut();
+
     } catch (error: any) {
         setAuthError(error.message);
     }
@@ -76,8 +102,8 @@ export default function RegisterPage() {
             <div className="flex justify-center mb-4">
                 <QordiaLogo className="w-12 h-12 text-primary" />
             </div>
-          <CardTitle>Create an Account</CardTitle>
-          <CardDescription>Enter your details to get started</CardDescription>
+          <CardTitle>Create a Business Account</CardTitle>
+          <CardDescription>Sign up to start managing your business</CardDescription>
         </CardHeader>
         <CardContent>
           {isSuccess ? (
@@ -85,7 +111,7 @@ export default function RegisterPage() {
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <AlertTitle>Verification Email Sent!</AlertTitle>
                 <AlertDescription>
-                    Your account has been created. Please check your inbox to verify your email address before signing in.
+                    Your business account has been created. Please check your inbox to verify your email address before signing in.
                 </AlertDescription>
             </Alert>
           ) : (
@@ -96,9 +122,9 @@ export default function RegisterPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Business Email</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="manager@qordia.cafe" {...field} />
+                        <Input type="email" placeholder="you@yourcafe.com" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -125,7 +151,7 @@ export default function RegisterPage() {
                   </Alert>
                 )}
                 <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? "Creating Account..." : "Create Account"}
+                  {form.formState.isSubmitting ? "Creating Account..." : "Create Business Account"}
                 </Button>
               </form>
             </Form>

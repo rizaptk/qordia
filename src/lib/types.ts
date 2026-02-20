@@ -47,6 +47,7 @@ export type OrderItem = {
 export type Tenant = {
     id: string;
     name: string;
+    ownerId: string;
     createdAt: { seconds: number; nanoseconds: number };
     planId?: string;
     subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';

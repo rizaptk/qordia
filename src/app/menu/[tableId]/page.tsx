@@ -43,6 +43,8 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
   const { user, isUserLoading } = useUser();
 
   useEffect(() => {
+    // For customers, if they are not logged in, sign them in anonymously.
+    // This allows them to place orders without creating an account.
     if (auth && !user && !isUserLoading) {
       initiateAnonymousSignIn(auth);
     }
@@ -93,7 +95,7 @@ export default function MenuPage({ params }: { params: { tableId: string } }) {
         toast({
             variant: "destructive",
             title: "Cannot place order",
-            description: "Please sign in to place an order.",
+            description: "Authentication is required to place an order.",
         });
         return;
     }

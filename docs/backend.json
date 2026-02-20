@@ -7,12 +7,13 @@
       "properties": {
         "id": { "type": "string", "description": "Unique identifier for the Tenant." },
         "name": { "type": "string", "description": "The name of the business." },
+        "ownerId": { "type": "string", "description": "The Firebase UID of the user who owns this tenant." },
         "createdAt": { "type": "string", "format": "date-time" },
         "planId": { "type": "string", "description": "The ID of the subscription plan this tenant is on." },
         "subscriptionStatus": { "type": "string", "enum": ["active", "trialing", "overdue", "canceled"] },
         "nextBillingDate": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name"]
+      "required": ["id", "name", "ownerId"]
     },
     "UserProfile": {
       "title": "UserProfile",
