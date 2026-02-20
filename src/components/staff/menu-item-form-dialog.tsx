@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { MenuItem } from '@/lib/types';
+import { useAuthStore } from '@/stores/auth-store';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -43,9 +44,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2 } from 'lucide-react';
+import { Trash2, PlusCircle } from 'lucide-react';
+import { Separator } from '../ui/separator';
 
 const TENANT_ID = 'qordiapro-tenant';
+
+const optionSchema = z.object({
+  key: z.string().min(1, "Option name cannot be empty."),
+  values: z.string().min(1, "Please provide comma-separated values."),
+});
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -55,6 +62,7 @@ const formSchema = z.object({
   imageUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   isAvailable: z.boolean().default(true),
   isPopular: z.boolean().default(false),
+  options: z.array(optionSchema).optional(),
 });
 
 type MenuItemFormValues = z.infer<typeof formSchema>;
@@ -69,16 +77,27 @@ type MenuItemFormDialogProps = {
 export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categories }: MenuItemFormDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { hasMenuCustomizationFeature } = useAuthStore();
+
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       isAvailable: true,
       isPopular: false,
+      options: [],
     },
+  });
+
+   const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "options",
   });
 
   useEffect(() => {
     if (itemToEdit) {
+      const itemOptions = itemToEdit.options ? 
+            Object.entries(itemToEdit.options).map(([key, values]) => ({ key, values: values.join(', ') }))
+            : [];
       form.reset({
         name: itemToEdit.name,
         description: itemToEdit.description,
@@ -87,6 +106,7 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
         imageUrl: itemToEdit.imageUrl,
         isAvailable: itemToEdit.isAvailable,
         isPopular: itemToEdit.isPopular,
+        options: itemOptions,
       });
     } else {
       form.reset({
@@ -97,6 +117,7 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
         imageUrl: '',
         isAvailable: true,
         isPopular: false,
+        options: [],
       });
     }
   }, [itemToEdit, form]);
@@ -104,16 +125,27 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
   const onSubmit = async (data: MenuItemFormValues) => {
     if (!firestore) return;
 
+    const optionsForFirestore = data.options?.reduce((acc, option) => {
+        if (option.key && option.values) {
+            acc[option.key] = option.values.split(',').map(v => v.trim()).filter(v => v);
+        }
+        return acc;
+    }, {} as { [key: string]: string[] }) || {};
+
+    const dataForFirestore = {
+        ...data,
+        options: optionsForFirestore,
+    };
+
+
     try {
       if (itemToEdit) {
-        // Update existing item
         const itemRef = doc(firestore, `tenants/${TENANT_ID}/menu_items`, itemToEdit.id);
-        updateDocumentNonBlocking(itemRef, data);
+        updateDocumentNonBlocking(itemRef, dataForFirestore);
         toast({ title: "Success", description: "Menu item updated." });
       } else {
-        // Create new item
         const collectionRef = collection(firestore, `tenants/${TENANT_ID}/menu_items`);
-        await addDocumentNonBlocking(collectionRef, data);
+        await addDocumentNonBlocking(collectionRef, dataForFirestore);
         toast({ title: "Success", description: "New menu item created." });
       }
       onOpenChange(false);
@@ -189,7 +221,7 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a category" />
@@ -252,6 +284,59 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
                 )}
               />
             </div>
+            
+            {hasMenuCustomizationFeature && (
+                <div>
+                  <Separator className="my-6" />
+                  <div className="space-y-4">
+                    <div>
+                        <h3 className="text-lg font-medium">Customization Options</h3>
+                        <p className="text-sm text-muted-foreground">Add options like size, milk, or toppings.</p>
+                    </div>
+                     {fields.map((field, index) => (
+                      <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg">
+                        <FormField
+                            control={form.control}
+                            name={`options.${index}.key`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Option Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Size" {...field} />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={form.control}
+                            name={`options.${index}.values`}
+                            render={({ field }) => (
+                                <FormItem className="flex-1">
+                                    <FormLabel>Choices</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="Small, Medium, Large" {...field} />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => append({ key: "", values: "" })}
+                    >
+                      <PlusCircle className="mr-2 h-4 w-4" /> Add Option
+                    </Button>
+                  </div>
+                </div>
+            )}
+
+
             <DialogFooter className="pt-4">
               <div className="flex justify-between w-full">
                 {itemToEdit ? (

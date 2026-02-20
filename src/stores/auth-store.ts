@@ -16,6 +16,7 @@ export interface AuthState {
   isManager: boolean;
   isPlatformAdmin: boolean;
   hasAnalyticsFeature: boolean;
+  hasMenuCustomizationFeature: boolean;
 
   setAuthData: (data: { 
     user: User | null, 
@@ -37,6 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isManager: false,
   isPlatformAdmin: false,
   hasAnalyticsFeature: false,
+  hasMenuCustomizationFeature: false,
   
   setIsLoading: (loading) => set({ isLoading: loading }),
 
@@ -51,6 +53,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       isManager: userProfile?.role === 'manager',
       isPlatformAdmin: userProfile?.role === 'platform_admin',
       hasAnalyticsFeature: features.has('Analytics'),
+      hasMenuCustomizationFeature: features.has('Menu Customization'),
       isLoading: false, // We have all data, so we are done loading.
     });
   },
