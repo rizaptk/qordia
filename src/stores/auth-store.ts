@@ -17,6 +17,10 @@ export interface AuthState {
   isPlatformAdmin: boolean;
   hasAnalyticsFeature: boolean;
   hasMenuCustomizationFeature: boolean;
+  hasAdvancedReportingFeature: boolean;
+  hasPrioritySupportFeature: boolean;
+  hasApiAccessFeature: boolean;
+  hasCustomRolesFeature: boolean;
 
   setAuthData: (data: { 
     user: User | null, 
@@ -39,6 +43,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   isPlatformAdmin: false,
   hasAnalyticsFeature: false,
   hasMenuCustomizationFeature: false,
+  hasAdvancedReportingFeature: false,
+  hasPrioritySupportFeature: false,
+  hasApiAccessFeature: false,
+  hasCustomRolesFeature: false,
   
   setIsLoading: (loading) => set({ isLoading: loading }),
 
@@ -54,6 +62,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       isPlatformAdmin: userProfile?.role === 'platform_admin',
       hasAnalyticsFeature: features.has('Analytics'),
       hasMenuCustomizationFeature: features.has('Menu Customization'),
+      hasAdvancedReportingFeature: features.has('Advanced Reporting'),
+      hasPrioritySupportFeature: features.has('Priority Support'),
+      hasApiAccessFeature: features.has('API Access'),
+      hasCustomRolesFeature: features.has('Staff Roles'),
       isLoading: false, // We have all data, so we are done loading.
     });
   },

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -42,6 +42,10 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     plan,
     isManager,
     hasAnalyticsFeature,
+    hasAdvancedReportingFeature,
+    hasPrioritySupportFeature,
+    hasApiAccessFeature,
+    hasCustomRolesFeature,
     isLoading,
   } = useAuthStore();
   
@@ -57,6 +61,10 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/menu')) return 'Menu Management';
     if (pathname.includes('/tables')) return 'Table Management';
     if (pathname.includes('/subscription')) return 'Subscription';
+    if (pathname.includes('/reports')) return 'Advanced Reporting';
+    if (pathname.includes('/support')) return 'Priority Support';
+    if (pathname.includes('/api')) return 'API Access';
+    if (pathname.includes('/roles')) return 'Custom Staff Roles';
     return 'Staff Portal';
   }
 
@@ -123,6 +131,46 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                         <Link href="/staff/analytics">
                         <BarChart3 />
                         <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )}
+                 {hasAdvancedReportingFeature && (
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/reports")}>
+                        <Link href="/staff/reports">
+                        <FileText />
+                        <span className="group-data-[collapsible=icon]:hidden">Reports</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )}
+                {hasCustomRolesFeature && (
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/roles")}>
+                        <Link href="/staff/roles">
+                        <Users />
+                        <span className="group-data-[collapsible=icon]:hidden">Staff Roles</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )}
+                 {hasApiAccessFeature && (
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/api")}>
+                        <Link href="/staff/api">
+                        <Terminal />
+                        <span className="group-data-[collapsible=icon]:hidden">API Access</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )}
+                 {hasPrioritySupportFeature && (
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/support")}>
+                        <Link href="/staff/support">
+                        <LifeBuoy />
+                        <span className="group-data-[collapsible=icon]:hidden">Support</span>
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
