@@ -166,178 +166,180 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{itemToEdit ? 'Edit Menu Item' : 'Add New Menu Item'}</DialogTitle>
           <DialogDescription>
             {itemToEdit ? 'Update the details for this item.' : 'Fill out the details for the new item.'}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Iced Latte" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="A short, tasty description..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <div className="grid grid-cols-2 gap-4">
-               <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <div className="flex-grow overflow-y-auto -mx-6 px-6">
+            <Form {...form}>
+            <form id="menu-item-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
                 <FormField
-                  control={form.control}
-                  name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-             </div>
-             <FormField
                 control={form.control}
-                name="imageUrl"
+                name="name"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Image URL</FormLabel>
+                    <FormLabel>Name</FormLabel>
                     <FormControl>
-                        <Input placeholder="https://images.unsplash.com/..." {...field} />
+                        <Input placeholder="e.g., Iced Latte" {...field} />
                     </FormControl>
-                    <FormDescription>Paste a URL to an image for this item.</FormDescription>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
-            <div className="flex space-x-8">
-              <FormField
+                <FormField
                 control={form.control}
-                name="isAvailable"
+                name="description"
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm flex-1">
-                    <div className="space-y-0.5">
-                      <FormLabel>Available</FormLabel>
-                      <FormDescription>Is this item currently available to order?</FormDescription>
-                    </div>
+                    <FormItem>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        <Textarea placeholder="A short, tasty description..." {...field} />
                     </FormControl>
-                  </FormItem>
+                    <FormMessage />
+                    </FormItem>
                 )}
-              />
-               <FormField
-                control={form.control}
-                name="isPopular"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm flex-1">
-                    <div className="space-y-0.5">
-                      <FormLabel>Popular</FormLabel>
-                      <FormDescription>Feature this as a popular item?</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            {hasMenuCustomizationFeature && (
-                <div>
-                  <Separator className="my-6" />
-                  <div className="space-y-4">
-                    <div>
-                        <h3 className="text-lg font-medium">Customization Options</h3>
-                        <p className="text-sm text-muted-foreground">Add options like size, milk, or toppings.</p>
-                    </div>
-                     {fields.map((field, index) => (
-                      <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg">
-                        <FormField
-                            control={form.control}
-                            name={`options.${index}.key`}
-                            render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel>Option Name</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="e.g., Size" {...field} />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name={`options.${index}.values`}
-                            render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel>Choices</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Small, Medium, Large" {...field} />
-                                    </FormControl>
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => append({ key: "", values: "" })}
-                    >
-                      <PlusCircle className="mr-2 h-4 w-4" /> Add Option
-                    </Button>
-                  </div>
+                />
+                <div className="grid grid-cols-2 gap-4">
+                <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                        <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+                    <FormField
+                    control={form.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                            <FormControl>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                            {categories.map(cat => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                            ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
                 </div>
-            )}
-
-
-            <DialogFooter className="pt-4">
+                <FormField
+                    control={form.control}
+                    name="imageUrl"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Image URL</FormLabel>
+                        <FormControl>
+                            <Input placeholder="https://images.unsplash.com/..." {...field} />
+                        </FormControl>
+                        <FormDescription>Paste a URL to an image for this item.</FormDescription>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                <div className="flex space-x-8">
+                <FormField
+                    control={form.control}
+                    name="isAvailable"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm flex-1">
+                        <div className="space-y-0.5">
+                        <FormLabel>Available</FormLabel>
+                        <FormDescription>Is this item currently available to order?</FormDescription>
+                        </div>
+                        <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                    </FormItem>
+                    )}
+                />
+                <FormField
+                    control={form.control}
+                    name="isPopular"
+                    render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm flex-1">
+                        <div className="space-y-0.5">
+                        <FormLabel>Popular</FormLabel>
+                        <FormDescription>Feature this as a popular item?</FormDescription>
+                        </div>
+                        <FormControl>
+                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                        </FormControl>
+                    </FormItem>
+                    )}
+                />
+                </div>
+                
+                {hasMenuCustomizationFeature && (
+                    <div>
+                    <Separator className="my-6" />
+                    <div className="space-y-4">
+                        <div>
+                            <h3 className="text-lg font-medium">Customization Options</h3>
+                            <p className="text-sm text-muted-foreground">Add options like size, milk, or toppings.</p>
+                        </div>
+                        {fields.map((field, index) => (
+                        <div key={field.id} className="flex items-end gap-2 p-3 border rounded-lg">
+                            <FormField
+                                control={form.control}
+                                name={`options.${index}.key`}
+                                render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                        <FormLabel>Option Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Size" {...field} />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name={`options.${index}.values`}
+                                render={({ field }) => (
+                                    <FormItem className="flex-1">
+                                        <FormLabel>Choices</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="Small, Medium, Large" {...field} />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                        ))}
+                        <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => append({ key: "", values: "" })}
+                        >
+                        <PlusCircle className="mr-2 h-4 w-4" /> Add Option
+                        </Button>
+                    </div>
+                    </div>
+                )}
+            </form>
+            </Form>
+        </div>
+        <DialogFooter className="pt-4 border-t">
               <div className="flex justify-between w-full">
                 {itemToEdit ? (
                     <AlertDialog>
@@ -364,14 +366,12 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
                     <DialogClose asChild>
                         <Button type="button" variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button type="submit" disabled={form.formState.isSubmitting}>
+                    <Button type="submit" form="menu-item-form" disabled={form.formState.isSubmitting}>
                         {form.formState.isSubmitting ? "Saving..." : "Save Changes"}
                     </Button>
                 </div>
               </div>
-            </DialogFooter>
-          </form>
-        </Form>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
