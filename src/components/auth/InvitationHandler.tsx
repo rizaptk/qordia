@@ -1,17 +1,14 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, writeBatch, arrayUnion } from 'firebase/firestore';
 import type { TenantInvitation } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -21,27 +18,25 @@ import {
 import { Button } from '../ui/button';
 
 export function InvitationHandler() {
-  const { user, userProfile } = useAuthStore();
+  const { user, userProfile, isLoading: isAuthLoading } = useAuthStore();
   const firestore = useFirestore();
   const { toast } = useToast();
   
   const [invitation, setInvitation] = useState<TenantInvitation | null>(null);
 
-  // Find pending invitations for the current user's email
   const invitationsRef = useMemoFirebase(() => 
-    firestore && user?.email 
+    (firestore && user?.email && !isAuthLoading)
       ? query(
           collection(firestore, 'invitations'), 
           where('email', '==', user.email),
           where('status', '==', 'pending')
         ) 
       : null,
-    [firestore, user?.email]
+    [firestore, user?.email, isAuthLoading]
   );
-  const { data: pendingInvitations, isLoading } = useCollection<TenantInvitation>(invitationsRef);
+  const { data: pendingInvitations } = useCollection<TenantInvitation>(invitationsRef);
   
   useEffect(() => {
-    // If user has a role, they've already accepted an invite.
     if (userProfile?.role && userProfile.role !== 'customer') return;
 
     if (pendingInvitations && pendingInvitations.length > 0) {
@@ -56,20 +51,17 @@ export function InvitationHandler() {
 
     const batch = writeBatch(firestore);
 
-    // 1. Update User's Profile
     const userRef = doc(firestore, 'users', user.uid);
     batch.update(userRef, {
       tenantId: invitation.tenantId,
       role: invitation.role,
     });
 
-    // 2. Update Tenant's Staff List
     const tenantRef = doc(firestore, 'tenants', invitation.tenantId);
     batch.update(tenantRef, {
-      staffUids: [user.uid] // Note: In a real app, use `arrayUnion`
+      staffUids: arrayUnion(user.uid)
     });
 
-    // 3. Update Invitation Status
     const invitationRef = doc(firestore, 'invitations', invitation.id);
     batch.update(invitationRef, { status: 'accepted' });
 
@@ -80,7 +72,6 @@ export function InvitationHandler() {
         description: `You have successfully joined ${invitation.tenantName}.`,
       });
       setInvitation(null);
-      // The AuthProvider will automatically pick up the role change and redirect.
     } catch (error) {
       console.error("Failed to accept invitation:", error);
       toast({
@@ -94,11 +85,13 @@ export function InvitationHandler() {
   const handleDecline = async () => {
      if (!firestore || !invitation) return;
      const invitationRef = doc(firestore, 'invitations', invitation.id);
-     await updateDoc(invitationRef, { status: 'declined' });
+     const batch = writeBatch(firestore);
+     batch.update(invitationRef, { status: 'declined' });
+     await batch.commit();
      setInvitation(null);
   }
 
-  if (!invitation) {
+  if (!invitation || !user) {
     return null;
   }
 

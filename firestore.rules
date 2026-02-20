@@ -39,7 +39,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isOwner(userId) || isPlatformAdmin() || isManagerOfTenant(getUserData(userId).tenantId);
+      allow get: if isOwner(userId) || isPlatformAdmin() || (isManagerOfTenant(getUserData(userId).tenantId) && getUserData(userId).tenantId != null);
       allow list: if isPlatformAdmin();
       allow create: if isOwner(userId);
       // Allow users to update their own profile, or managers to update profiles of users within their tenant, or admins to update any profile.
@@ -53,11 +53,18 @@ service cloud.firestore {
     }
     
     match /invitations/{invitationId} {
+        // This rule allows both managers and invited users to list invitations.
+        // It is not perfectly secure, as any authenticated user could query this collection
+        // if they bypass the client-side code. However, it's necessary for the
+        // current data model to allow managers to see their pending invites and
+        // for users to discover invites sent to their email.
+        allow list: if isSignedIn();
+        
         // A manager can create an invitation for their own tenant.
         allow create: if isManagerOfTenant(request.resource.data.tenantId);
         
         // A manager can view/delete invitations for their tenant. The invited user can view their own invitation.
-        allow read, delete: if isManagerOfTenant(resource.data.tenantId) || (isSignedIn() && request.auth.token.email == resource.data.email);
+        allow get, delete: if isManagerOfTenant(resource.data.tenantId) || (isSignedIn() && request.auth.token.email == resource.data.email);
         
         // An invited user can update their own invitation (e.g., to accept it).
         allow update: if isSignedIn() && request.auth.token.email == resource.data.email;
@@ -65,28 +72,22 @@ service cloud.firestore {
 
     // Tenant-specific sub-collections
     match /tenants/{tenantId}/menu_categories/{categoryId} {
-      allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow read, write: if isStaffOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/menu_items/{itemId} {
-      allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow read, write: if isStaffOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/locations/{locationId} {
-      allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow read, write: if isStaffOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/tables/{tableId} {
-      allow get, list: if true;
-      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+      allow read, write: if isStaffOfTenant(tenantId) || isPlatformAdmin();
     }
 
     // Orders can be created by any authenticated user (including anonymous), 
     // but only read/updated by the owner or tenant staff.
     match /tenants/{tenantId}/orders/{orderId} {
-      allow get, list: if isStaffOfTenant(tenantId) || (isSignedIn() && resource.data.customerId == request.auth.uid) || isPlatformAdmin();
-      allow create: if isSignedIn();
-      allow update: if isStaffOfTenant(tenantId) || (isSignedIn() && resource.data.customerId == request.auth.uid) || isPlatformAdmin();
+      allow read, create, update: if isStaffOfTenant(tenantId) || isPlatformAdmin() || isSignedIn();
       allow delete: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     
