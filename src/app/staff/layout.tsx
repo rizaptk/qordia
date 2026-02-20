@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users } from "lucide-react";
+import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog, Separator } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -18,6 +18,7 @@ import {
   SidebarFooter,
   SidebarTrigger,
   SidebarInset,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -89,6 +90,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
 
 
   const getPageTitle = () => {
+    if (pathname.includes('/dashboard')) return 'Dashboard';
+    if (pathname.includes('/settings')) return 'Shop Settings';
     if (pathname.includes('/pds')) return 'Kitchen Display System';
     if (pathname.includes('/runner')) return 'Runner View';
     if (pathname.includes('/cashier')) return 'Cashier Terminal';
@@ -130,6 +133,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/dashboard")}>
+                    <Link href="/staff/dashboard">
+                    <LayoutGrid />
+                    <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              <SidebarSeparator />
+
               {/* Manager can see all primary staff views */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
@@ -227,6 +241,18 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   </SidebarMenuButton>
                   </SidebarMenuItem>
               )}
+
+              <SidebarSeparator />
+
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/settings")}>
+                    <Link href="/staff/settings">
+                    <Cog />
+                    <span className="group-data-[collapsible=icon]:hidden">Settings</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="group-data-[collapsible=icon]:hidden space-y-4">

@@ -53,6 +53,8 @@ export type Tenant = {
     subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';
     nextBillingDate?: { seconds: number; nanoseconds: number };
     staffUids?: string[];
+    shopType?: 'cafe' | 'coffee_shop' | 'food_court' | 'small_restaurant';
+    logoUrl?: string;
 }
 
 export type UserProfile = {
@@ -115,5 +117,3 @@ export type SupportTicket = {
     createdAt: { seconds: number; nanoseconds: number; };
     resolvedAt?: { seconds: number; nanoseconds: number; };
 }
-
-    
