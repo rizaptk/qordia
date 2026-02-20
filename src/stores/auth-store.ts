@@ -63,19 +63,27 @@ export const useAuthStore = create<AuthState>((set) => ({
   setIsLoading: (loading) => set({ isLoading: loading }),
 
   setAuthData: ({ user, userProfile, tenant, plan }) => {
-    const features = new Set(plan?.features || []);
+    const isSubscriptionActive = tenant?.subscriptionStatus === 'active' || tenant?.subscriptionStatus === 'trialing';
+
+    // If subscription is not active, use an empty set for features.
+    const features = new Set(isSubscriptionActive ? (plan?.features || []) : []);
+    
+    // If subscription is not active, default to a low table limit (e.g., 5 for free tier). 
+    // Otherwise, use the plan's limit. Use 0 for unlimited if not specified on the plan.
+    const tableLimit = isSubscriptionActive ? (plan?.tableLimit ?? 0) : 5;
+
     set({
       user,
       userProfile,
       tenant,
-      plan,
+      plan: isSubscriptionActive ? plan : null, // Clear the plan from state if subscription is not active
       isAuthenticated: !!user,
       isManager: userProfile?.role === 'manager',
       isPlatformAdmin: userProfile?.role === 'platform_admin',
       isBarista: userProfile?.role === 'barista',
       isService: userProfile?.role === 'service',
       isCashier: userProfile?.role === 'cashier',
-      tableLimit: plan?.tableLimit ?? null,
+      tableLimit: tableLimit,
       hasAnalyticsFeature: features.has('Analytics'),
       hasMenuCustomizationFeature: features.has('Menu Customization'),
       hasAdvancedReportingFeature: features.has('Advanced Reporting'),
@@ -88,5 +96,3 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
   },
 }));
-
-    
