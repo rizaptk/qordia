@@ -5,8 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useUserClaims, useFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useAuth, useUser, useUserClaims } from '@/firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import Link from 'next/link';
 
@@ -27,7 +26,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const { firestore, auth } = useFirebase();
+  const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
@@ -39,45 +38,26 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    const handleRedirect = async () => {
-      // Don't redirect until we have a user and their status is clear
-      if (isUserLoading || areClaimsLoading || !user) {
+    // Don't redirect until we have a definitive auth state
+    if (isUserLoading || areClaimsLoading || !user) {
+      return;
+    }
+
+    if (claims) {
+      if (claims.platform_admin === true) {
+        router.replace('/platform');
         return;
       }
-
-      // 1. Check claims first (fastest for returning users)
-      if (claims) {
-        if (claims.platform_admin === true) {
-          router.push('/platform');
-          return;
-        }
-        if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
-          router.push('/staff');
-          return;
-        }
+      if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
+        router.replace('/staff');
+        return;
       }
-
-      // 2. Fallback to DB check for new users on first login
-      if (firestore) {
-        try {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          if (userDocSnap.exists() && userDocSnap.data().role === 'manager') {
-            router.push('/staff');
-            return;
-          }
-        } catch (error) {
-            console.error("Login redirect DB check failed:", error);
-        }
-      }
-      
-      // 3. Fallback for anyone else (customers, users with no role)
-      router.push('/');
-    };
+    }
     
-    handleRedirect();
+    // Fallback for anyone else (customers, users with no role)
+    router.replace('/');
     
-  }, [user, isUserLoading, claims, areClaimsLoading, router, firestore]);
+  }, [user, isUserLoading, claims, areClaimsLoading, router]);
 
   const handleEmailLogin = async (data: LoginFormValues) => {
     if (!auth) return;

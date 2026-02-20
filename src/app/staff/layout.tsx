@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc, getDoc } from 'firebase/firestore';
-import type { Tenant, SubscriptionPlan, UserProfile } from '@/lib/types';
+import { doc } from 'firebase/firestore';
+import type { Tenant, SubscriptionPlan } from '@/lib/types';
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2 } from "lucide-react";
 import {
   SidebarProvider,
@@ -22,13 +22,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
+const staffRoles = ['manager', 'barista', 'service'];
+
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { firestore } = useFirebase();
+  const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
-  const [authStatus, setAuthStatus] = useState<'pending' | 'authorized' | 'unauthorized'>('pending');
 
   const tenantId = claims?.tenantId;
 
@@ -49,58 +50,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const hasAnalyticsFeature = features.has('Analytics');
 
   useEffect(() => {
-    const authorize = async () => {
-      if (isUserLoading || areClaimsLoading) return; // Wait until auth state is settled
-
-      if (!user) {
-        setAuthStatus('unauthorized');
-        return;
-      }
-
-      // Check 1: Custom Claims (fastest path for returning users)
-      const userIsStaffViaClaims = claims && ['manager', 'barista', 'service'].includes(claims.role || '');
-      if (userIsStaffViaClaims) {
-        setAuthStatus('authorized');
-        return;
-      }
-      
-      // If claims are loaded but don't show a staff role, it might be a customer.
-      if (!areClaimsLoading && claims) {
-          setAuthStatus('unauthorized');
-          return;
-      }
-
-      // Check 2: Database fallback (for new users on their very first login)
-      if (firestore && !claims) { // Only do DB check if claims are not yet populated
-          try {
-              const userDocRef = doc(firestore, 'users', user.uid);
-              const userDocSnap = await getDoc(userDocRef);
-              if (userDocSnap.exists()) {
-                  const userRole = userDocSnap.data().role;
-                  const userIsStaffViaDb = ['manager', 'barista', 'service'].includes(userRole);
-                  if (userIsStaffViaDb) {
-                      setAuthStatus('authorized');
-                      return;
-                  }
-              }
-          } catch (error) {
-              console.error("Staff layout: DB authorization check failed:", error);
-          }
-      }
-
-      // If all checks fail, the user is not authorized.
-      setAuthStatus('unauthorized');
-    };
-
-    authorize();
-  }, [user, isUserLoading, claims, areClaimsLoading, firestore]);
-
-  useEffect(() => {
-    if (authStatus === 'unauthorized') {
-      router.push('/login'); // Redirect to login page to break the loop
+    // Wait until we have a definitive answer on user and claims
+    if (isUserLoading || areClaimsLoading) {
+      return; 
     }
-  }, [authStatus, router]);
 
+    // If there's no user, or the user's role is not a staff role, redirect to login
+    if (!user || !claims?.role || !staffRoles.includes(claims.role)) {
+      router.replace('/login');
+    }
+  }, [user, isUserLoading, claims, areClaimsLoading, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -111,18 +70,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   }
 
   // Show a loading screen while we verify auth/claims.
-  if (authStatus === 'pending' || isLoadingTenant || isLoadingPlan) {
+  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant || isLoadingPlan;
+  const isAuthorized = user && claims?.role && staffRoles.includes(claims.role);
+
+  if (isAuthorizing || !isAuthorized) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4">Authenticating...</p>
         </div>
     );
-  }
-  
-  if (authStatus !== 'authorized' || !user) {
-    // This will be shown briefly during the redirect
-    return null;
   }
   
   // If we reach here, user is authenticated and authorized staff.
