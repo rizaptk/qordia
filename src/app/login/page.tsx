@@ -55,7 +55,13 @@ export default function LoginPage() {
     if (!auth) return;
     setAuthError(null);
     try {
-        await signInWithEmailAndPassword(auth, data.email, data.password);
+        const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+        // Check if the user's email is verified, but only if they used email/password provider.
+        if (userCredential.user.providerData.some(p => p.providerId === 'password') && !userCredential.user.emailVerified) {
+          await auth.signOut(); // Log them out immediately
+          setAuthError('Please verify your email address before signing in. Check your inbox for a verification link.');
+          return; // Stop execution
+        }
         // Successful sign-in will be handled by the useEffect
     } catch (error: any) {
         setAuthError(error.message);

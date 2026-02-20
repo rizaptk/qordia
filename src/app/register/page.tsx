@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useAuth, useUser, useUserClaims } from '@/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 const registerSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -30,6 +30,7 @@ export default function RegisterPage() {
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -54,14 +55,17 @@ export default function RegisterPage() {
     if (!auth) return;
     setAuthError(null);
     try {
-        await createUserWithEmailAndPassword(auth, data.email, data.password);
-        // Successful registration auto-signs in, which will be handled by the useEffect
+        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        await sendEmailVerification(userCredential.user);
+        setIsSuccess(true);
+        // Sign the user out to force them to log in after verification
+        await auth.signOut();
     } catch (error: any) {
         setAuthError(error.message);
     }
   };
 
-  if (isUserLoading || areClaimsLoading || user) {
+  if (isUserLoading || areClaimsLoading || (user && !isSuccess)) {
     return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
   }
 
@@ -76,46 +80,56 @@ export default function RegisterPage() {
           <CardDescription>Enter your details to get started</CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleEmailRegister)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="manager@qordia.cafe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+          {isSuccess ? (
+             <Alert variant="default" className="border-green-500/50 text-green-700 dark:border-green-600/50 dark:text-green-300">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <AlertTitle>Verification Email Sent!</AlertTitle>
+                <AlertDescription>
+                    Your account has been created. Please check your inbox to verify your email address before signing in.
+                </AlertDescription>
+            </Alert>
+          ) : (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleEmailRegister)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="manager@qordia.cafe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="••••••••" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {authError && (
+                  <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Registration Failed</AlertTitle>
+                      <AlertDescription>{authError.replace('Firebase: ', '')}</AlertDescription>
+                  </Alert>
                 )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {authError && (
-                 <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Registration Failed</AlertTitle>
-                    <AlertDescription>{authError.replace('Firebase: ', '')}</AlertDescription>
-                 </Alert>
-              )}
-              <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Creating Account..." : "Create Account"}
-              </Button>
-            </form>
-          </Form>
+                <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? "Creating Account..." : "Create Account"}
+                </Button>
+              </form>
+            </Form>
+          )}
         </CardContent>
         <CardFooter className="justify-center">
             <p className="text-sm text-muted-foreground">
