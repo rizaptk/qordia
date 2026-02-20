@@ -171,14 +171,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   </Link>
               </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/subscription")}>
-                      <Link href="/staff/subscription">
-                      <CreditCard />
-                      <span className="group-data-[collapsible=icon]:hidden">Subscription</span>
-                      </Link>
-                  </SidebarMenuButton>
-              </SidebarMenuItem>
               {hasAnalyticsFeature && (
                   <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>

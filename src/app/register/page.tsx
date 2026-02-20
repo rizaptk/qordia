@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -68,9 +69,9 @@ export default function RegisterPage() {
             name: `${newUser.displayName || data.email.split('@')[0]}'s Cafe`,
             ownerId: newUser.uid,
             createdAt: Timestamp.now(),
-            planId: 'plan_basic', // Assign a default trial/basic plan
-            subscriptionStatus: 'trialing',
-            nextBillingDate: Timestamp.fromDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)), // 30-day trial
+            planId: 'plan_free', // Assign the default free plan
+            subscriptionStatus: 'active',
+            nextBillingDate: null, 
         };
         const tenantRef = await addDoc(collection(firestore, 'tenants'), tenantData);
 

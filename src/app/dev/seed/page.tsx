@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -42,8 +43,8 @@ export default function SeedPage() {
         name: 'Qordia Cafe (Test)',
         ownerId: 'test-owner', // Add a placeholder ownerId
         createdAt: Timestamp.now(),
-        planId: 'plan_basic',
-        subscriptionStatus: 'trialing',
+        planId: 'plan_pro', // Give the test tenant the pro plan
+        subscriptionStatus: 'active',
       });
 
       // 2. Seed Menu Categories from unique categories in menuItems
@@ -68,18 +69,28 @@ export default function SeedPage() {
       });
 
       // 4. Seed Subscription Plans
+      const freePlanRef = doc(firestore, 'subscription_plans', 'plan_free');
+      batch.set(freePlanRef, {
+        name: 'Free',
+        price: 0,
+        features: ['Analytics'],
+        tableLimit: 5,
+      });
+
       const basicPlanRef = doc(firestore, 'subscription_plans', 'plan_basic');
       batch.set(basicPlanRef, {
         name: 'Basic',
         price: 19,
-        features: ['Analytics'],
+        features: ['Analytics', 'Cashier Role', 'Service Role'],
+        tableLimit: 20,
       });
 
       const proPlanRef = doc(firestore, 'subscription_plans', 'plan_pro');
       batch.set(proPlanRef, {
         name: 'Pro',
         price: 49,
-        features: ['Analytics', 'Advanced Reporting', 'Priority Support'],
+        features: ['Analytics', 'Advanced Reporting', 'Priority Support', 'API Access', 'Menu Customization', 'Staff Roles', 'Cashier Role', 'Service Role'],
+        tableLimit: 0, // 0 for unlimited
       });
 
 
@@ -127,8 +138,8 @@ export default function SeedPage() {
         </CardHeader>
         <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-                This action will populate the Firestore database with initial test data for a single tenant ({TENANT_ID}). 
-                This includes a tenant, menu categories, a sample table, subscription plans, and menu items.
+                This action will populate the Firestore database with initial test data.
+                This includes subscription plans (Free, Basic, Pro), and a test tenant ({TENANT_ID}) with menu items, categories, and a sample table.
                 Do not run this in a production environment.
             </p>
           <Button onClick={handleSeedData} disabled={isLoading || !firestore} className="w-full">
