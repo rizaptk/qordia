@@ -1,47 +1,14 @@
 
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/stores/auth-store';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { QordiaLogo } from '@/components/logo';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function Home() {
-  const router = useRouter();
-  const { isAuthenticated, isManager, isPlatformAdmin, isLoading } = useAuthStore();
-  
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    if (!isAuthenticated) {
-      return;
-    }
-
-    if (isPlatformAdmin) {
-      router.replace('/platform');
-      return;
-    }
-    if (isManager) {
-      router.replace('/staff');
-      return;
-    }
-    
-    // If authenticated but not a manager or admin (e.g., customer or barista), stay on homepage.
-  }, [isAuthenticated, isManager, isPlatformAdmin, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Checking your session...</p>
-      </div>
-    );
-  }
+  const { isAuthenticated } = useAuthStore();
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
@@ -51,12 +18,20 @@ export default function Home() {
           <span className="text-lg font-semibold font-headline">Qordia</span>
         </Link>
         <div className="flex items-center gap-4">
-          <Button asChild variant="ghost">
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/register">Sign Up</Link>
-          </Button>
+          {isAuthenticated ? (
+             <Button asChild>
+                <Link href="/staff">Go to Dashboard</Link>
+             </Button>
+          ) : (
+            <>
+                <Button asChild variant="ghost">
+                    <Link href="/login">Login</Link>
+                </Button>
+                <Button asChild>
+                    <Link href="/register">Sign Up</Link>
+                </Button>
+            </>
+          )}
         </div>
       </header>
       <main className="flex flex-1 flex-col items-center justify-center p-4 text-center">
