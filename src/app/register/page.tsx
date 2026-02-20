@@ -39,7 +39,8 @@ export default function RegisterPage() {
   });
 
   useEffect(() => {
-    if (isUserLoading || areClaimsLoading) return;
+    // If registration was just successful, do not redirect. Let the user see the message.
+    if (isSuccess || isUserLoading || areClaimsLoading) return;
 
     if (user && claims) {
       if (claims.platform_admin === true) {
@@ -50,7 +51,7 @@ export default function RegisterPage() {
         router.push('/');
       }
     }
-  }, [user, isUserLoading, claims, areClaimsLoading, router]);
+  }, [user, isUserLoading, claims, areClaimsLoading, router, isSuccess]);
 
   const handleEmailRegister = async (data: RegisterFormValues) => {
     if (!auth || !firestore) return;
@@ -107,13 +108,18 @@ export default function RegisterPage() {
         </CardHeader>
         <CardContent>
           {isSuccess ? (
-             <Alert variant="default" className="border-green-500/50 text-green-700 dark:border-green-600/50 dark:text-green-300">
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                <AlertTitle>Verification Email Sent!</AlertTitle>
-                <AlertDescription>
-                    Your business account has been created. Please check your inbox to verify your email address before signing in.
-                </AlertDescription>
-            </Alert>
+             <div className="space-y-4">
+                <Alert variant="default" className="border-green-500/50 text-green-700 dark:border-green-600/50 dark:text-green-300">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <AlertTitle>Verification Email Sent!</AlertTitle>
+                    <AlertDescription>
+                        Your business account has been created. Please check your inbox to verify your email address before signing in.
+                    </AlertDescription>
+                </Alert>
+                <Button asChild className="w-full">
+                    <Link href="/login">Proceed to Login</Link>
+                </Button>
+            </div>
           ) : (
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleEmailRegister)} className="space-y-4">
@@ -157,11 +163,13 @@ export default function RegisterPage() {
             </Form>
           )}
         </CardContent>
-        <CardFooter className="justify-center">
-            <p className="text-sm text-muted-foreground">
-                Already have an account? <Link href="/login" className="text-primary hover:underline">Sign In</Link>
-            </p>
-        </CardFooter>
+        {!isSuccess && (
+            <CardFooter className="justify-center">
+                <p className="text-sm text-muted-foreground">
+                    Already have an account? <Link href="/login" className="text-primary hover:underline">Sign In</Link>
+                </p>
+            </CardFooter>
+        )}
       </Card>
     </div>
   );
