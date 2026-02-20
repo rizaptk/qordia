@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import Image from 'next/image';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useAuthStore } from '@/stores/auth-store';
 import { collection, query, where } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -17,8 +18,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { PlusCircle, QrCode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-
-const TENANT_ID = 'qordiapro-tenant';
 
 type Table = {
     id: string;
@@ -33,6 +32,9 @@ type NewTableFormValues = z.infer<typeof newTableSchema>;
 
 export default function TableManagementPage() {
     const firestore = useFirestore();
+    const { tenant } = useAuthStore();
+    const TENANT_ID = tenant?.id;
+
     const { toast } = useToast();
     const [origin, setOrigin] = useState('');
     const form = useForm<NewTableFormValues>({
@@ -46,20 +48,20 @@ export default function TableManagementPage() {
     }, []);
 
     const tablesRef = useMemoFirebase(() => 
-        firestore ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
-        [firestore]
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
+        [firestore, TENANT_ID]
     );
     const { data: tables, isLoading: isLoadingTables } = useCollection<Table>(tablesRef);
 
     const activeOrdersQuery = useMemoFirebase(() =>
-        firestore ? query(collection(firestore, `tenants/${TENANT_ID}/orders`), where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])) : null
-    , [firestore]);
+        firestore && TENANT_ID ? query(collection(firestore, `tenants/${TENANT_ID}/orders`), where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])) : null
+    , [firestore, TENANT_ID]);
     const { data: activeOrders } = useCollection<Order>(activeOrdersQuery);
 
     const activeTableIds = new Set(activeOrders?.map(order => order.tableId));
 
     const onAddNewTable = async (data: NewTableFormValues) => {
-        if (!firestore) return;
+        if (!firestore || !TENANT_ID) return;
         
         const newTableData = {
             tableNumber: data.tableNumber,
@@ -126,7 +128,7 @@ export default function TableManagementPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {tables.sort((a,b) => a.tableNumber.localeCompare(b.tableNumber, undefined, {numeric: true})).map(table => {
                                 const isActive = activeTableIds.has(table.id);
-                                const qrData = encodeURIComponent(`${origin}/menu/${table.id}`);
+                                const qrData = encodeURIComponent(`${origin}/${TENANT_ID}/menu/${table.id}`);
                                 const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${qrData}`;
 
                                 return (

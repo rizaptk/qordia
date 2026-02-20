@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ArrowRight } from 'lucide-react';
@@ -46,7 +45,7 @@ export default function Home() {
             The simplest way for your customers to order. Scan the QR code at a table to see how it works.
           </p>
           <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/table/12">
+            <Link href="/qordiapro-tenant/table/12">
               Simulate Scan for Table 12
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
