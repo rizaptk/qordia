@@ -85,6 +85,7 @@ export default function StaffDashboardPage() {
                     <Skeleton className="h-40" />
                     <Skeleton className="h-40" />
                     <Skeleton className="h-40" />
+                    <Skeleton className="h-40" />
                 </div>
             </div>
         )

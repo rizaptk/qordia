@@ -89,7 +89,8 @@ service cloud.firestore {
       allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/tables/{tableId} {
-      allow read: if true; // Publicly readable for QR code scanning
+      allow get: if true; // Publicly readable for QR code scanning
+      allow list: if isStaffOfTenant(tenantId) || isPlatformAdmin();
       allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
     match /tenants/{tenantId}/orders/{orderId} {
