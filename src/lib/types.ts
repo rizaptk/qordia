@@ -52,13 +52,14 @@ export type Tenant = {
     planId?: string;
     subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';
     nextBillingDate?: { seconds: number; nanoseconds: number };
+    staffUids?: string[];
 }
 
 export type UserProfile = {
   id: string;
   name: string;
   email: string;
-  role: 'customer' | 'barista' | 'service' | 'manager' | 'platform_admin';
+  role: 'customer' | 'barista' | 'service' | 'cashier' | 'manager' | 'platform_admin';
   tenantId?: string;
 };
 
@@ -76,3 +77,9 @@ export type SubscriptionPlan = {
   price: number;
   features: string[];
 }
+
+export type CustomRole = {
+  id: string;
+  name: string;
+  permissions: string[];
+};

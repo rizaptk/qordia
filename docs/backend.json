@@ -11,7 +11,8 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "planId": { "type": "string", "description": "The ID of the subscription plan this tenant is on." },
         "subscriptionStatus": { "type": "string", "enum": ["active", "trialing", "overdue", "canceled"] },
-        "nextBillingDate": { "type": "string", "format": "date-time" }
+        "nextBillingDate": { "type": "string", "format": "date-time" },
+        "staffUids": { "type": "array", "items": { "type": "string" }, "description": "List of Firebase UIDs for staff members of this tenant." }
       },
       "required": ["id", "name", "ownerId"]
     },

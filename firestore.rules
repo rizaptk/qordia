@@ -38,9 +38,14 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read, update: if isOwner(userId) || isPlatformAdmin();
+      // A user can be read by its owner, a platform admin, or a manager of the same tenant.
+      allow get: if isOwner(userId) || isPlatformAdmin() || (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager');
+      // Listing all users is restricted to platform admins to prevent data leakage.
+      allow list: if isPlatformAdmin();
+      // Users can update their own profile; platform admins can update any.
+      allow update: if isOwner(userId) || isPlatformAdmin();
       allow create: if isOwner(userId);
-      allow list, delete: if isPlatformAdmin();
+      allow delete: if isPlatformAdmin();
     }
     
     // Subscription plans can be read by any authenticated user (for UI purposes), but only managed by platform admin.

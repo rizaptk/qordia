@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useAuthStore } from '@/stores/auth-store';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import type { CustomRole, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
@@ -51,10 +51,12 @@ type AddUserFormValues = z.infer<typeof addUserSchema>;
 export default function StaffManagementPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
-    const { tenant, hasCustomRolesFeature } = useAuthStore();
+    const { user, tenant, hasCustomRolesFeature } = useAuthStore();
     
     const [isRoleFormOpen, setIsRoleFormOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<CustomRole | null>(null);
+    const [staff, setStaff] = useState<UserProfile[]>([]);
+    const [isLoadingStaff, setIsLoadingStaff] = useState(true);
 
     const TENANT_ID = tenant?.id;
 
@@ -64,11 +66,32 @@ export default function StaffManagementPage() {
     );
     const { data: customRoles, isLoading: isLoadingRoles } = useCollection<CustomRole>(rolesRef);
 
-    const staffRef = useMemoFirebase(() =>
-        firestore && TENANT_ID ? query(collection(firestore, 'users'), where('tenantId', '==', TENANT_ID)) : null,
-        [firestore, TENANT_ID]
-    );
-    const { data: staff, isLoading: isLoadingStaff } = useCollection<UserProfile>(staffRef);
+    useEffect(() => {
+        if (!firestore || !tenant?.staffUids || tenant.staffUids.length === 0) {
+            setIsLoadingStaff(false);
+            setStaff([]);
+            return;
+        }
+
+        setIsLoadingStaff(true);
+        const fetchStaff = async () => {
+            try {
+                const staffPromises = tenant.staffUids!.map(uid => getDoc(doc(firestore, 'users', uid)));
+                const staffDocs = await Promise.all(staffPromises);
+                const staffProfiles = staffDocs
+                    .filter(docSnap => docSnap.exists())
+                    .map(docSnap => ({ id: docSnap.id, ...docSnap.data() } as UserProfile));
+                setStaff(staffProfiles);
+            } catch (err) {
+                 console.error("Failed to fetch staff:", err);
+                 toast({ variant: "destructive", title: "Error Fetching Staff", description: "Could not load staff profiles." });
+            } finally {
+                setIsLoadingStaff(false);
+            }
+        };
+
+        fetchStaff();
+    }, [firestore, tenant, toast]);
 
     const roleForm = useForm<RoleFormValues>({
         resolver: zodResolver(roleSchema),
@@ -107,20 +130,46 @@ export default function StaffManagementPage() {
         }
     };
     
-    const onAddUserSubmit = (data: AddUserFormValues) => {
+    const onAddUserSubmit = async (data: AddUserFormValues) => {
       if (!firestore || !TENANT_ID) return;
 
       const userDocRef = doc(firestore, 'users', data.uid);
-      updateDocumentNonBlocking(userDocRef, {
-          tenantId: TENANT_ID,
-          role: data.role
-      });
-      toast({
-          title: "User Role Updated",
-          description: `User ${data.uid} assigned as ${data.role}. NOTE: Custom claims must be set separately by a platform admin.`
-      });
-      addUserForm.reset();
-  }
+      const tenantDocRef = doc(firestore, 'tenants', TENANT_ID);
+
+      try {
+        // Update user's profile
+        await updateDoc(userDocRef, {
+            tenantId: TENANT_ID,
+            role: data.role
+        });
+
+        // Add user's UID to the tenant's staff list
+        await updateDoc(tenantDocRef, {
+            staffUids: arrayUnion(data.uid)
+        });
+        
+        // Manually trigger a refresh of staff list
+        const newStaffMemberSnap = await getDoc(userDocRef);
+        if (newStaffMemberSnap.exists()) {
+            const newStaffMember = { id: newStaffMemberSnap.id, ...newStaffMemberSnap.data() } as UserProfile;
+            setStaff(currentStaff => [...currentStaff.filter(s => s.id !== newStaffMember.id), newStaffMember]);
+        }
+
+        toast({
+            title: "User Assigned",
+            description: `User has been assigned the ${data.role} role.`
+        });
+        addUserForm.reset();
+
+      } catch (error) {
+        console.error("Error assigning user role:", error);
+        toast({
+            variant: "destructive",
+            title: "Assignment Failed",
+            description: "Could not assign role to the user. Check the UID and permissions."
+        });
+      }
+    }
 
     const handleDeleteRole = (roleId: string) => {
         if (!firestore || !TENANT_ID) return;
@@ -378,5 +427,3 @@ export default function StaffManagementPage() {
         </div>
     );
 }
-
-    
