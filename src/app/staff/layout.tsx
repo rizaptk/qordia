@@ -30,7 +30,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
-
+  
   const tenantId = claims?.tenantId;
 
   const tenantRef = useMemoFirebase(
@@ -46,20 +46,20 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const { data: plan, isLoading: isLoadingPlan } = useDoc<SubscriptionPlan>(planRef);
 
   const features = useMemo(() => new Set(plan?.features || []), [plan]);
-  
   const hasAnalyticsFeature = features.has('Analytics');
 
+  const isStaff = claims?.role && staffRoles.includes(claims.role);
+  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant;
+
   useEffect(() => {
-    // Wait until we have a definitive answer on user and claims
-    if (isUserLoading || areClaimsLoading) {
+    if (isAuthorizing) {
       return; 
     }
 
-    // If there's no user, or the user's role is not a staff role, redirect to login
-    if (!user || !claims?.role || !staffRoles.includes(claims.role)) {
-      router.replace('/login');
+    if (!user || !isStaff) {
+      router.replace('/login'); 
     }
-  }, [user, isUserLoading, claims, areClaimsLoading, router]);
+  }, [user, isAuthorizing, isStaff, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -68,21 +68,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
   }
-
-  // Show a loading screen while we verify auth/claims.
-  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant || isLoadingPlan;
-  const isAuthorized = user && claims?.role && staffRoles.includes(claims.role);
-
-  if (isAuthorizing || !isAuthorized) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4">Authenticating...</p>
-        </div>
-    );
-  }
   
-  // If we reach here, user is authenticated and authorized staff.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -133,16 +119,18 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter className="group-data-[collapsible=icon]:hidden">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
-                <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
-                <span className="text-xs text-muted-foreground">{user.email}</span>
-              </div>
-            </div>
+            {user && (
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
+                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
+                    <span className="text-xs text-muted-foreground">{user.email}</span>
+                  </div>
+                </div>
+            )}
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
@@ -163,7 +151,16 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 </Link>
             </div>
         </header>
-        <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
+            {isAuthorizing ? (
+                <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="ml-4">Authorizing access...</p>
+                </div>
+            ) : (
+                children
+            )}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );
