@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { Tenant, SubscriptionPlan } from '@/lib/types';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2 } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -21,11 +21,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+
 
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
-  const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { firestore, auth } = useFirebase();
@@ -50,15 +52,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const hasAnalyticsFeature = features.has('Analytics');
 
   const isStaff = claims?.role && staffRoles.includes(claims.role);
-  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant;
+  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant || isLoadingPlan;
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  useEffect(() => {
-    // Wait until the component has mounted and the authorization check is complete.
-    if (!isClient || isAuthorizing) {
+    // Wait until the authorization check is complete.
+    if (isAuthorizing) {
       return; 
     }
 
@@ -66,7 +64,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (!user || !isStaff) {
       router.replace('/login'); 
     }
-  }, [user, isClient, isAuthorizing, isStaff, router]);
+  }, [user, isAuthorizing, isStaff, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -74,17 +72,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/menu')) return 'Menu Management';
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
-  }
-  
-  // On the server, or before the client has mounted and finished authorizing, show a full-page loader.
-  // This prevents any hydration mismatches by ensuring server and initial client render are identical.
-  if (!isClient || isAuthorizing) {
-    return (
-        <div className="flex h-screen items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4">Loading Staff Portal...</p>
-        </div>
-    );
   }
   
   return (
@@ -108,35 +95,53 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 </Link>
             </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
-                <Link href="/staff/menu">
-                <BookOpen />
-                <span className="group-data-[collapsible=icon]:hidden">Menu</span>
-                </Link>
-            </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
-                <Link href="/staff/tables">
-                <Table2 />
-                <span className="group-data-[collapsible=icon]:hidden">Tables</span>
-                </Link>
-            </SidebarMenuButton>
-            </SidebarMenuItem>
-            {hasAnalyticsFeature && (
+            
+            {claims?.role === 'manager' && (
+              <>
                 <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
-                    <Link href="/staff/analytics">
-                    <BarChart3 />
-                    <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
+                    <Link href="/staff/menu">
+                    <BookOpen />
+                    <span className="group-data-[collapsible=icon]:hidden">Menu</span>
                     </Link>
                 </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
+                    <Link href="/staff/tables">
+                    <Table2 />
+                    <span className="group-data-[collapsible=icon]:hidden">Tables</span>
+                    </Link>
+                </SidebarMenuButton>
+                </SidebarMenuItem>
+                {hasAnalyticsFeature && (
+                    <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
+                        <Link href="/staff/analytics">
+                        <BarChart3 />
+                        <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
+                        </Link>
+                    </SidebarMenuButton>
+                    </SidebarMenuItem>
+                )}
+              </>
             )}
           </SidebarMenu>
         </SidebarContent>
-        <SidebarFooter className="group-data-[collapsible=icon]:hidden">
+        <SidebarFooter className="group-data-[collapsible=icon]:hidden space-y-4">
+            {claims?.role === 'manager' && (
+                <Card className="bg-background/50">
+                    <CardHeader className="p-3">
+                         <CardTitle className="flex items-center gap-2 text-sm">
+                            <Gem className="w-4 h-4 text-primary" />
+                            Current Plan: {plan?.name ?? <Skeleton className="w-16 h-4 inline-block" />}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-3 pt-0">
+                         <Button variant="outline" size="sm" className="w-full">Upgrade Plan</Button>
+                    </CardContent>
+                </Card>
+            )}
             {user && (
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
@@ -170,7 +175,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {children}
+          {isAuthorizing ? (
+            <div className="flex h-full w-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4">Loading Staff Portal...</p>
+            </div>
+          ) : children}
         </main>
       </SidebarInset>
     </SidebarProvider>
