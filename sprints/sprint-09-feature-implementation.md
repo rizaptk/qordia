@@ -10,7 +10,8 @@ Implement the UI and logic for all subscription-based features defined in `src/l
     - [x] Update `StaffLayout.tsx` to conditionally render sidebar links for all these new features. The links should only appear if the corresponding feature flag in the auth store is `true`.
     - [x] Create placeholder pages for each new route (`/staff/reports`, `/staff/support`, `/staff/api`, `/staff/roles`) so the links are functional.
 - [ ] **Task 2: Build 'Custom Staff Roles' UI**
-    - [ ] Develop the UI on the `/staff/roles` page to allow managers to create, view, and manage custom roles within their tenant.
+    - [x] Develop the UI on the `/staff/roles` page to allow managers to create, view, and manage custom roles within their tenant.
+    - [ ] Create a UI to assign users to these custom roles.
 - [ ] **Task 3: Build 'Advanced Reporting' UI**
     - [ ] Replace the placeholder on the `/staff/reports` page with more detailed charts and data export options.
 - [ ] **Task 4: Build 'API Access' UI**
