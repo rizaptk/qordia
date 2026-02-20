@@ -1,5 +1,5 @@
 
-'use client';
+"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -48,6 +48,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     hasPrioritySupportFeature,
     hasApiAccessFeature,
     hasCustomRolesFeature,
+    hasCashierRoleFeature,
+    hasServiceRoleFeature,
     isLoading,
   } = useAuthStore();
   
@@ -137,22 +139,26 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/runner")}>
-                    <Link href="/staff/runner">
-                    <Truck />
-                    <span className="group-data-[collapsible=icon]:hidden">Runner View</span>
-                    </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/cashier")}>
-                    <Link href="/staff/cashier">
-                    <Banknote />
-                    <span className="group-data-[collapsible=icon]:hidden">Cashier</span>
-                    </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {hasServiceRoleFeature && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/runner")}>
+                      <Link href="/staff/runner">
+                      <Truck />
+                      <span className="group-data-[collapsible=icon]:hidden">Runner View</span>
+                      </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
+              {hasCashierRoleFeature && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/cashier")}>
+                      <Link href="/staff/cashier">
+                      <Banknote />
+                      <span className="group-data-[collapsible=icon]:hidden">Cashier</span>
+                      </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               
               {/* Manager-only tools */}
               <SidebarMenuItem>
