@@ -14,14 +14,13 @@ import { ShoppingCart, Search, Trash2 } from "lucide-react";
 import { SuggestedItems } from "@/components/menu/suggested-items";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
-import { useCollection, useMemoFirebase, addDocumentNonBlocking, useAuth, useFirestore } from "@/firebase";
+import { useCollection, useMemoFirebase, addDocumentNonBlocking, useFirestore } from "@/firebase";
 import { collection, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { CategoryChips } from "@/components/menu/category-chips";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
-import { signInAnonymously } from "firebase/auth";
 
 export default function MenuPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
   const { tenantId, tableId } = use(params);
@@ -40,15 +39,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   const { toast } = useToast();
 
   const firestore = useFirestore();
-  const auth = useAuth();
   const { user, isUserLoading } = useAuthStore();
-
-  useEffect(() => {
-    // For customers, if they are not logged in, sign them in anonymously.
-    if (auth && !user && !isUserLoading) {
-      signInAnonymously(auth);
-    }
-  }, [auth, user, isUserLoading]);
 
   const menuItemsRef = useMemoFirebase(() => 
     firestore && tenantId ? collection(firestore, `tenants/${tenantId}/menu_items`) : null, 
@@ -314,8 +305,8 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                             <span>Total</span>
                             <span>${cartTotal.toFixed(2)}</span>
                         </div>
-                        <Button size="lg" className="w-full" onClick={placeOrder} disabled={isPlacingOrder || isUserLoading}>
-                            {isPlacingOrder ? "Placing Order..." : "Place Order"}
+                        <Button size="lg" className="w-full" onClick={!user ? () => router.push('/login') : placeOrder} disabled={isPlacingOrder || (isUserLoading && !user)}>
+                            {isUserLoading && !user ? 'Authenticating...' : user ? (isPlacingOrder ? 'Placing Order...' : 'Place Order') : 'Sign In to Order'}
                         </Button>
                     </div>
                 </SheetFooter>
@@ -331,5 +322,3 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
     </Sheet>
   );
 }
-
-    
