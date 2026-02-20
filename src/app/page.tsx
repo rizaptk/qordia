@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useUserClaims } from '@/firebase';
+import { useUser, useUserClaims, useFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -11,36 +12,70 @@ import { QordiaLogo } from '@/components/logo';
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
+  const { firestore } = useFirebase();
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(true);
 
   useEffect(() => {
-    // We wait until we have a clear picture of the user's auth state and claims.
-    if (isUserLoading || areClaimsLoading) {
-      return;
-    }
-
-    // If we have a user and their claims are loaded, we can decide where to send them.
-    if (user && claims) {
-      if (claims.platform_admin === true) {
-        router.replace('/platform');
-      } else if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
-        router.replace('/staff');
+    const handleRedirect = async () => {
+      // Wait until auth state is fully determined
+      if (isUserLoading || areClaimsLoading) {
+        return;
       }
-      // If they are a user with no special role (e.g., customer), they stay on the homepage.
-    }
-  }, [user, claims, isUserLoading, areClaimsLoading, router]);
 
-  // While we check for an active session, show a loading screen.
-  // This prevents the public page from flashing for logged-in users.
-  if (isUserLoading || areClaimsLoading) {
+      // If no user is logged in, show the public homepage.
+      if (!user) {
+        setIsRedirecting(false);
+        return;
+      }
+
+      // 1. Primary check: Use custom claims if they exist.
+      // This is the fast path for all subsequent logins.
+      if (claims) {
+        if (claims.platform_admin === true) {
+          router.replace('/platform');
+          return;
+        }
+        if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
+          router.replace('/staff');
+          return;
+        }
+      }
+
+      // 2. Fallback check: If no role claim, check the database directly.
+      // This is crucial for a new user's first login.
+      if (firestore) {
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists() && userDocSnap.data().role === 'manager') {
+            router.replace('/staff');
+            return; // Redirect successful
+          }
+        } catch (error) {
+          console.error("Homepage: Failed to check user role from Firestore:", error);
+        }
+      }
+
+      // 3. If all checks fail, user is a regular customer or has no role. Show homepage.
+      setIsRedirecting(false);
+    };
+
+    handleRedirect();
+  }, [user, claims, isUserLoading, areClaimsLoading, firestore, router]);
+
+
+  // Show a loader while we determine where the user should go.
+  if (isRedirecting) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Checking your session...</p>
       </div>
     );
   }
 
-  // If the checks are complete and the user is not staff, show the public homepage.
+  // If not redirecting, show the public homepage.
   return (
     <div className="flex min-h-screen w-full flex-col bg-background">
       <header className="flex h-16 items-center justify-between border-b px-4 md:px-6">

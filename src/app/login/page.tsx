@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth, useUser, useUserClaims } from '@/firebase';
+import { useAuth, useUser, useUserClaims, useFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import Link from 'next/link';
 
@@ -15,7 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 
 const loginSchema = z.object({
@@ -26,7 +27,7 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const auth = useAuth();
+  const { firestore, auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const { claims, isLoading: areClaimsLoading } = useUserClaims();
   const router = useRouter();
@@ -38,18 +39,45 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isUserLoading || areClaimsLoading) return; // Wait for user and claims to load
-
-    if (user && claims) {
-      if (claims.platform_admin === true) {
-        router.push('/platform');
-      } else if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
-        router.push('/staff');
-      } else {
-        router.push('/'); // Fallback for other logged-in users (e.g., customers with no special role)
+    const handleRedirect = async () => {
+      // Don't redirect until we have a user and their status is clear
+      if (isUserLoading || areClaimsLoading || !user) {
+        return;
       }
-    }
-  }, [user, isUserLoading, claims, areClaimsLoading, router]);
+
+      // 1. Check claims first (fastest for returning users)
+      if (claims) {
+        if (claims.platform_admin === true) {
+          router.push('/platform');
+          return;
+        }
+        if (claims.role && ['manager', 'barista', 'service'].includes(claims.role)) {
+          router.push('/staff');
+          return;
+        }
+      }
+
+      // 2. Fallback to DB check for new users on first login
+      if (firestore) {
+        try {
+          const userDocRef = doc(firestore, 'users', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
+          if (userDocSnap.exists() && userDocSnap.data().role === 'manager') {
+            router.push('/staff');
+            return;
+          }
+        } catch (error) {
+            console.error("Login redirect DB check failed:", error);
+        }
+      }
+      
+      // 3. Fallback for anyone else (customers, users with no role)
+      router.push('/');
+    };
+    
+    handleRedirect();
+    
+  }, [user, isUserLoading, claims, areClaimsLoading, router, firestore]);
 
   const handleEmailLogin = async (data: LoginFormValues) => {
     if (!auth) return;
@@ -80,10 +108,16 @@ export default function LoginPage() {
     }
   };
 
+  // If user is logged in, show a loading state while we redirect them.
   if (isUserLoading || areClaimsLoading || user) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
+  // Otherwise, show the login form.
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
