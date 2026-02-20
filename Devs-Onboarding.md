@@ -197,18 +197,20 @@ Core Tables:
 
 # 📦 9. API Design Principles
 
+> For detailed endpoint documentation, authentication guides, and implementation examples, please see the **[API Usage Guide](./API-Usage.md)**.
+
 ## RESTful Convention Example
 
 ```
-GET    /api/menu
-POST   /api/orders
-PATCH  /api/orders/:id/status
-GET    /api/reports/daily
+GET    /api/v1/menu
+POST   /api/v1/orders
+PATCH  /api/v1/orders/{orderId}
 ```
 
 ## API Guidelines
 
 - Always tenant-scoped
+- Authenticate via Bearer Token
 - Use pagination for lists
 - Standard error format
 - Consistent response structure
