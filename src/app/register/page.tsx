@@ -83,8 +83,8 @@ export default function RegisterPage() {
         
         // Send verification email and sign out to force verification
         await sendEmailVerification(userCredential.user);
-        setIsSuccess(true);
-        await auth.signOut();
+        await auth.signOut(); // Sign out FIRST to prevent redirect
+        setIsSuccess(true); // THEN update the UI to show success message
 
     } catch (error: any) {
         setAuthError(error.message);
