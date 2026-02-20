@@ -6,7 +6,7 @@ import { useEffect, useMemo } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { Tenant, SubscriptionPlan } from '@/lib/types';
-import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem } from "lucide-react";
+import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -143,15 +143,20 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 </Card>
             )}
             {user && (
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
-                    <span className="text-xs text-muted-foreground">{user.email}</span>
-                  </div>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
+                        <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
+                        <span className="text-xs text-muted-foreground">{user.email}</span>
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                        <LogOut className="h-5 w-5" />
+                    </Button>
                 </div>
             )}
         </SidebarFooter>
@@ -178,7 +183,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
           {isAuthorizing ? (
             <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4">Loading Staff Portal...</p>
+                <p className="ml-4">Verifying access...</p>
             </div>
           ) : children}
         </main>
