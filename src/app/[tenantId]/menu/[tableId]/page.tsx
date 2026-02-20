@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, use } from "react";
 import type { MenuItem } from "@/lib/types";
 import { getSuggestedItems } from "@/app/actions/suggest-items";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
@@ -22,8 +23,8 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
 import { signInAnonymously } from "firebase/auth";
 
-export default function MenuPage({ params }: { params: { tenantId: string, tableId: string } }) {
-  const { tenantId, tableId } = params;
+export default function MenuPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
+  const { tenantId, tableId } = use(params);
   const { cart, removeFromCart, clearCart, totalItems, totalPrice } = useCartStore();
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -330,3 +331,5 @@ export default function MenuPage({ params }: { params: { tenantId: string, table
     </Sheet>
   );
 }
+
+    

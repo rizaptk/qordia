@@ -1,5 +1,7 @@
+
 "use client";
 
+import { use } from 'react';
 import type { Order } from '@/lib/types';
 import { OrderStatusTracker } from '@/components/order/order-status-tracker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,8 +19,8 @@ const statusMessages = {
   Completed: "Thank you for your order! We hope you enjoy it.",
 };
 
-export default function OrderTrackingPage({ params }: { params: { tenantId: string, orderId: string } }) {
-  const { tenantId, orderId } = params;
+export default function OrderTrackingPage({ params }: { params: Promise<{ tenantId: string, orderId: string }> }) {
+  const { tenantId, orderId } = use(params);
   const firestore = useFirestore();
 
   const orderRef = useMemoFirebase(
@@ -55,7 +57,7 @@ export default function OrderTrackingPage({ params }: { params: { tenantId: stri
             </div>
           ) : order ? (
             <>
-              <p className="text-center text-muted-foreground -mt-4">Order ID: #{params.orderId}</p>
+              <p className="text-center text-muted-foreground -mt-4">Order ID: #{orderId}</p>
               <OrderStatusTracker currentStatus={currentStatus} />
               <div className="text-center bg-primary/10 p-4 rounded-lg">
                 <h3 className="font-semibold text-lg text-primary">Status: {currentStatus}</h3>
@@ -79,3 +81,5 @@ export default function OrderTrackingPage({ params }: { params: { tenantId: stri
     </main>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use, useEffect, useState } from 'react';
@@ -32,20 +33,20 @@ const tenantFormSchema = z.object({
 
 type TenantFormValues = z.infer<typeof tenantFormSchema>;
 
-export default function TenantDetailPage({ params }: { params: { tenantId: string } }) {
-  const resolvedParams = use(params);
+export default function TenantDetailPage({ params }: { params: Promise<{ tenantId: string }> }) {
+  const { tenantId } = use(params);
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const tenantRef = useMemoFirebase(() => 
-    firestore ? doc(firestore, 'tenants', resolvedParams.tenantId) : null,
-    [firestore, resolvedParams.tenantId]
+    firestore ? doc(firestore, 'tenants', tenantId) : null,
+    [firestore, tenantId]
   );
   const { data: tenant, isLoading: isLoadingTenant } = useDoc<Tenant>(tenantRef);
 
   const usersQuery = useMemoFirebase(() =>
-    firestore ? query(collection(firestore, 'users'), where('tenantId', '==', resolvedParams.tenantId)) : null,
-    [firestore, resolvedParams.tenantId]
+    firestore ? query(collection(firestore, 'users'), where('tenantId', '==', tenantId)) : null,
+    [firestore, tenantId]
   );
   const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
 
@@ -261,3 +262,5 @@ export default function TenantDetailPage({ params }: { params: { tenantId: strin
     </div>
   );
 }
+
+    
