@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore } from '@/firebase/provider';
-import { doc, getDoc } from 'firebase/firestore';
-import type { UserProfile } from '@/lib/types';
+import { useUser } from '@/firebase/provider';
 
 interface UserClaims {
   role?: 'manager' | 'barista' | 'service' | 'customer' | 'platform_admin';
@@ -15,78 +13,61 @@ interface UserClaims {
 interface UseUserClaimsResult {
   claims: UserClaims | null;
   isLoading: boolean;
-  roleSource: 'token' | 'firestore' | null;
 }
 
+/**
+ * A hook to resolve a user's custom claims from their ID token.
+ * This is the single source of truth for user roles and permissions.
+ */
 export function useUserClaims(): UseUserClaimsResult {
   const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
   const [claims, setClaims] = useState<UserClaims | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [roleSource, setRoleSource] = useState<'token' | 'firestore' | null>(null);
 
   useEffect(() => {
-    const resolveClaims = async () => {
-      if (isUserLoading) {
-        setIsLoading(true);
-        return;
-      }
-
-      if (!user) {
-        setClaims(null);
-        setRoleSource(null);
-        setIsLoading(false);
-        return;
-      }
-
+    // If the user object is still loading, we are also loading.
+    if (isUserLoading) {
       setIsLoading(true);
-      
-      try {
-        const idTokenResult = await user.getIdTokenResult(true); // Force refresh
-        
-        // Primary source of truth: token claims
-        if (idTokenResult.claims.role || idTokenResult.claims.platform_admin) {
-          setClaims(idTokenResult.claims as UserClaims);
-          setRoleSource('token');
-          setIsLoading(false);
-          return;
-        }
+      return;
+    }
 
-        // Fallback for new users: check Firestore database if claims are not yet set
-        if (firestore) {
-          const userDocRef = doc(firestore, 'users', user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          
-          if (userDocSnap.exists()) {
-            const userProfile = userDocSnap.data() as UserProfile;
-            const dbClaims: UserClaims = {
-              role: userProfile.role,
-              tenantId: userProfile.tenantId,
-            };
-            setClaims(dbClaims);
-            setRoleSource('firestore');
-          } else {
-            // User exists in Auth, but not in Firestore yet.
-            setClaims({ role: 'customer' }); // Default to customer
-            setRoleSource('firestore');
-          }
-        } else {
-            // Firestore not available, default to customer
-             setClaims({ role: 'customer' });
-             setRoleSource(null);
+    // If there is no user, there are no claims.
+    if (!user) {
+      setClaims(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // User object is available, now we fetch their claims.
+    setIsLoading(true);
+    let isMounted = true;
+
+    const resolveClaims = async () => {
+      try {
+        // Force a refresh of the ID token to ensure we have the latest claims.
+        // This is important for new users whose claims may have just been set.
+        const idTokenResult = await user.getIdTokenResult(true);
+        if (isMounted) {
+          setClaims(idTokenResult.claims as UserClaims);
         }
       } catch (error) {
-        console.error("Error resolving user claims:", error);
-        setClaims(null);
-        setRoleSource(null);
+        console.error("Error fetching user claims:", error);
+        if (isMounted) {
+          setClaims(null);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     resolveClaims();
 
-  }, [user, isUserLoading, firestore]);
+    return () => {
+      isMounted = false;
+    };
+  }, [user, isUserLoading]);
 
-  return { claims, isLoading, roleSource };
+  return { claims, isLoading };
 }
