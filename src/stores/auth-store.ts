@@ -24,13 +24,14 @@ export interface AuthState {
 
   // Actions
   setUser: (user: User | null) => void;
-  setProfileData: (data: { userProfile: UserProfile | null; tenant: Tenant | null; plan: SubscriptionPlan | null; }) => void;
+  setUserProfile: (userProfile: UserProfile | null) => void;
+  setTenantAndPlan: (data: { tenant: Tenant | null; plan: SubscriptionPlan | null; }) => void;
   setIsUserLoading: (isLoading: boolean) => void;
   setIsProfileLoading: (isLoading: boolean) => void;
   clearAll: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+export const useAuthStore = create<AuthState>((set) => ({
   // Raw data
   user: null,
   userProfile: null,
@@ -39,7 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   
   // State indicators
   isUserLoading: true,
-  isProfileLoading: false,
+  isProfileLoading: true,
 
   // Derived booleans
   isAuthenticated: false,
@@ -52,19 +53,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user, isAuthenticated: !!user });
   },
   
-  setProfileData: ({ userProfile, tenant, plan }) => {
-    const isManager = userProfile?.role === 'manager';
-    const isPlatformAdmin = userProfile?.role === 'platform_admin';
-    const features = new Set(plan?.features || []);
-    const hasAnalyticsFeature = features.has('Analytics');
-
+  setUserProfile: (userProfile) => {
     set({
       userProfile,
+      isManager: userProfile?.role === 'manager',
+      isPlatformAdmin: userProfile?.role === 'platform_admin',
+    });
+  },
+  
+  setTenantAndPlan: ({ tenant, plan }) => {
+    const features = new Set(plan?.features || []);
+    set({
       tenant,
       plan,
-      isManager,
-      isPlatformAdmin,
-      hasAnalyticsFeature,
+      hasAnalyticsFeature: features.has('Analytics'),
     });
   },
 

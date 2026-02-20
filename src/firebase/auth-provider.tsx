@@ -3,7 +3,7 @@
 
 import { useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { useAuthStore } from '@/stores/auth-store';
 import { UserProfile, Tenant, SubscriptionPlan } from '@/lib/types';
@@ -31,11 +31,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const firestore = useFirestore();
   const { 
     setUser, 
-    setProfileData, 
+    setUserProfile,
+    setTenantAndPlan,
     setIsUserLoading, 
     setIsProfileLoading, 
     clearAll 
   } = useAuthStore();
+  
+  const userProfile = useAuthStore(state => state.userProfile);
+  const tenantId = userProfile?.tenantId;
 
   useEffect(() => {
     if (!auth || !firestore) return;
@@ -46,70 +50,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(user);
         setIsProfileLoading(true);
 
-        // Get both the database profile and the auth token claims in parallel
-        const profilePromise = syncUserProfile(firestore, user);
-        const claimsPromise = user.getIdTokenResult(); // Does not force refresh unless needed
-
-        const [profile, idTokenResult] = await Promise.all([profilePromise, claimsPromise]);
-
-        const isPlatformAdminClaim = idTokenResult.claims.platform_admin === true;
-
-        // If the user has the platform_admin claim, we override their role from the database.
+        const profile = await syncUserProfile(firestore, user);
+        
         // This makes the security claim the single source of truth for platform admin status.
-        if (profile && isPlatformAdminClaim) {
+        const idTokenResult = await user.getIdTokenResult();
+        if (profile && idTokenResult.claims.platform_admin === true) {
             profile.role = 'platform_admin';
         }
-
-        setProfileData({ userProfile: profile, tenant: null, plan: null });
+        
+        setUserProfile(profile);
+        
         setIsUserLoading(false);
       } else {
         clearAll();
-        setIsUserLoading(false);
       }
     });
 
     return () => unsubscribeAuth();
-  }, [auth, firestore, setUser, setProfileData, setIsUserLoading, setIsProfileLoading, clearAll]);
+  }, [auth, firestore, setUser, setUserProfile, setIsUserLoading, setIsProfileLoading, clearAll]);
 
-  const userProfile = useAuthStore(state => state.userProfile);
-  const tenantId = userProfile?.tenantId;
 
   useEffect(() => {
     if (!firestore || !tenantId) {
-        // If there's no tenantId, ensure tenant and plan are null
-        if (useAuthStore.getState().tenant || useAuthStore.getState().plan) {
-           setProfileData({ 
-               userProfile: useAuthStore.getState().userProfile, 
-               tenant: null, 
-               plan: null 
-            });
-        }
+        setTenantAndPlan({ tenant: null, plan: null });
         setIsProfileLoading(false);
         return;
     }
+    
+    setIsProfileLoading(true);
+    let unsubscribePlan: Unsubscribe | null = null;
 
     const tenantRef = doc(firestore, 'tenants', tenantId);
     const unsubscribeTenant = onSnapshot(tenantRef, (tenantSnap) => {
+        // Clean up any previous plan listener when tenant data changes
+        if (unsubscribePlan) {
+            unsubscribePlan();
+            unsubscribePlan = null;
+        }
+
         const tenantData = tenantSnap.exists() ? { ...tenantSnap.data(), id: tenantSnap.id } as Tenant : null;
-        const currentStoreData = useAuthStore.getState();
 
         if (tenantData?.planId) {
             const planRef = doc(firestore, 'subscription_plans', tenantData.planId);
-            const unsubscribePlan = onSnapshot(planRef, (planSnap) => {
+            unsubscribePlan = onSnapshot(planRef, (planSnap) => {
                 const planData = planSnap.exists() ? { ...planSnap.data(), id: planSnap.id } as SubscriptionPlan : null;
-                setProfileData({ userProfile: currentStoreData.userProfile, tenant: tenantData, plan: planData });
+                setTenantAndPlan({ tenant: tenantData, plan: planData });
                 setIsProfileLoading(false);
             });
-            return () => unsubscribePlan();
         } else {
-            setProfileData({ userProfile: currentStoreData.userProfile, tenant: tenantData, plan: null });
+            // If there's no planId, update the store accordingly
+            setTenantAndPlan({ tenant: tenantData, plan: null });
             setIsProfileLoading(false);
         }
     });
 
-    return () => unsubscribeTenant();
-
-  }, [firestore, tenantId, setProfileData, setIsProfileLoading]);
+    return () => {
+        unsubscribeTenant();
+        if (unsubscribePlan) {
+            unsubscribePlan();
+        }
+    };
+  }, [firestore, tenantId, setTenantAndPlan, setIsProfileLoading]);
 
   return <>{children}</>;
 }
