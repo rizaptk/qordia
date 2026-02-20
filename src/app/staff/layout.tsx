@@ -27,33 +27,6 @@ import { QordiaLogo } from "@/components/logo";
 
 const staffRoles = ['manager', 'barista', 'service', 'cashier'];
 
-// A simplified layout for non-manager staff roles for a focused, kiosk-like experience.
-function NonManagerLayout({ children }: { children: React.ReactNode }) {
-    const auth = useAuth();
-    const { user } = useAuthStore();
-    
-    return (
-        <div className="min-h-screen flex flex-col">
-            <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10 shrink-0">
-                <Link href="#" className="flex items-center gap-2" prefetch={false}>
-                    <QordiaLogo className="w-8 h-8 text-primary" />
-                    <span className="text-lg font-semibold font-headline">Qordia</span>
-                </Link>
-                {user && (
-                <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-                        <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
-                            <LogOut className="h-5 w-5" />
-                        </Button>
-                    </div>
-                )}
-            </header>
-            <main className="flex-1 p-4 sm:p-6 bg-muted/30">{children}</main>
-        </div>
-    );
-}
-
-
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -69,6 +42,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     userProfile,
     plan,
     isManager,
+    isPlatformAdmin,
     hasAnalyticsFeature,
     hasAdvancedReportingFeature,
     hasPrioritySupportFeature,
@@ -79,13 +53,22 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   
   // === TOP-LEVEL ROUTE PROTECTION ===
   useEffect(() => {
-    if (!isLoading && (!user || !userProfile || !staffRoles.includes(userProfile.role))) {
+    if (isLoading) return;
+
+    // 1. Immediately redirect platform admins away from the staff section
+    if (isPlatformAdmin) {
+      router.replace('/platform');
+      return;
+    }
+
+    // 2. Redirect non-staff users to login
+    if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
         router.replace('/login');
     }
-  }, [isLoading, user, userProfile, router]);
+  }, [isLoading, user, userProfile, isPlatformAdmin, router]);
   
   // === NON-MANAGER ROUTE GUARD ===
-  // If a user is NOT a manager, this ensures they can only access their designated page.
+  // If a user is NOT a manager, ensure they can only access their designated page.
   useEffect(() => {
     if (isLoading || isManager || !userProfile) return;
 
@@ -118,7 +101,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (!isClient || isLoading) {
+  // Show loading screen until auth state is resolved and redirects have been processed.
+  if (!isClient || isLoading || isPlatformAdmin) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -127,186 +111,205 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // === CONDITIONAL LAYOUT RENDERING ===
-  // If the user is a staff member but NOT a manager, render the simple, focused layout.
-  if (!isManager && userProfile) {
-    return <NonManagerLayout>{children}</NonManagerLayout>;
-  }
-  
-  // If the user IS a manager, render the full dashboard layout.
+  // This is the unified layout. It ALWAYS renders SidebarProvider to ensure
+  // hook counts are stable. It then conditionally renders the content based on role.
   return (
     <SidebarProvider>
-      <Sidebar>
-        <SidebarHeader>
-          <div className="flex items-center gap-2">
-             <div className="p-2 bg-primary rounded-lg">
-                <ChefHat className="w-6 h-6 text-primary-foreground" />
-             </div>
-             <h2 className="text-lg font-bold font-headline">Qordia Staff</h2>
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            {/* Manager can see all primary staff views */}
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
-                  <Link href="/staff/pds">
-                  <ChefHat />
-                  <span className="group-data-[collapsible=icon]:hidden">Kitchen Display</span>
+      {/* The actual sidebar is only rendered for managers */}
+      {isManager && (
+        <Sidebar>
+          <SidebarHeader>
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-primary rounded-lg">
+                  <ChefHat className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h2 className="text-lg font-bold font-headline">Qordia Staff</h2>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              {/* Manager can see all primary staff views */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
+                    <Link href="/staff/pds">
+                    <ChefHat />
+                    <span className="group-data-[collapsible=icon]:hidden">Kitchen Display</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/runner")}>
+                    <Link href="/staff/runner">
+                    <Truck />
+                    <span className="group-data-[collapsible=icon]:hidden">Runner View</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/cashier")}>
+                    <Link href="/staff/cashier">
+                    <Banknote />
+                    <span className="group-data-[collapsible=icon]:hidden">Cashier</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+              {/* Manager-only tools */}
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
+                  <Link href="/staff/menu">
+                  <BookOpen />
+                  <span className="group-data-[collapsible=icon]:hidden">Menu</span>
                   </Link>
               </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/runner")}>
-                  <Link href="/staff/runner">
-                  <Truck />
-                  <span className="group-data-[collapsible=icon]:hidden">Runner View</span>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
+                  <Link href="/staff/tables">
+                  <Table2 />
+                  <span className="group-data-[collapsible=icon]:hidden">Tables</span>
                   </Link>
               </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname.includes("/staff/cashier")}>
-                  <Link href="/staff/cashier">
-                  <Banknote />
-                  <span className="group-data-[collapsible=icon]:hidden">Cashier</span>
-                  </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            
-            {/* Manager-only tools */}
-            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
-                <Link href="/staff/menu">
-                <BookOpen />
-                <span className="group-data-[collapsible=icon]:hidden">Menu</span>
-                </Link>
-            </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.includes("/staff/tables")}>
-                <Link href="/staff/tables">
-                <Table2 />
-                <span className="group-data-[collapsible=icon]:hidden">Tables</span>
-                </Link>
-            </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/subscription")}>
-                    <Link href="/staff/subscription">
-                    <CreditCard />
-                    <span className="group-data-[collapsible=icon]:hidden">Subscription</span>
-                    </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            {hasAnalyticsFeature && (
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
-                    <Link href="/staff/analytics">
-                    <BarChart3 />
-                    <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-            )}
-            {hasAdvancedReportingFeature && (
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/reports")}>
-                    <Link href="/staff/reports">
-                    <FileText />
-                    <span className="group-data-[collapsible=icon]:hidden">Reports</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-            )}
-            {hasCustomRolesFeature && (
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/roles")}>
-                    <Link href="/staff/roles">
-                    <Users />
-                    <span className="group-data-[collapsible=icon]:hidden">Staff Roles</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-            )}
-            {hasApiAccessFeature && (
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/api")}>
-                    <Link href="/staff/api">
-                    <Terminal />
-                    <span className="group-data-[collapsible=icon]:hidden">API Access</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-            )}
-            {hasPrioritySupportFeature && (
-                <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname.includes("/staff/support")}>
-                    <Link href="/staff/support">
-                    <LifeBuoy />
-                    <span className="group-data-[collapsible=icon]:hidden">Support</span>
-                    </Link>
-                </SidebarMenuButton>
-                </SidebarMenuItem>
-            )}
-          </SidebarMenu>
-        </SidebarContent>
-        <SidebarFooter className="group-data-[collapsible=icon]:hidden space-y-4">
-            {isManager && (
-                <Card className="bg-background/50">
-                    <CardHeader className="p-3">
-                         <CardTitle className="flex items-center gap-2 text-sm">
-                            <Gem className="w-4 h-4 text-primary" />
-                            Current Plan: {isLoading ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name ?? '...'}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-3 pt-0">
-                         <Button asChild variant="outline" size="sm" className="w-full">
-                            <Link href="/staff/subscription">Upgrade Plan</Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
-            {user && (
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
-                        <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
-                        <span className="text-xs text-muted-foreground">{user.email}</span>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/subscription")}>
+                      <Link href="/staff/subscription">
+                      <CreditCard />
+                      <span className="group-data-[collapsible=icon]:hidden">Subscription</span>
+                      </Link>
+                  </SidebarMenuButton>
+              </SidebarMenuItem>
+              {hasAnalyticsFeature && (
+                  <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/analytics")}>
+                      <Link href="/staff/analytics">
+                      <BarChart3 />
+                      <span className="group-data-[collapsible=icon]:hidden">Analytics</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+              )}
+              {hasAdvancedReportingFeature && (
+                  <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/reports")}>
+                      <Link href="/staff/reports">
+                      <FileText />
+                      <span className="group-data-[collapsible=icon]:hidden">Reports</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+              )}
+              {hasCustomRolesFeature && (
+                  <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/roles")}>
+                      <Link href="/staff/roles">
+                      <Users />
+                      <span className="group-data-[collapsible=icon]:hidden">Staff Roles</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+              )}
+              {hasApiAccessFeature && (
+                  <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/api")}>
+                      <Link href="/staff/api">
+                      <Terminal />
+                      <span className="group-data-[collapsible=icon]:hidden">API Access</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+              )}
+              {hasPrioritySupportFeature && (
+                  <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname.includes("/staff/support")}>
+                      <Link href="/staff/support">
+                      <LifeBuoy />
+                      <span className="group-data-[collapsible=icon]:hidden">Support</span>
+                      </Link>
+                  </SidebarMenuButton>
+                  </SidebarMenuItem>
+              )}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter className="group-data-[collapsible=icon]:hidden space-y-4">
+              {isManager && (
+                  <Card className="bg-background/50">
+                      <CardHeader className="p-3">
+                          <CardTitle className="flex items-center gap-2 text-sm">
+                              <Gem className="w-4 h-4 text-primary" />
+                              Current Plan: {isLoading ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name ?? '...'}
+                          </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-3 pt-0">
+                          <Button asChild variant="outline" size="sm" className="w-full">
+                              <Link href="/staff/subscription">Upgrade Plan</Link>
+                          </Button>
+                      </CardContent>
+                  </Card>
+              )}
+              {user && (
+                  <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={user.photoURL ?? "https://picsum.photos/seed/staff/100/100"} data-ai-hint="person portrait" />
+                          <AvatarFallback>{user.email?.charAt(0).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-semibold text-sm">{user.displayName ?? 'Staff Member'}</span>
+                          <span className="text-xs text-muted-foreground">{user.email}</span>
+                        </div>
                       </div>
+                      <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                          <LogOut className="h-5 w-5" />
+                      </Button>
+                  </div>
+              )}
+          </SidebarFooter>
+        </Sidebar>
+      )}
+      
+      {/* The main content area */}
+      <div className={isManager ? '' : 'w-full'}>
+        <SidebarInset>
+            {isManager ? (
+                <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10">
+                    <div className="flex items-center gap-4">
+                        <SidebarTrigger className="md:hidden" />
+                        <h1 className="text-xl font-semibold hidden md:block">{getPageTitle()}</h1>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
-                        <LogOut className="h-5 w-5" />
-                    </Button>
-                </div>
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" className="rounded-full">
+                            <Bell className="h-5 w-5" />
+                            <span className="sr-only">Notifications</span>
+                        </Button>
+                        <Link href="/">
+                        <Button variant="outline">
+                            Customer View
+                        </Button>
+                        </Link>
+                    </div>
+                </header>
+            ) : (
+                <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10 shrink-0">
+                    <Link href="#" className="flex items-center gap-2" prefetch={false}>
+                        <QordiaLogo className="w-8 h-8 text-primary" />
+                        <span className="text-lg font-semibold font-headline">Qordia</span>
+                    </Link>
+                    {user && (
+                    <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
+                            <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                                <LogOut className="h-5 w-5" />
+                            </Button>
+                        </div>
+                    )}
+                </header>
             )}
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset>
-        <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10">
-            <div className="flex items-center gap-4">
-                <SidebarTrigger className="md:hidden" />
-                <h1 className="text-xl font-semibold hidden md:block">{getPageTitle()}</h1>
-            </div>
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" className="rounded-full">
-                    <Bell className="h-5 w-5" />
-                    <span className="sr-only">Notifications</span>
-                </Button>
-                <Link href="/">
-                  <Button variant="outline">
-                    Customer View
-                  </Button>
-                </Link>
-            </div>
-        </header>
-        <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {children}
-        </main>
-      </SidebarInset>
+            <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
+              {children}
+            </main>
+        </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }
