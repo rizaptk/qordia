@@ -76,11 +76,7 @@ export default function PlansPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold">Subscription Plans</h1>
-                    <p className="text-muted-foreground">Define the subscription tiers for tenants.</p>
-                </div>
+            <div className="flex items-center justify-end">
                 <div className="flex gap-2">
                     <Button asChild variant="outline">
                         <Link href="/platform/billing">Back to Billing</Link>
