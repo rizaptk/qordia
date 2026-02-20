@@ -52,10 +52,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant;
 
   useEffect(() => {
+    // Wait until the authorization check is complete.
     if (isAuthorizing) {
       return; 
     }
 
+    // If the check is complete and the user is not authenticated or not staff, redirect.
     if (!user || !isStaff) {
       router.replace('/login'); 
     }
@@ -152,14 +154,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-            {isAuthorizing ? (
-                <div className="flex h-full items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="ml-4">Authorizing access...</p>
-                </div>
-            ) : (
-                children
-            )}
+          {/* This is the key change. We always render children to keep the hook order stable. */}
+          {/* We show a loader on top if we're authorizing, and hide the children. */}
+          {isAuthorizing && (
+              <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="ml-4">Authorizing access...</p>
+              </div>
+          )}
+          <div style={{ display: isAuthorizing ? 'none' : 'block' }}>
+              {children}
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>
