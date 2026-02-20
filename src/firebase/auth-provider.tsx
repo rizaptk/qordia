@@ -45,7 +45,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         setUser(user);
         setIsProfileLoading(true);
-        const profile = await syncUserProfile(firestore, user);
+
+        // Get both the database profile and the auth token claims in parallel
+        const profilePromise = syncUserProfile(firestore, user);
+        const claimsPromise = user.getIdTokenResult(); // Does not force refresh unless needed
+
+        const [profile, idTokenResult] = await Promise.all([profilePromise, claimsPromise]);
+
+        const isPlatformAdminClaim = idTokenResult.claims.platform_admin === true;
+
+        // If the user has the platform_admin claim, we override their role from the database.
+        // This makes the security claim the single source of truth for platform admin status.
+        if (profile && isPlatformAdminClaim) {
+            profile.role = 'platform_admin';
+        }
+
         setProfileData({ userProfile: profile, tenant: null, plan: null });
         setIsUserLoading(false);
       } else {
