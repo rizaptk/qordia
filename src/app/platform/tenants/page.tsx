@@ -9,6 +9,7 @@ import { useFirebase, useCollection, useMemoFirebase, addDocumentNonBlocking } f
 import { collection, Timestamp } from 'firebase/firestore';
 import type { Tenant } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -28,6 +29,7 @@ type NewTenantFormValues = z.infer<typeof newTenantSchema>;
 export default function TenantManagementPage() {
     const { firestore } = useFirebase();
     const { toast } = useToast();
+    const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const tenantsRef = useMemoFirebase(() => 
@@ -129,7 +131,11 @@ export default function TenantManagementPage() {
                             </TableRow>
                         ) : tenants && tenants.length > 0 ? (
                             tenants.map((tenant) => (
-                                <TableRow key={tenant.id}>
+                                <TableRow 
+                                    key={tenant.id}
+                                    className="cursor-pointer"
+                                    onClick={() => router.push(`/platform/tenants/${tenant.id}`)}
+                                >
                                     <TableCell className="font-medium">{tenant.name}</TableCell>
                                     <TableCell className="text-muted-foreground">{tenant.id}</TableCell>
                                     <TableCell>{format(new Date(tenant.createdAt.seconds * 1000), 'PPP')}</TableCell>

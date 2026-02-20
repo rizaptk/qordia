@@ -1,0 +1,138 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useFirebase, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where } from 'firebase/firestore';
+import type { Tenant, UserProfile } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+
+const tenantFormSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+});
+
+type TenantFormValues = z.infer<typeof tenantFormSchema>;
+
+export default function TenantDetailPage({ params }: { params: { tenantId: string } }) {
+  const { firestore } = useFirebase();
+  const { toast } = useToast();
+
+  const tenantRef = useMemoFirebase(() => 
+    firestore ? doc(firestore, 'tenants', params.tenantId) : null,
+    [firestore, params.tenantId]
+  );
+  const { data: tenant, isLoading: isLoadingTenant } = useDoc<Tenant>(tenantRef);
+
+  const usersQuery = useMemoFirebase(() =>
+    firestore ? query(collection(firestore, 'users'), where('tenantId', '==', params.tenantId)) : null,
+    [firestore, params.tenantId]
+  );
+  const { data: users, isLoading: isLoadingUsers } = useCollection<UserProfile>(usersQuery);
+
+  const form = useForm<TenantFormValues>({
+    resolver: zodResolver(tenantFormSchema),
+  });
+
+  useEffect(() => {
+    if (tenant) {
+      form.reset({ name: tenant.name });
+    }
+  }, [tenant, form]);
+
+  const onSubmit = (data: TenantFormValues) => {
+    if (!firestore || !tenant) return;
+    const tenantDocRef = doc(firestore, 'tenants', tenant.id);
+    updateDocumentNonBlocking(tenantDocRef, data);
+    toast({ title: 'Success', description: 'Tenant name updated.' });
+  };
+
+  const isLoading = isLoadingTenant || isLoadingUsers;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Tenant</CardTitle>
+          <CardDescription>Edit tenant details and manage associated users.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoadingTenant ? (
+            <Skeleton className="h-10 w-full" />
+          ) : tenant ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tenant Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </form>
+            </Form>
+          ) : (
+            <p className="text-destructive">Tenant not found.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Associated Users</CardTitle>
+          <CardDescription>Staff members assigned to this tenant.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoadingUsers ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">Loading users...</TableCell>
+                </TableRow>
+              ) : users && users.length > 0 ? (
+                users.map(user => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{user.role}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">No users found for this tenant.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
