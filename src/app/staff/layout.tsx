@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { Tenant, SubscriptionPlan } from '@/lib/types';
@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
+  const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { firestore, auth } = useFirebase();
@@ -52,8 +53,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant;
 
   useEffect(() => {
-    // Wait until the authorization check is complete.
-    if (isAuthorizing) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Wait until the component has mounted and the authorization check is complete.
+    if (!isClient || isAuthorizing) {
       return; 
     }
 
@@ -61,7 +66,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (!user || !isStaff) {
       router.replace('/login'); 
     }
-  }, [user, isAuthorizing, isStaff, router]);
+  }, [user, isClient, isAuthorizing, isStaff, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -69,6 +74,17 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/menu')) return 'Menu Management';
     if (pathname.includes('/tables')) return 'Table Management';
     return 'Staff Portal';
+  }
+  
+  // On the server, or before the client has mounted and finished authorizing, show a full-page loader.
+  // This prevents any hydration mismatches by ensuring server and initial client render are identical.
+  if (!isClient || isAuthorizing) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4">Loading Staff Portal...</p>
+        </div>
+    );
   }
   
   return (
@@ -154,17 +170,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {/* This is the key change. We always render children to keep the hook order stable. */}
-          {/* We show a loader on top if we're authorizing, and hide the children. */}
-          {isAuthorizing && (
-              <div className="flex h-full items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="ml-4">Authorizing access...</p>
-              </div>
-          )}
-          <div style={{ display: isAuthorizing ? 'none' : 'block' }}>
-              {children}
-          </div>
+          {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
