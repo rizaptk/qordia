@@ -24,7 +24,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
@@ -54,7 +53,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const hasAnalyticsFeature = features.has('Analytics');
 
   const isStaff = claims?.role && staffRoles.includes(claims.role);
-  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant;
+  const isAuthorizing = isUserLoading || areClaimsLoading || (user && isLoadingTenant);
 
   // This effect runs only on the client, after the initial render.
   useEffect(() => {
@@ -81,18 +80,18 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
   
-  // On the server, and during initial client render, show a full-page loader.
-  // This prevents hydration errors by ensuring server and client match.
-  if (!isClient || isAuthorizing) {
-      return (
-          <div className="flex h-screen w-full items-center justify-center bg-background">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="ml-4 text-muted-foreground">Verifying access...</p>
-          </div>
-      );
+  // To prevent hydration errors, we only render the complex layout on the client.
+  // The server renders a loader, which matches the initial client render before useEffect runs.
+  if (!isClient) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Loading Staff Portal...</p>
+      </div>
+    );
   }
   
-  // Once on the client and authorized, render the full layout.
+  // On the client, we render the full layout, with a loader inside if we are still authorizing.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -199,7 +198,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {children}
+          {isAuthorizing ? (
+            <div className="flex h-full items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Verifying access...</p>
+            </div>
+           ) : (
+            children
+           )}
         </main>
       </SidebarInset>
     </SidebarProvider>

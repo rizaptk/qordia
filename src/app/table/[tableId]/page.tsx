@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { QordiaLogo } from '@/components/logo';
 
-export default function TableEntryPage({ params }: { params: { tableId: string } }) {
+export default async function TableEntryPage({ params }: { params: Promise<{ tableId: string }> }) {
+  const { tableId } = await params;
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md animate-fade-in-up text-center">
@@ -21,10 +23,10 @@ export default function TableEntryPage({ params }: { params: { tableId: string }
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="bg-primary/10 text-primary font-bold text-4xl rounded-lg p-6">
-            Table {params.tableId}
+            Table {tableId}
           </div>
           <Button asChild size="lg" className="w-full">
-            <Link href={`/menu/${params.tableId}`}>
+            <Link href={`/menu/${tableId}`}>
               Start Ordering
               <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
