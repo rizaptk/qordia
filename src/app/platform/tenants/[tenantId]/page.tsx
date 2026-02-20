@@ -1,7 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
-import { useForm, useForm as useSubForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, UserPlus } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const tenantFormSchema = z.object({
@@ -31,13 +31,6 @@ const tenantFormSchema = z.object({
 });
 
 type TenantFormValues = z.infer<typeof tenantFormSchema>;
-
-const addUserSchema = z.object({
-    uid: z.string().min(1, "User ID cannot be empty."),
-    role: z.enum(['manager', 'barista', 'service', 'cashier']),
-});
-type AddUserFormValues = z.infer<typeof addUserSchema>;
-
 
 export default function TenantDetailPage({ params }: { params: { tenantId: string } }) {
   const resolvedParams = use(params);
@@ -69,11 +62,6 @@ export default function TenantDetailPage({ params }: { params: { tenantId: strin
     },
   });
 
-  const addUserForm = useSubForm<AddUserFormValues>({
-      resolver: zodResolver(addUserSchema),
-      defaultValues: { uid: '', role: 'barista' }
-  });
-
   useEffect(() => {
     if (tenant) {
       form.reset({
@@ -99,21 +87,6 @@ export default function TenantDetailPage({ params }: { params: { tenantId: strin
     updateDocumentNonBlocking(tenantDocRef, updateData);
     toast({ title: 'Success', description: 'Tenant details updated.' });
   };
-  
-  const onAddUser = (data: AddUserFormValues) => {
-      if (!firestore || !tenant) return;
-
-      const userDocRef = doc(firestore, 'users', data.uid);
-      updateDocumentNonBlocking(userDocRef, {
-          tenantId: tenant.id,
-          role: data.role
-      });
-      toast({
-          title: "User Role Updated",
-          description: `User ${data.uid} assigned as ${data.role}. NOTE: Custom claims must be set separately.`
-      });
-      addUserForm.reset();
-  }
 
   const isLoading = isLoadingTenant || isLoadingUsers || isLoadingPlans;
 
@@ -247,102 +220,44 @@ export default function TenantDetailPage({ params }: { params: { tenantId: strin
         </CardContent>
       </Card>
       
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-            <CardHeader>
-            <CardTitle>Associated Users</CardTitle>
-            <CardDescription>Staff members assigned to this tenant.</CardDescription>
-            </CardHeader>
-            <CardContent>
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {isLoadingUsers ? (
-                    <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">Loading users...</TableCell>
-                    </TableRow>
-                ) : users && users.length > 0 ? (
-                    users.map(user => (
-                    <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                        <Badge variant="secondary">{user.role}</Badge>
-                        </TableCell>
-                    </TableRow>
-                    ))
-                ) : (
-                    <TableRow>
-                    <TableCell colSpan={3} className="h-24 text-center">No users found for this tenant.</TableCell>
-                    </TableRow>
-                )}
-                </TableBody>
-            </Table>
-            </CardContent>
-        </Card>
-
-        <Card>
-            <CardHeader>
-                <CardTitle>Add Staff Member</CardTitle>
-                <CardDescription>Assign an existing user to this tenant by their UID.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...addUserForm}>
-                    <form onSubmit={addUserForm.handleSubmit(onAddUser)} className="space-y-4">
-                        <FormField
-                            control={addUserForm.control}
-                            name="uid"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>User ID (UID)</FormLabel>
-                                    <FormControl>
-                                        <Input placeholder="Enter the user's Firebase UID" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={addUserForm.control}
-                            name="role"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Role</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a role" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="manager">Manager</SelectItem>
-                                            <SelectItem value="barista">Barista</SelectItem>
-                                            <SelectItem value="service">Service</SelectItem>
-                                            <SelectItem value="cashier">Cashier</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <Button type="submit" disabled={addUserForm.formState.isSubmitting}>
-                            <UserPlus className="mr-2 h-4 w-4"/>
-                            {addUserForm.formState.isSubmitting ? 'Assigning...' : 'Assign Role'}
-                        </Button>
-                    </form>
-                </Form>
-                 <p className="text-xs text-muted-foreground mt-4">
-                    Remember: After assigning a role, you must set the corresponding custom claims for the user via a secure server-side script for permissions to apply.
-                </p>
-            </CardContent>
-        </Card>
-      </div>
+      <Card>
+          <CardHeader>
+          <CardTitle>Associated Users</CardTitle>
+          <CardDescription>Staff members assigned to this tenant.</CardDescription>
+          </CardHeader>
+          <CardContent>
+          <Table>
+              <TableHeader>
+              <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+              </TableRow>
+              </TableHeader>
+              <TableBody>
+              {isLoadingUsers ? (
+                  <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">Loading users...</TableCell>
+                  </TableRow>
+              ) : users && users.length > 0 ? (
+                  users.map(user => (
+                  <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                      <Badge variant="secondary">{user.role}</Badge>
+                      </TableCell>
+                  </TableRow>
+                  ))
+              ) : (
+                  <TableRow>
+                  <TableCell colSpan={3} className="h-24 text-center">No users found for this tenant.</TableCell>
+                  </TableRow>
+              )}
+              </TableBody>
+          </Table>
+          </CardContent>
+      </Card>
     </div>
   );
 }
