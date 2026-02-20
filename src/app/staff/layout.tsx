@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useUser, useUserClaims, useFirebase, useDoc, useMemoFirebase } from "@/firebase";
 import { doc } from 'firebase/firestore';
 import type { Tenant, SubscriptionPlan } from '@/lib/types';
@@ -28,6 +28,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 const staffRoles = ['manager', 'barista', 'service'];
 
 export default function StaffLayout({ children }: { children: React.ReactNode }) {
+  // --- Hooks must be called at the top level and unconditionally ---
+  const [isClient, setIsClient] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { firestore, auth } = useFirebase();
@@ -52,19 +54,24 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const hasAnalyticsFeature = features.has('Analytics');
 
   const isStaff = claims?.role && staffRoles.includes(claims.role);
-  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant || isLoadingPlan;
+  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingTenant;
 
+  // This effect runs only on the client, after the initial render.
   useEffect(() => {
-    // Wait until the authorization check is complete.
-    if (isAuthorizing) {
+    setIsClient(true);
+  }, []);
+  
+  // This effect handles redirection logic.
+  useEffect(() => {
+    // Wait until we are on the client and all auth data is loaded.
+    if (!isClient || isAuthorizing) {
       return; 
     }
-
-    // If the check is complete and the user is not authenticated or not staff, redirect.
+    // If not authorized, redirect to login.
     if (!user || !isStaff) {
       router.replace('/login'); 
     }
-  }, [user, isAuthorizing, isStaff, router]);
+  }, [user, isClient, isAuthorizing, isStaff, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -74,6 +81,18 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
   
+  // On the server, and during initial client render, show a full-page loader.
+  // This prevents hydration errors by ensuring server and client match.
+  if (!isClient || isAuthorizing) {
+      return (
+          <div className="flex h-screen w-full items-center justify-center bg-background">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Verifying access...</p>
+          </div>
+      );
+  }
+  
+  // Once on the client and authorized, render the full layout.
   return (
     <SidebarProvider>
       <Sidebar>
@@ -134,7 +153,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     <CardHeader className="p-3">
                          <CardTitle className="flex items-center gap-2 text-sm">
                             <Gem className="w-4 h-4 text-primary" />
-                            Current Plan: {plan?.name ?? <Skeleton className="w-16 h-4 inline-block" />}
+                            Current Plan: {isLoadingPlan ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-3 pt-0">
@@ -180,12 +199,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {isAuthorizing ? (
-            <div className="flex h-full w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4">Verifying access...</p>
-            </div>
-          ) : children}
+          {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
