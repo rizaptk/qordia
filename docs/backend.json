@@ -25,7 +25,7 @@
         "name": { "type": "string" },
         "role": {
           "type": "string",
-          "enum": ["customer", "barista", "service", "manager", "platform_admin"],
+          "enum": ["customer", "barista", "service", "cashier", "manager", "platform_admin"],
           "description": "The user's role within the system."
         },
         "tenantId": { "type": "string", "description": "The tenant this user belongs to. Null for customers and platform_admins." },

@@ -58,7 +58,7 @@ export type UserProfile = {
   id: string;
   name: string;
   email: string;
-  role: 'customer' | 'barista' | 'service' | 'manager' | 'platform_admin';
+  role: 'customer' | 'barista' | 'service' | 'cashier' | 'manager' | 'platform_admin';
   tenantId?: string;
 };
 

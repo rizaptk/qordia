@@ -34,7 +34,7 @@ type TenantFormValues = z.infer<typeof tenantFormSchema>;
 
 const addUserSchema = z.object({
     uid: z.string().min(1, "User ID cannot be empty."),
-    role: z.enum(['manager', 'barista', 'service']),
+    role: z.enum(['manager', 'barista', 'service', 'cashier']),
 });
 type AddUserFormValues = z.infer<typeof addUserSchema>;
 
@@ -324,6 +324,7 @@ export default function TenantDetailPage({ params }: { params: { tenantId: strin
                                             <SelectItem value="manager">Manager</SelectItem>
                                             <SelectItem value="barista">Barista</SelectItem>
                                             <SelectItem value="service">Service</SelectItem>
+                                            <SelectItem value="cashier">Cashier</SelectItem>
                                         </SelectContent>
                                     </Select>
                                     <FormMessage />
