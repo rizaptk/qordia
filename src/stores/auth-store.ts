@@ -13,8 +13,7 @@ export interface AuthState {
   plan: SubscriptionPlan | null;
   
   // State indicators
-  isUserLoading: boolean; // Covers initial user check from Firebase Auth
-  isProfileLoading: boolean; // Covers profile, tenant, and plan fetching
+  isLoading: boolean;
   
   // Derived booleans for convenience
   isAuthenticated: boolean;
@@ -24,11 +23,8 @@ export interface AuthState {
 
   // Actions
   setUser: (user: User | null) => void;
-  setUserProfile: (userProfile: UserProfile | null) => void;
-  setTenant: (tenant: Tenant | null) => void;
-  setPlan: (plan: SubscriptionPlan | null) => void;
-  setIsUserLoading: (isLoading: boolean) => void;
-  setIsProfileLoading: (isLoading: boolean) => void;
+  setAuthData: (data: { userProfile: UserProfile | null, tenant: Tenant | null, plan: SubscriptionPlan | null }) => void;
+  setIsLoading: (isLoading: boolean) => void;
   clearAll: () => void;
 }
 
@@ -40,8 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   plan: null,
   
   // State indicators
-  isUserLoading: true,
-  isProfileLoading: true,
+  isLoading: true,
 
   // Derived booleans
   isAuthenticated: false,
@@ -54,26 +49,20 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user, isAuthenticated: !!user });
   },
   
-  setUserProfile: (userProfile) => {
-    set({
-      userProfile,
-      isManager: userProfile?.role === 'manager',
-      isPlatformAdmin: userProfile?.role === 'platform_admin',
-    });
-  },
-  
-  setTenant: (tenant) => set({ tenant }),
-  
-  setPlan: (plan) => {
+  setAuthData: ({ userProfile, tenant, plan }) => {
     const features = new Set(plan?.features || []);
     set({
+      userProfile,
+      tenant,
       plan,
+      isManager: userProfile?.role === 'manager',
+      isPlatformAdmin: userProfile?.role === 'platform_admin',
       hasAnalyticsFeature: features.has('Analytics'),
+      isLoading: false, // All data is now loaded
     });
   },
 
-  setIsUserLoading: (isUserLoading) => set({ isUserLoading }),
-  setIsProfileLoading: (isProfileLoading) => set({ isProfileLoading }),
+  setIsLoading: (isLoading) => set({ isLoading }),
 
   clearAll: () => set({
     user: null,
@@ -81,8 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     tenant: null,
     plan: null,
     isAuthenticated: false,
-    isUserLoading: false,
-    isProfileLoading: false,
+    isLoading: false,
     isManager: false,
     isPlatformAdmin: false,
     hasAnalyticsFeature: false,

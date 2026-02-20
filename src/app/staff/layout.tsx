@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
 import { BarChart3, Bell, LayoutDashboard, UtensilsCrossed, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard } from "lucide-react";
@@ -42,17 +42,14 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     plan,
     isManager,
     hasAnalyticsFeature,
-    isUserLoading,
-    isProfileLoading,
+    isLoading,
   } = useAuthStore();
   
-  const isAuthorizing = isUserLoading || isProfileLoading;
-  
   useEffect(() => {
-    if (!isAuthorizing && (!user || !userProfile || !staffRoles.includes(userProfile.role))) {
+    if (!isLoading && (!user || !userProfile || !staffRoles.includes(userProfile.role))) {
         router.replace('/login');
     }
-  }, [isAuthorizing, user, userProfile, router]);
+  }, [isLoading, user, userProfile, router]);
   
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -63,7 +60,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (!isClient || isAuthorizing) {
+  if (!isClient || isLoading) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -140,7 +137,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     <CardHeader className="p-3">
                          <CardTitle className="flex items-center gap-2 text-sm">
                             <Gem className="w-4 h-4 text-primary" />
-                            Current Plan: {isProfileLoading ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name ?? '...'}
+                            Current Plan: {isLoading ? <Skeleton className="w-16 h-4 inline-block" /> : plan?.name ?? '...'}
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-3 pt-0">

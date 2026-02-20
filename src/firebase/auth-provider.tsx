@@ -6,10 +6,9 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, Timestamp, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase/provider';
 import { useAuthStore } from '@/stores/auth-store';
-import { UserProfile, Tenant, SubscriptionPlan } from '@/lib/types';
+import { UserProfile } from '@/lib/types';
 
-async function syncUserProfile(firestore: any, user: User) {
-  if (!user) return null;
+async function syncUserProfileOnLogin(firestore: any, user: User): Promise<UserProfile> {
   const userDocRef = doc(firestore, 'users', user.uid);
   const userDocSnap = await getDoc(userDocRef);
 
@@ -21,89 +20,117 @@ async function syncUserProfile(firestore: any, user: User) {
       createdAt: Timestamp.now(),
     };
     await setDoc(userDocRef, newUserProfile, { merge: true });
-    return { ...newUserProfile, id: user.uid } as UserProfile;
+    return { id: user.uid, ...newUserProfile } as UserProfile;
   }
-  return { ...userDocSnap.data(), id: userDocSnap.id } as UserProfile;
+  return { id: userDocSnap.id, ...userDocSnap.data() } as UserProfile;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const firestore = useFirestore();
-  const { 
-    setUser, 
-    setUserProfile,
-    setTenant,
-    setPlan,
-    setIsUserLoading, 
-    setIsProfileLoading, 
-    clearAll 
-  } = useAuthStore();
-  
-  const userProfile = useAuthStore(state => state.userProfile);
-  const tenant = useAuthStore(state => state.tenant);
-  const tenantId = userProfile?.tenantId;
-  const planId = tenant?.planId;
+  const { user, setUser, setAuthData, setIsLoading, clearAll } = useAuthStore();
 
-  // Effect for handling Firebase Authentication state changes
   useEffect(() => {
-    if (!auth || !firestore) return;
+    if (!auth) return;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setIsUserLoading(true);
-      if (user) {
-        setUser(user);
-        setIsProfileLoading(true);
-
-        const profile = await syncUserProfile(firestore, user);
-        
-        const idTokenResult = await user.getIdTokenResult();
-        if (profile && idTokenResult.claims.platform_admin === true) {
-            profile.role = 'platform_admin';
-        }
-        
-        setUserProfile(profile);
-        setIsUserLoading(false);
-      } else {
-        clearAll();
-      }
+    const unsubscribeAuth = onAuthStateChanged(auth, (authUser) => {
+      setUser(authUser);
     });
 
     return () => unsubscribeAuth();
-  }, [auth, firestore, setUser, setUserProfile, setIsUserLoading, setIsProfileLoading, clearAll]);
+  }, [auth, setUser]);
 
-  // Effect for fetching Tenant data based on the user's profile
   useEffect(() => {
-    if (!firestore || !tenantId) {
-      setTenant(null);
+    if (!firestore || !user) {
+      clearAll();
       return;
     }
-    setIsProfileLoading(true);
-    const tenantRef = doc(firestore, 'tenants', tenantId);
-    const unsubscribe = onSnapshot(tenantRef, (snap) => {
-      const tenantData = snap.exists() ? { ...snap.data(), id: snap.id } as Tenant : null;
-      setTenant(tenantData);
-      // Let the plan effect handle setting loading to false
-    });
-    return () => unsubscribe();
-  }, [firestore, tenantId, setTenant, setIsProfileLoading]);
 
-  // Effect for fetching Plan data, which depends on the tenant's planId
-  useEffect(() => {
-    if (!firestore || !planId) {
-      setPlan(null);
-      setIsProfileLoading(false); // If no planId, loading is finished
-      return;
-    }
-    // Loading is already true from the tenant effect
-    const planRef = doc(firestore, 'subscription_plans', planId);
-    const unsubscribe = onSnapshot(planRef, (snap) => {
-      const planData = snap.exists() ? { ...snap.data(), id: snap.id } as SubscriptionPlan : null;
-      setPlan(planData);
-      setIsProfileLoading(false); // Loading is complete once the plan is fetched (or not found)
-    });
-    return () => unsubscribe();
-  }, [firestore, planId, setPlan, setIsProfileLoading]);
+    setIsLoading(true);
 
+    let profileUnsubscribe: Unsubscribe | undefined;
+    let tenantUnsubscribe: Unsubscribe | undefined;
+    let planUnsubscribe: Unsubscribe | undefined;
+
+    const setupListeners = async () => {
+      // 1. Check for Platform Admin claim first
+      const idTokenResult = await user.getIdTokenResult();
+      if (idTokenResult.claims.platform_admin === true) {
+        setAuthData({
+          userProfile: { id: user.uid, email: user.email!, name: user.displayName || 'Admin', role: 'platform_admin' },
+          tenant: null,
+          plan: null,
+        });
+        return; // Stop here for platform admins
+      }
+
+      // 2. For non-admins, listen to user profile
+      const profileRef = doc(firestore, 'users', user.uid);
+      profileUnsubscribe = onSnapshot(profileRef, (profileSnap) => {
+        if (!profileSnap.exists()) {
+          // This can happen briefly on first login. syncUserProfile will create it.
+          // Or if a user doc is deleted.
+          syncUserProfileOnLogin(firestore, user).then(profile => {
+            setAuthData({ userProfile: profile, tenant: null, plan: null });
+          });
+          return;
+        }
+
+        const userProfile = { id: profileSnap.id, ...profileSnap.data() } as UserProfile;
+        const tenantId = userProfile.tenantId;
+
+        // Clean up old tenant/plan listeners if tenantId changes
+        if (tenantUnsubscribe) tenantUnsubscribe();
+        if (planUnsubscribe) planUnsubscribe();
+
+        if (!tenantId) {
+          // User has no tenant, loading is complete for them
+          setAuthData({ userProfile, tenant: null, plan: null });
+          return;
+        }
+
+        // 3. User has a tenant, so listen to the tenant document
+        const tenantRef = doc(firestore, 'tenants', tenantId);
+        tenantUnsubscribe = onSnapshot(tenantRef, (tenantSnap) => {
+          if (!tenantSnap.exists()) {
+            setAuthData({ userProfile, tenant: null, plan: null });
+            return;
+          }
+
+          const tenant = { id: tenantSnap.id, ...tenantSnap.data() } as any;
+          const planId = tenant.planId;
+
+          // Clean up old plan listener if planId changes
+          if (planUnsubscribe) planUnsubscribe();
+
+          if (!planId) {
+            setAuthData({ userProfile, tenant, plan: null });
+            return;
+          }
+
+          // 4. Tenant has a plan, so listen to the plan document
+          const planRef = doc(firestore, 'subscription_plans', planId);
+          planUnsubscribe = onSnapshot(planRef, (planSnap) => {
+            const plan = planSnap.exists() ? { id: planSnap.id, ...planSnap.data() } as any : null;
+            // This is the final step in the data chain, loading is complete.
+            setAuthData({ userProfile, tenant, plan });
+          });
+        });
+      }, (error) => {
+          console.error("Error listening to user profile:", error);
+          clearAll();
+      });
+    };
+
+    setupListeners();
+
+    // Cleanup function to unsubscribe from all listeners on unmount or user change
+    return () => {
+      if (profileUnsubscribe) profileUnsubscribe();
+      if (tenantUnsubscribe) tenantUnsubscribe();
+      if (planUnsubscribe) planUnsubscribe();
+    };
+  }, [firestore, user, setAuthData, setIsLoading, clearAll]);
 
   return <>{children}</>;
 }

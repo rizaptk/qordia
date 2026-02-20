@@ -11,12 +11,10 @@ import { QordiaLogo } from '@/components/logo';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, isManager, isPlatformAdmin, isUserLoading, isProfileLoading } = useAuthStore();
+  const { isAuthenticated, isManager, isPlatformAdmin, isLoading } = useAuthStore();
   
-  const isAuthenticating = isUserLoading || isProfileLoading;
-
   useEffect(() => {
-    if (isAuthenticating) {
+    if (isLoading) {
       return;
     }
 
@@ -34,9 +32,9 @@ export default function Home() {
     }
     
     // If authenticated but not a manager or admin (e.g., customer or barista), stay on homepage.
-  }, [isAuthenticated, isManager, isPlatformAdmin, isAuthenticating, router]);
+  }, [isAuthenticated, isManager, isPlatformAdmin, isLoading, router]);
 
-  if (isAuthenticating) {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />

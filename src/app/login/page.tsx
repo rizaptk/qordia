@@ -29,15 +29,13 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const auth = useAuth();
   const router = useRouter();
-  const { isAuthenticated, isManager, isPlatformAdmin, isUserLoading, isProfileLoading } = useAuthStore();
+  const { isAuthenticated, isManager, isPlatformAdmin, isLoading } = useAuthStore();
   const [authError, setAuthError] = useState<string | null>(null);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
-
-  const isLoading = isUserLoading || isProfileLoading;
 
   useEffect(() => {
     if (isLoading || !isAuthenticated) {

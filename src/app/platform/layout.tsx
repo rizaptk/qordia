@@ -26,10 +26,8 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const { user, isPlatformAdmin, isUserLoading, isProfileLoading } = useAuthStore();
+  const { user, isPlatformAdmin, isLoading } = useAuthStore();
   
-  const isLoading = isUserLoading || isProfileLoading;
-
   useEffect(() => {
     if (isLoading) {
       return; 
