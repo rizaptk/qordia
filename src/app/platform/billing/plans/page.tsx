@@ -10,19 +10,30 @@ import type { SubscriptionPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle } from 'lucide-react';
 import Link from 'next/link';
+
+const availableFeatures = [
+  { id: 'Analytics', label: 'Analytics Dashboard' },
+  { id: 'Advanced Reporting', label: 'Advanced Reporting' },
+  { id: 'Priority Support', label: 'Priority Support' },
+  { id: 'API Access', label: 'API Access' },
+  { id: 'Menu Customization', label: 'Advanced Menu Customization' },
+  { id: 'Staff Roles', label: 'Custom Staff Roles' },
+];
 
 const newPlanSchema = z.object({
   name: z.string().min(3, { message: "Plan name must be at least 3 characters." }),
   price: z.coerce.number().min(0, { message: "Price must be a non-negative number." }),
-  features: z.string().min(1, { message: "Please list at least one feature." }),
+  features: z.array(z.string()).refine(value => value.length > 0, {
+    message: "You must select at least one feature.",
+  }),
 });
 
 type NewPlanFormValues = z.infer<typeof newPlanSchema>;
@@ -40,7 +51,7 @@ export default function PlansPage() {
 
     const form = useForm<NewPlanFormValues>({
         resolver: zodResolver(newPlanSchema),
-        defaultValues: { name: '', price: 0, features: '' },
+        defaultValues: { name: '', price: 0, features: [] },
     });
 
     const onSubmit = async (data: NewPlanFormValues) => {
@@ -49,7 +60,7 @@ export default function PlansPage() {
         const newPlanData = {
             name: data.name,
             price: data.price,
-            features: data.features.split(',').map(f => f.trim()),
+            features: data.features,
         };
 
         try {
@@ -80,12 +91,12 @@ export default function PlansPage() {
                                 <PlusCircle className="mr-2 h-4 w-4" /> Add New Plan
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="sm:max-w-md">
                             <DialogHeader>
                                 <DialogTitle>Create a New Subscription Plan</DialogTitle>
                             </DialogHeader>
                             <Form {...form}>
-                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                     <FormField
                                         control={form.control}
                                         name="name"
@@ -112,19 +123,58 @@ export default function PlansPage() {
                                             </FormItem>
                                         )}
                                     />
+                                    
                                     <FormField
                                         control={form.control}
                                         name="features"
-                                        render={({ field }) => (
+                                        render={() => (
                                             <FormItem>
+                                            <div className="mb-4">
                                                 <FormLabel>Features</FormLabel>
-                                                <FormControl>
-                                                    <Textarea placeholder="Comma-separated list, e.g., Unlimited Orders, Analytics" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
+                                                <FormDescription>
+                                                Select the features to include in this plan.
+                                                </FormDescription>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {availableFeatures.map((feature) => (
+                                                    <FormField
+                                                    key={feature.id}
+                                                    control={form.control}
+                                                    name="features"
+                                                    render={({ field }) => {
+                                                        return (
+                                                        <FormItem
+                                                            key={feature.id}
+                                                            className="flex flex-row items-center space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                            <Checkbox
+                                                                checked={field.value?.includes(feature.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                return checked
+                                                                    ? field.onChange([...(field.value || []), feature.id])
+                                                                    : field.onChange(
+                                                                        field.value?.filter(
+                                                                        (value) => value !== feature.id
+                                                                        )
+                                                                    )
+                                                                }}
+                                                            />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                            {feature.label}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                        )
+                                                    }}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <FormMessage />
                                             </FormItem>
                                         )}
                                     />
+
                                     <DialogFooter>
                                         <Button type="submit" disabled={form.formState.isSubmitting}>
                                             {form.formState.isSubmitting ? 'Creating...' : 'Create Plan'}
