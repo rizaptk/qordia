@@ -18,18 +18,18 @@ Build the internal SaaS administration panel for platform-wide management, as sp
         - [ ] Implement a user management section to view all users associated with that `tenantId`.
         - [ ] Add controls to enable/disable specific features for this tenant (feature flags).
 
-- [ ] **System Monitoring Module (`/platform/monitoring`):**
-    - [ ] **Dashboard:** Create a dashboard page with placeholder components for key system metrics.
-        - [ ] A card for "System Uptime".
-        - [ ] A chart for "API Performance (Avg. Response Time)".
-        - [ ] A card for "Active Connections".
-    - [ ] **Error Log Viewer:** Implement a basic interface to display error logs (this can be a simple feed from a dedicated Firestore collection or a log management service).
+- [x] **System Monitoring Module (`/platform/monitoring`):**
+    - [x] **Dashboard:** Create a dashboard page with placeholder components for key system metrics.
+        - [x] A card for "System Uptime".
+        - [x] A chart for "API Performance (Avg. Response Time)".
+        - [x] A card for "Active Connections".
+    - [x] **Error Log Viewer:** Implement a basic interface to display error logs (this can be a simple feed from a dedicated Firestore collection or a log management service).
 
-- [ ] **Billing & Subscription Module (`/platform/billing`):**
-    - [ ] **Overview Page:** Create a page to display an overview of tenant subscriptions.
-    - [ ] Show a list of tenants with their current plan, billing cycle, and status (Paid, Overdue).
-    - [ ] **(Placeholder) Invoice Generation:** Add a button on a tenant's detail page to "Generate Invoice" (functionality can be mocked initially).
-    - [ ] **(Placeholder) Plan Management:** Create a UI to manage available subscription plans (e.g., Basic, Pro, Enterprise) and their features.
+- [x] **Billing & Subscription Module (`/platform/billing`):**
+    - [x] **Overview Page:** Create a page to display an overview of tenant subscriptions.
+    - [x] Show a list of tenants with their current plan, billing cycle, and status (Paid, Overdue).
+    - [x] **(Placeholder) Invoice Generation:** Add a button on a tenant's detail page to "Generate Invoice" (functionality can be mocked initially).
+    - [x] **(Placeholder) Plan Management:** Create a UI to manage available subscription plans (e.g., Basic, Pro, Enterprise) and their features.
 
 - [x] **Navigation & Links:**
     - [x] Add links for "Tenants", "Monitoring", and "Billing" to the platform admin sidebar.
