@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const staffRoles = ['manager', 'barista', 'service'];
@@ -57,23 +57,22 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     setIsClient(true);
   }, []);
-
+  
   const roleFromClaims = claims?.role;
-  const isClaimVerifiedStaff = roleFromClaims && staffRoles.includes(roleFromClaims);
-
   const roleFromDB = userProfile?.role;
-  const isDBStaff = roleFromDB && staffRoles.includes(roleFromDB);
-
-  const isAuthorizing = isUserLoading || areClaimsLoading || (user && (isLoadingProfile || isLoadingTenant));
+  
+  const isAuthorizing = isUserLoading || areClaimsLoading || isLoadingProfile;
+  
+  const isAuthorizedByClaims = roleFromClaims && staffRoles.includes(roleFromClaims);
+  const isPotentiallyAuthorizedByDB = !isAuthorizedByClaims && roleFromDB && staffRoles.includes(roleFromDB);
 
   useEffect(() => {
-    if (!isClient || isAuthorizing) {
-      return; 
+    if (isAuthorizing) return;
+
+    if (!user || (!isAuthorizedByClaims && !isPotentiallyAuthorizedByDB)) {
+        router.replace('/login');
     }
-    if (!user || (!isClaimVerifiedStaff && !isDBStaff)) {
-      router.replace('/login'); 
-    }
-  }, [user, isClient, isAuthorizing, isClaimVerifiedStaff, isDBStaff, router]);
+  }, [isAuthorizing, user, isAuthorizedByClaims, isPotentiallyAuthorizedByDB, router]);
 
   const getPageTitle = () => {
     if (pathname.includes('/pds')) return 'Preparation Display';
@@ -83,37 +82,47 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  const finalRole = roleFromClaims || roleFromDB;
-  const isManager = finalRole === 'manager';
-  const claimsAreSynced = !!roleFromClaims;
-  
+  const isManager = roleFromClaims === 'manager';
   const features = useMemo(() => new Set(plan?.features || []), [plan]);
   const hasAnalyticsFeature = features.has('Analytics');
   
   if (!isClient) {
+    return null;
+  }
+  
+  if (isAuthorizing) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">Loading Staff Portal...</p>
-      </div>
+        <div className="flex h-screen items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Verifying access...</p>
+        </div>
     );
   }
 
-  // If the user is determined to be a manager from their DB profile but their
-  // auth claims haven't been updated yet, show a pending state. This prevents
-  // them from accessing routes they don't have Firestore permission for yet.
-  if (isManager && !claimsAreSynced && !isAuthorizing) {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <h1 className="mt-6 text-2xl font-bold">Finalizing your manager account...</h1>
-        <p className="mt-2 max-w-md text-muted-foreground">
-          Your permissions are being securely provisioned on the backend. This can take a few minutes. Please try refreshing this page shortly.
-        </p>
-        <p className="mt-4 text-xs text-muted-foreground">
-          (For this to complete, your custom authentication claims must be set by an administrator.)
-        </p>
-      </div>
+  if (isPotentiallyAuthorizedByDB) {
+     return (
+        <div className="flex h-screen w-full items-center justify-center bg-background p-4">
+            <Card className="w-full max-w-lg text-center animate-fade-in-up">
+                <CardHeader>
+                    <CardTitle className="text-2xl font-bold">Almost There!</CardTitle>
+                    <CardDescription>Your manager account is ready, but your session needs to be refreshed to access all features.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground mb-6">
+                        To activate your manager permissions, please sign out and sign back in. This one-time step ensures your account is fully secure.
+                    </p>
+                    <Button size="lg" onClick={() => auth?.signOut()}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sign Out Now
+                    </Button>
+                </CardContent>
+                <CardFooter>
+                     <p className="text-xs text-muted-foreground mx-auto">
+                        If you still see this screen after signing back in, your account permissions may need to be set by an administrator.
+                    </p>
+                </CardFooter>
+            </Card>
+        </div>
     );
   }
   
@@ -223,14 +232,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
             </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 bg-muted/30 min-h-[calc(100vh-4rem)]">
-          {isAuthorizing ? (
-            <div className="flex h-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="ml-4 text-muted-foreground">Verifying access...</p>
-            </div>
-           ) : (
-            children
-           )}
+           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
