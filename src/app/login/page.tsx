@@ -19,8 +19,6 @@ import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
-import { seedNewTenant } from '@/firebase/seed-tenant';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -95,39 +93,24 @@ export default function LoginPage() {
         const provider = new GoogleAuthProvider();
         const userCredential = await signInWithPopup(auth, provider);
         const additionalUserInfo = getAdditionalUserInfo(userCredential);
+        const newUser = userCredential.user;
 
+        // If the user is new, create a basic customer profile for them.
+        // The InvitationHandler will then check if they have a pending invite and upgrade their role if they accept.
+        // This prevents creating a new tenant for an invited staff member.
         if (additionalUserInfo?.isNewUser) {
-            const newUser = userCredential.user;
-
-            // Create the associated Tenant document in Firestore
-            const tenantData = {
-                name: `${newUser.displayName || newUser.email?.split('@')[0]}'s Cafe`,
-                ownerId: newUser.uid,
-                createdAt: Timestamp.now(),
-                planId: 'plan_free', // Assign the default free plan
-                subscriptionStatus: 'trialing',
-                nextBillingDate: Timestamp.fromDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)), // 14 day trial
-            };
-            const tenantRef = await addDocumentNonBlocking(collection(firestore, 'tenants'), tenantData);
-            
-            if (!tenantRef?.id) {
-              throw new Error("Failed to create tenant document.");
-            }
-
-            // Create the user's profile document in Firestore with the manager role
             const userProfileData = {
                 email: newUser.email,
                 name: newUser.displayName || newUser.email?.split('@')[0],
-                role: 'manager',
-                tenantId: tenantRef.id,
+                role: 'customer', // Default to customer
+                tenantId: null,
                 createdAt: Timestamp.now(),
             };
+            // Use setDoc to ensure the user's profile is created before redirection logic runs.
             await setDoc(doc(firestore, 'users', newUser.uid), userProfileData);
-            
-            // Seed the new tenant with sample data
-            await seedNewTenant(firestore, tenantRef.id, newUser.uid);
         }
-        // For both new and existing users, the useEffect will handle redirection.
+        // For both new and existing users, the useEffect in the layout will handle redirection
+        // and the InvitationHandler will handle pending invites.
 
     } catch(error: any) {
         setAuthError(error.message);
