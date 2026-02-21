@@ -2,26 +2,28 @@
 
 "use client";
 
-import { useState, useEffect, useMemo, use } from "react";
-import type { MenuItem, ModifierGroup } from "@/lib/types";
-import { getSuggestedItems } from "@/app/actions/suggest-items";
-import { MenuItemCard } from "@/components/menu/menu-item-card";
+import { useState, useMemo, use } from "react";
+import type { MenuItem, ModifierGroup, Table } from "@/lib/types";
 import { CustomizationDialog } from "@/components/menu/customization-dialog";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShoppingCart, Search, Trash2 } from "lucide-react";
-import { SuggestedItems } from "@/components/menu/suggested-items";
+import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
-import { useCollection, useMemoFirebase, addDocumentNonBlocking, useFirestore } from "@/firebase";
-import { collection, Timestamp } from "firebase/firestore";
+import { useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, useFirestore } from "@/firebase";
+import { collection, Timestamp, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { CategoryChips } from "@/components/menu/category-chips";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+
+// Import style components
+import { DefaultListStyle } from "@/components/menu/styles/default-list-style";
+import { CarouselSlidesStyle } from "@/components/menu/styles/carousel-slides-style";
+import { ThreeDSlideStyle } from "@/components/menu/styles/3d-slide-style";
+import { PromoSlideStyle } from "@/components/menu/styles/promo-slide-style";
+
 
 export default function MenuPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
   const { tenantId, tableId } = use(params);
@@ -30,10 +32,6 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const [suggestedItems, setSuggestedItems] = useState<MenuItem[]>([]);
-  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | 'all'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [animateCart, setAnimateCart] = useState(false);
 
   const router = useRouter();
@@ -41,6 +39,13 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
 
   const firestore = useFirestore();
   const { user, isUserLoading } = useAuthStore();
+
+  // --- Data Fetching ---
+  const tableRef = useMemoFirebase(() => 
+    firestore ? doc(firestore, `tenants/${tenantId}/tables`, tableId) : null,
+    [firestore, tenantId, tableId]
+  );
+  const { data: tableData, isLoading: isLoadingTable } = useDoc<Table>(tableRef);
 
   const menuItemsRef = useMemoFirebase(() => 
     firestore && tenantId ? collection(firestore, `tenants/${tenantId}/menu_items`) : null, 
@@ -60,33 +65,9 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   );
   const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
 
-
-  const sortedCategories = useMemo(() => {
-    if (!categories) return [];
-    return [...categories].sort((a, b) => a.displayOrder - b.displayOrder);
-  }, [categories]);
-
-  const popularItems = useMemo(() => {
-    if (!menuItems) return [];
-    return menuItems.filter(item => item.isPopular && item.isAvailable);
-  }, [menuItems]);
-
-  const filteredMenuItems = useMemo(() => {
-    if (!menuItems) return [];
-    return menuItems.filter(item => {
-        const matchesCategory = activeCategory === 'all' || item.categoryId === activeCategory;
-        const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-        return matchesCategory && matchesSearch;
-    });
-  }, [menuItems, activeCategory, searchTerm]);
-
   const handleSelectItem = (item: MenuItem) => {
     setSelectedItem(item);
     setIsDialogOpen(true);
-  };
-
-  const handleRemoveFromCart = (cartItemId: string) => {
-    removeFromCart(cartItemId);
   };
 
   const placeOrder = async () => {
@@ -136,48 +117,39 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
         setIsPlacingOrder(false);
     }
   };
+  
+  const renderMenuByStyle = () => {
+      const styleProps = {
+          menuItems,
+          categories,
+          onSelectItem: handleSelectItem,
+      };
 
+      switch (tableData?.menuStyle) {
+          case 'carousel':
+              return <CarouselSlidesStyle {...styleProps} />;
+          case '3d':
+              return <ThreeDSlideStyle {...styleProps} />;
+          case 'promo':
+              return <PromoSlideStyle {...styleProps} />;
+          case 'default':
+          default:
+              return <DefaultListStyle {...styleProps} />;
+      }
+  };
+
+  const isLoading = isLoadingTable || isLoadingMenu || isLoadingCategories || isUserLoading || isLoadingModifierGroups;
   const cartTotal = totalPrice();
   const cartItemCount = totalItems();
-
-  useEffect(() => {
-    const previousTotal = totalItems();
-    return useCartStore.subscribe(
-      (state) => {
-        if (state.cart.reduce((acc, item) => acc + item.quantity, 0) > previousTotal) {
-            setAnimateCart(true);
-            setTimeout(() => setAnimateCart(false), 400);
-        }
-      }
-    );
-  }, []);
-
-  useEffect(() => {
-    if (cart.length > 0 && menuItems && menuItems.length > 0) {
-      setIsSuggestionsLoading(true);
-      const fetchSuggestions = async () => {
-        const cartItemIds = cart.map(item => item.menuItem.id);
-        try {
-          const suggestions = await getSuggestedItems(cartItemIds, menuItems);
-          const availableSuggestions = suggestions.filter(suggestion => menuItems.some(item => item.id === suggestion.id && item.isAvailable));
-          setSuggestedItems(availableSuggestions);
-        } finally {
-          setIsSuggestionsLoading(false);
-        }
-      };
-      const timer = setTimeout(fetchSuggestions, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setSuggestedItems([]);
-    }
-  }, [cart, menuItems]);
 
   return (
     <Sheet>
         <div className="min-h-screen bg-muted/30">
             <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-                    <div className="font-semibold">Table {tableId}</div>
+                    <div className="font-semibold">
+                      {isLoadingTable ? '...' : `Table ${tableData?.tableNumber || tableId}`}
+                    </div>
                     
                     {(cart?.length ?? 0) > 0 && (
                         <SheetTrigger asChild>
@@ -200,78 +172,14 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                 </div>
             </header>
 
-          <main className="container mx-auto p-4 md:p-8">
-            <div className="mb-8 space-y-6">
-                <h1 className="text-4xl font-extrabold font-headline tracking-tight">Our Menu</h1>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input 
-                        placeholder="Search menu..." 
-                        className="pl-10"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <CategoryChips 
-                    categories={sortedCategories}
-                    activeCategory={activeCategory}
-                    setActiveCategory={setActiveCategory}
-                />
-            </div>
-
-            {isLoadingMenu || isLoadingCategories || isUserLoading || isLoadingModifierGroups ? (
-              <div className="text-center p-16">Loading menu...</div>
-            ) : (
-              <div className="space-y-12">
-                 {activeCategory === 'all' && searchTerm === '' && popularItems.length > 0 && (
-                    <section>
-                        <h2 className="text-3xl font-bold font-headline mb-6">Popular Items</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {popularItems.map((item, i) => (
-                                <MenuItemCard 
-                                    key={item.id} 
-                                    item={item} 
-                                    onSelect={() => handleSelectItem(item)} 
-                                    className="animate-fade-in-up"
-                                    style={{ animationDelay: `${i * 50}ms`}}
-                                />
-                            ))}
-                        </div>
-                    </section>
-                )}
-
-                <section>
-                    {searchTerm === '' && (
-                        <h2 className="text-3xl font-bold font-headline mb-6">
-                            {activeCategory === 'all' 
-                                ? popularItems.length > 0 ? 'All Items' : ''
-                                : categories?.find(c => c.id === activeCategory)?.name
-                            }
-                        </h2>
-                    )}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredMenuItems.map((item, i) => (
-                            <MenuItemCard 
-                                key={item.id} 
-                                item={item} 
-                                onSelect={() => handleSelectItem(item)}
-                                className="animate-fade-in-up"
-                                style={{ animationDelay: `${i * 50}ms`}}
-                            />
-                        ))}
-                    </div>
-                    {filteredMenuItems.length === 0 && (
-                        <div className="text-center py-16 text-muted-foreground">
-                            <p>No items found.</p>
-                            {searchTerm !== '' && <p>Try adjusting your search.</p>}
-                        </div>
-                    )}
-                </section>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">Loading menu...</p>
               </div>
+            ) : (
+              renderMenuByStyle()
             )}
-
-            { (menuItems && menuItems.length > 0) && <SuggestedItems items={suggestedItems} onSelectItem={handleSelectItem} isLoading={isSuggestionsLoading} /> }
-          </main>
           
           <CustomizationDialog
             item={selectedItem}
@@ -301,7 +209,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                         </div>
                         <div className="flex items-center gap-2">
                             <p className="font-semibold">${cartItem.price.toFixed(2)}</p>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleRemoveFromCart(cartItem.id)}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(cartItem.id)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
