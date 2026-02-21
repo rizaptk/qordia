@@ -83,7 +83,7 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-14-cashier-shift-closing.md](./sprints/sprint-14-cashier-shift-closing.md)
 
 ## 15. Menu Management Upgrade
-- [ ] **Task:** Implement the advanced menu management interface.
+- [x] **Task:** Implement the advanced menu management interface.
 - **Details:** Refactor the menu page into a tabbed interface for Products, Categories, and Modifiers, aligning with the detailed design in `MENU-MANAGEMENT.md`.
 - **Sprint:** [sprints/sprint-15-menu-upgrade.md](./sprints/sprint-15-menu-upgrade.md)
 
