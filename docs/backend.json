@@ -110,7 +110,7 @@
         "tableId": { "type": "string" },
         "status": {
           "type": "string",
-          "enum": ["Placed", "In Progress", "Ready", "Served", "Completed"]
+          "enum": ["Placed", "In Progress", "Ready", "Served", "Completed", "Refunded"]
         },
         "totalAmount": { "type": "number" },
         "orderedAt": { "type": "string", "format": "date-time" },

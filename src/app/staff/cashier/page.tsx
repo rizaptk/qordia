@@ -1,4 +1,4 @@
-'use client';
+{'use client';
 
 import { useMemo, useState } from 'react';
 import type { Order, MenuItem, CartItem, OrderItem } from '@/lib/types';
@@ -6,7 +6,7 @@ import { useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/fireba
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2 } from 'lucide-react';
@@ -17,6 +17,8 @@ import { MenuItemCard } from '@/components/menu/menu-item-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomizationDialog } from '@/components/menu/customization-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
 
 
 type TableBill = {
@@ -212,7 +214,41 @@ export default function CashierPage() {
     };
     // --- End of Walk-in Order Logic ---
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories;
+    // --- Data for Paid Tab ---
+    const [paidSearchTerm, setPaidSearchTerm] = useState('');
+    const completedOrdersQuery = useMemoFirebase(() =>
+        firestore && TENANT_ID
+        ? query(
+            collection(firestore, `tenants/${TENANT_ID}/orders`),
+            where('status', '==', 'Completed')
+          )
+        : null,
+        [firestore, TENANT_ID]
+    );
+    const { data: completedOrders, isLoading: isLoadingCompleted } = useCollection<Order>(completedOrdersQuery);
+
+    const filteredCompletedOrders = useMemo(() => {
+        if (!completedOrders) return [];
+        return completedOrders.filter(order =>
+            order.id.toLowerCase().includes(paidSearchTerm.toLowerCase()) ||
+            order.tableId.toLowerCase().includes(paidSearchTerm.toLowerCase())
+        ).sort((a, b) => b.orderedAt.seconds - a.orderedAt.seconds);
+    }, [completedOrders, paidSearchTerm]);
+
+    // --- Data for Refunded Tab ---
+    const refundedOrdersQuery = useMemoFirebase(() =>
+        firestore && TENANT_ID
+        ? query(
+            collection(firestore, `tenants/${TENANT_ID}/orders`),
+            where('status', '==', 'Refunded')
+          )
+        : null,
+        [firestore, TENANT_ID]
+    );
+    const { data: refundedOrders, isLoading: isLoadingRefunded } = useCollection<Order>(refundedOrdersQuery);
+
+
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
@@ -225,6 +261,8 @@ export default function CashierPage() {
                     <TabsList>
                         <TabsTrigger value="pending-payments">Pending Payments</TabsTrigger>
                         <TabsTrigger value="walk-in-order">New Walk-in Order</TabsTrigger>
+                        <TabsTrigger value="paid">Paid</TabsTrigger>
+                        <TabsTrigger value="refunded">Refunded</TabsTrigger>
                     </TabsList>
                     {activeTab === 'pending-payments' && (
                         <Button onClick={() => setActiveTab('walk-in-order')}>
@@ -362,6 +400,70 @@ export default function CashierPage() {
                             </Card>
                         </div>
                     </div>
+                </TabsContent>
+                <TabsContent value="paid">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Paid Orders</CardTitle>
+                            <CardDescription>Search for completed orders to process a refund.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative mb-4">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search by Order ID or Table ID..."
+                                    className="pl-10"
+                                    value={paidSearchTerm}
+                                    onChange={(e) => setPaidSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Order ID</TableHead>
+                                        <TableHead>Table</TableHead>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead className="text-right">Amount</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoadingCompleted ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center">Loading paid orders...</TableCell>
+                                        </TableRow>
+                                    ) : filteredCompletedOrders.length > 0 ? (
+                                        filteredCompletedOrders.map(order => (
+                                            <TableRow key={order.id}>
+                                                <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                                                <TableCell>{order.tableId}</TableCell>
+                                                <TableCell>{format(new Date(order.orderedAt.seconds * 1000), 'PPp')}</TableCell>
+                                                <TableCell className="text-right">${(order.totalAmount || 0).toFixed(2)}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button variant="outline" size="sm">Process Refund</Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="h-24 text-center">No completed orders found.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="refunded">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Refunded Orders</CardTitle>
+                            <CardDescription>A log of all processed refunds.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground text-center py-10">Refunded orders will be listed here.</p>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
             <CustomizationDialog
