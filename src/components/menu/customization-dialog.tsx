@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -22,7 +21,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { Scaling, Droplet, Beaker, SlidersHorizontal, PlusSquare, Bot } from "lucide-react"
 
 type CustomizationDialogProps = {
@@ -237,29 +235,37 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                     </span>
                   </Label>
                     {group.selectionType === 'single' ? (
-                       <ScrollArea className="w-full whitespace-nowrap">
-                          <RadioGroup
-                            value={JSON.stringify(selectedOptions[group.id]?.[0])}
-                            onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
-                            className="flex gap-2 pb-4"
+                      <RadioGroup
+                        value={JSON.stringify(selectedOptions[group.id]?.[0])}
+                        onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
+                        className="space-y-2 pt-2"
+                      >
+                        {group.options.map(option => (
+                          <Label
+                            key={option.name}
+                            htmlFor={`${group.id}-${option.name}`}
+                            className={cn(
+                                "flex cursor-pointer items-center justify-between rounded-md border-2 p-3",
+                                selectedOptions[group.id]?.[0]?.name === option.name
+                                    ? "border-primary bg-primary/5"
+                                    : "border-muted bg-transparent"
+                            )}
                           >
-                            {group.options.map(option => (
-                              <Label
-                                key={option.name}
-                                htmlFor={`${group.id}-${option.name}`}
-                                className={cn(
-                                    "block cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
-                                    selectedOptions[group.id]?.[0]?.name === option.name && "border-primary"
-                                )}
-                                >
-                                <RadioGroupItem value={JSON.stringify(option)} id={`${group.id}-${option.name}`} className="sr-only" />
-                                <span>{option.name}</span>
-                                {option.priceAdjustment > 0 && <p className="text-xs text-muted-foreground">+${option.priceAdjustment.toFixed(2)}</p>}
-                              </Label>
-                            ))}
-                          </RadioGroup>
-                        <ScrollBar orientation="horizontal" />
-                      </ScrollArea>
+                            <div>
+                              <p className="font-medium">{option.name}</p>
+                              {option.priceAdjustment > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                  +${option.priceAdjustment.toFixed(2)}
+                                </p>
+                              )}
+                            </div>
+                            <RadioGroupItem
+                              value={JSON.stringify(option)}
+                              id={`${group.id}-${option.name}`}
+                            />
+                          </Label>
+                        ))}
+                      </RadioGroup>
                     ) : (
                       <div className="pt-2 space-y-2">
                         {group.options.map(option => (
