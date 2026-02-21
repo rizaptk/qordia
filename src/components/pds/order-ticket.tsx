@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Clock, ArrowRight, Check } from "lucide-react";
+import { Clock, ArrowRight, Check, Play } from "lucide-react";
 import { useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { doc } from "firebase/firestore";
+import { cn } from "@/lib/utils";
 
 function formatTime(date: any) {
     if (!date) return '...';
@@ -22,6 +23,17 @@ function formatTime(date: any) {
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+
+const statusStyles: Record<Order['status'], string> = {
+    Placed: 'bg-amber-500/20 text-amber-700 border-amber-500/50 dark:text-amber-400',
+    Accepted: 'bg-blue-500/20 text-blue-700 border-blue-500/50 dark:text-blue-400',
+    'In Progress': 'bg-primary/20 text-primary border-primary/50',
+    Ready: 'bg-accent/20 text-accent-foreground border-accent/50',
+    Served: 'bg-gray-500/20 text-gray-700 border-gray-500/50 dark:text-gray-400',
+    Completed: 'bg-gray-500/20 text-gray-700 border-gray-500/50 dark:text-gray-400',
+    Refunded: 'bg-red-500/20 text-red-700 border-red-500/50 dark:text-red-400',
+};
+
 
 export function OrderTicket({ order, tenantId }: { order: Order, tenantId: string }) {
   const [time, setTime] = useState(formatTime(order.orderedAt));
@@ -38,22 +50,31 @@ export function OrderTicket({ order, tenantId }: { order: Order, tenantId: strin
     if (!firestore) return;
     const orderRef = doc(firestore, `tenants/${tenantId}/orders/${order.id}`);
 
-    let nextStatus: Order['status'] | null = null;
-    if (order.status === 'Placed') nextStatus = 'In Progress';
-    if (order.status === 'In Progress') nextStatus = 'Ready';
-    if (order.status === 'Ready') nextStatus = 'Served';
+    const statusFlow: Partial<Record<Order['status'], Order['status']>> = {
+      'Placed': 'Accepted',
+      'Accepted': 'In Progress',
+      'In Progress': 'Ready',
+      'Ready': 'Served',
+    };
+    
+    const nextStatus = statusFlow[order.status];
     
     if (nextStatus) {
         updateDocumentNonBlocking(orderRef, { status: nextStatus });
     }
   };
 
-  const getButtonText = () => {
-      if(order.status === 'Placed') return 'Start Preparing';
-      if(order.status === 'In Progress') return 'Mark as Ready';
-      if(order.status === 'Ready') return 'Mark as Served';
-      return 'Completed';
+  const getButtonAction = () => {
+      switch(order.status) {
+          case 'Placed': return { text: 'Accept Order', icon: Check };
+          case 'Accepted': return { text: 'Start Preparing', icon: Play };
+          case 'In Progress': return { text: 'Mark as Ready', icon: ArrowRight };
+          case 'Ready': return { text: 'Mark as Served', icon: Check };
+          default: return { text: 'Completed', icon: Check };
+      }
   }
+
+  const { text: buttonText, icon: ButtonIcon } = getButtonAction();
 
   return (
     <Card className="flex flex-col h-full shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -66,12 +87,9 @@ export function OrderTicket({ order, tenantId }: { order: Order, tenantId: strin
                 <span>{time}</span>
               </p>
             </div>
-            <Badge className={
-                `text-sm
-                ${order.status === 'Placed' ? 'bg-primary/20 text-primary border-primary/50' : ''} 
-                ${order.status === 'In Progress' ? 'bg-warning/20 text-warning-foreground border-warning/50' : ''}
-                ${order.status === 'Ready' ? 'bg-accent/20 text-accent-foreground border-accent/50' : ''}`
-            }>{order.status}</Badge>
+            <Badge className={cn('text-sm', statusStyles[order.status] || 'bg-gray-500/20 text-gray-700')}>
+                {order.status}
+            </Badge>
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-3 overflow-y-auto">
@@ -96,8 +114,8 @@ export function OrderTicket({ order, tenantId }: { order: Order, tenantId: strin
       </CardContent>
       <CardFooter>
         <Button onClick={handleNextStatus} className="w-full" disabled={order.status === 'Served' || order.status === 'Completed'}>
-            <span>{getButtonText()}</span>
-            {order.status !== 'Ready' ? <ArrowRight className="w-4 h-4 ml-2"/> : <Check className="w-4 h-4 ml-2"/>}
+            <span>{buttonText}</span>
+            <ButtonIcon className="w-4 h-4 ml-2"/>
         </Button>
       </CardFooter>
     </Card>

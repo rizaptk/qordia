@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -18,18 +19,18 @@ export default function PDSPage() {
         firestore && TENANT_ID
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`), 
-            where('status', 'not-in', ['Completed', 'Served'])
+            where('status', 'not-in', ['Completed', 'Served', 'Refunded'])
           )
         : null, 
         [firestore, TENANT_ID]
     );
     const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
-    const { placedOrders, inProgressOrders, readyOrders } = useMemo(() => {
-        const placed = orders?.filter(o => o.status === 'Placed').sort((a,b) => (a.orderedAt.seconds || 0) - (b.orderedAt.seconds || 0)) ?? [];
+    const { newOrders, inProgressOrders, readyOrders } = useMemo(() => {
+        const newOrds = orders?.filter(o => o.status === 'Placed' || o.status === 'Accepted').sort((a,b) => (a.orderedAt.seconds || 0) - (b.orderedAt.seconds || 0)) ?? [];
         const inProgress = orders?.filter(o => o.status === 'In Progress').sort((a,b) => (a.orderedAt.seconds || 0) - (b.orderedAt.seconds || 0)) ?? [];
         const ready = orders?.filter(o => o.status === 'Ready').sort((a,b) => (b.orderedAt.seconds || 0) - (a.orderedAt.seconds || 0)) ?? [];
-        return { placedOrders: placed, inProgressOrders: inProgress, readyOrders: ready };
+        return { newOrders: newOrds, inProgressOrders: inProgress, readyOrders: ready };
     }, [orders]);
 
     if (isLoadingOrders || isAuthLoading || !TENANT_ID) {
@@ -39,14 +40,14 @@ export default function PDSPage() {
     return (
         <Tabs defaultValue="new" className="flex flex-col h-full">
             <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="new">New Orders ({placedOrders.length})</TabsTrigger>
+                <TabsTrigger value="new">New Orders ({newOrders.length})</TabsTrigger>
                 <TabsTrigger value="preparing">In Progress ({inProgressOrders.length})</TabsTrigger>
                 <TabsTrigger value="ready">Ready ({readyOrders.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="new" className="flex-grow">
-                 {placedOrders.length > 0 ? (
+                 {newOrders.length > 0 ? (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {placedOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
+                        {newOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
                     <div className="text-center text-muted-foreground py-16">No new orders.</div>

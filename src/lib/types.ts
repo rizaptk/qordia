@@ -46,7 +46,7 @@ export type Order = {
   id: string;
   tableId: string;
   items: CartItem[] | OrderItem[];
-  status: 'Placed' | 'In Progress' | 'Ready' | 'Served' | 'Completed' | 'Refunded';
+  status: 'Placed' | 'Accepted' | 'In Progress' | 'Ready' | 'Served' | 'Completed' | 'Refunded';
   timestamp: Date | { seconds: number; nanoseconds: number }; // Support both Date and Firestore Timestamp
   total: number;
   customerId?: string;
