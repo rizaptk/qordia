@@ -1,4 +1,5 @@
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -67,6 +68,13 @@ export type OrderItem = {
     price: number;
     customizations: { [key: string]: string };
     specialNotes: string;
+}
+
+export type Table = {
+    id: string;
+    tableNumber: string;
+    qrCodeIdentifier: string;
+    menuStyle?: 'default' | 'carousel' | '3d' | 'promo';
 }
 
 export type Tenant = {

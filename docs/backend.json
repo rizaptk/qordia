@@ -71,7 +71,12 @@
       "properties": {
         "id": { "type": "string" },
         "tableNumber": { "type": "string" },
-        "qrCodeIdentifier": { "type": "string" }
+        "qrCodeIdentifier": { "type": "string" },
+        "menuStyle": {
+          "type": "string",
+          "enum": ["default", "carousel", "3d", "promo"],
+          "description": "The visual presentation style for the customer menu at this table."
+        }
       },
       "required": ["id", "tableNumber"]
     },

@@ -21,6 +21,7 @@ export interface AuthState {
   tableLimit: number | null;
   hasAnalyticsFeature: boolean;
   hasMenuCustomizationFeature: boolean;
+  hasAdvancedMenuStyles: boolean;
   hasAdvancedReportingFeature: boolean;
   hasPrioritySupportFeature: boolean;
   hasApiAccessFeature: boolean;
@@ -53,6 +54,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   tableLimit: null,
   hasAnalyticsFeature: false,
   hasMenuCustomizationFeature: false,
+  hasAdvancedMenuStyles: false,
   hasAdvancedReportingFeature: false,
   hasPrioritySupportFeature: false,
   hasApiAccessFeature: false,
@@ -86,6 +88,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       tableLimit: tableLimit,
       hasAnalyticsFeature: features.has('Analytics'),
       hasMenuCustomizationFeature: features.has('Menu Customization'),
+      hasAdvancedMenuStyles: features.has('Advanced Menu Styles'),
       hasAdvancedReportingFeature: features.has('Advanced Reporting'),
       hasPrioritySupportFeature: features.has('Priority Support'),
       hasApiAccessFeature: features.has('API Access'),
