@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import { useState } from 'react';
-import type { MenuItem, MenuCategory } from '@/lib/types';
+import type { MenuItem, MenuCategory, ModifierGroup } from '@/lib/types';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,7 @@ import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MenuItemFormDialog } from '@/components/staff/menu-item-form-dialog';
 import { CategoryFormDialog } from '@/components/staff/category-form-dialog';
+import { ModifierGroupFormDialog } from '@/components/staff/modifier-group-form-dialog';
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +27,8 @@ export default function MenuManagementPage() {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
+    const [isModifierGroupFormOpen, setIsModifierGroupFormOpen] = useState(false);
+    const [editingModifierGroup, setEditingModifierGroup] = useState<ModifierGroup | null>(null);
 
     const menuItemsRef = useMemoFirebase(() => 
         firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
@@ -37,6 +41,13 @@ export default function MenuManagementPage() {
         [firestore]
     );
     const { data: categories, isLoading: isLoadingCategories } = useCollection<MenuCategory>(categoriesRef);
+
+    const modifierGroupsRef = useMemoFirebase(() => 
+        firestore ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
+        [firestore]
+    );
+    const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
+
 
     const categoryMap = new Map(categories?.map(c => [c.id, c.name]));
     
@@ -65,6 +76,17 @@ export default function MenuManagementPage() {
         setEditingCategory(category);
         setIsCategoryFormOpen(true);
     };
+
+    const handleAddNewModifierGroup = () => {
+        setEditingModifierGroup(null);
+        setIsModifierGroupFormOpen(true);
+    };
+
+    const handleEditModifierGroup = (group: ModifierGroup) => {
+        setEditingModifierGroup(group);
+        setIsModifierGroupFormOpen(true);
+    };
+
 
     return (
         <div className="space-y-6">
@@ -216,7 +238,7 @@ export default function MenuManagementPage() {
                                 <CardTitle>Modifier Groups</CardTitle>
                                 <CardDescription>Manage customization options like sizes, toppings, and add-ons.</CardDescription>
                             </div>
-                             <Button variant="outline" disabled><PlusCircle className="mr-2 h-4 w-4"/>Add Modifier Group</Button>
+                             <Button variant="outline" onClick={handleAddNewModifierGroup}><PlusCircle className="mr-2 h-4 w-4"/>Add Modifier Group</Button>
                         </CardHeader>
                         <CardContent>
                            <Table>
@@ -231,11 +253,38 @@ export default function MenuManagementPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                                            No modifier groups found.
-                                        </TableCell>
-                                    </TableRow>
+                                    {isLoadingModifierGroups ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center">Loading modifier groups...</TableCell>
+                                        </TableRow>
+                                    ) : modifierGroups && modifierGroups.length > 0 ? (
+                                        modifierGroups.map(group => (
+                                            <TableRow key={group.id}>
+                                                <TableCell className="font-medium">{group.name}</TableCell>
+                                                <TableCell className="capitalize">{group.selectionType}</TableCell>
+                                                <TableCell>{group.options.length}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Open menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => handleEditModifierGroup(group)}>Edit</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                                No modifier groups found.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                            </Table>
                         </CardContent>
@@ -253,6 +302,11 @@ export default function MenuManagementPage() {
                 isOpen={isCategoryFormOpen}
                 onOpenChange={setIsCategoryFormOpen}
                 categoryToEdit={editingCategory}
+            />
+            <ModifierGroupFormDialog
+                isOpen={isModifierGroupFormOpen}
+                onOpenChange={setIsModifierGroupFormOpen}
+                groupToEdit={editingModifierGroup}
             />
         </div>
     );
