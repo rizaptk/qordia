@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -132,9 +131,19 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
     onOpenChange(false);
   }
 
-  const imagePlaceholder = PlaceHolderImages.find(p => p.id === item?.image)
+  if (!item) return null;
 
-  if (!item) return null
+  let imageUrl: string | undefined = item.imageUrl;
+  let imageHint: string | undefined;
+
+  if (!imageUrl) {
+    const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image);
+    if (imagePlaceholder) {
+      imageUrl = imagePlaceholder.imageUrl;
+      imageHint = imagePlaceholder.imageHint;
+    }
+  }
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -145,13 +154,13 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
         </DialogHeader>
         <div className="flex-grow overflow-y-auto pr-4 -mr-4 grid gap-6 md:grid-cols-2">
           <div className="relative aspect-video rounded-lg overflow-hidden">
-            {imagePlaceholder?.imageUrl && (
+            {imageUrl && (
               <Image
-                src={imagePlaceholder.imageUrl}
+                src={imageUrl}
                 alt={item.name}
                 fill
                 className="object-cover"
-                data-ai-hint={imagePlaceholder.imageHint}
+                data-ai-hint={imageHint}
               />
             )}
           </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import Image from "next/image"
@@ -14,7 +13,16 @@ type MenuItemCardProps = {
 } & React.ComponentProps<'div'>;
 
 export function MenuItemCard({ item, onSelect, className, ...props }: MenuItemCardProps) {
-  const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image)
+  let imageUrl: string | undefined = item.imageUrl;
+  let imageHint: string | undefined;
+
+  if (!imageUrl) {
+    const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image);
+    if (imagePlaceholder) {
+      imageUrl = imagePlaceholder.imageUrl;
+      imageHint = imagePlaceholder.imageHint;
+    }
+  }
 
   return (
     <Card 
@@ -27,13 +35,13 @@ export function MenuItemCard({ item, onSelect, className, ...props }: MenuItemCa
         {...props}
     >
       <div className="relative aspect-video">
-        {imagePlaceholder && (
+        {imageUrl && (
           <Image
-            src={imagePlaceholder.imageUrl}
+            src={imageUrl}
             alt={item.name}
             fill
             className="object-cover"
-            data-ai-hint={imagePlaceholder.imageHint}
+            data-ai-hint={imageHint}
           />
         )}
         {!item.isAvailable && (
