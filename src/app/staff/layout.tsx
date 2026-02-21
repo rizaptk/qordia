@@ -114,7 +114,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   }
 
   // Show loading screen until auth state is resolved and redirects have been processed.
-  if (!isClient || isLoading || isPlatformAdmin) {
+  if (!isClient || isLoading || isPlatformAdmin || !user) {
     return (
         <div className="flex h-screen items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
