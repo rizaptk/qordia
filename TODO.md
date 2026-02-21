@@ -73,7 +73,7 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-12-cashier-walk-in.md](./sprints/sprint-12-cashier-walk-in.md)
 
 ## 13. Cashier Refund Handling
-- [ ] **Task:** Implement the flow for cashiers to process full or partial refunds on completed orders.
+- [x] **Task:** Implement the flow for cashiers to process full or partial refunds on completed orders.
 - **Details:** Build the UI to find completed orders, initiate a refund, and update the order status to 'Refunded'.
 - **Sprint:** [sprints/sprint-13-cashier-refunds.md](./sprints/sprint-13-cashier-refunds.md)
 
