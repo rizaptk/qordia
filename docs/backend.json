@@ -129,6 +129,16 @@
             },
             "required": ["menuItemId", "name", "quantity", "price"]
           }
+        },
+        "refundDetails": {
+          "type": "object",
+          "description": "Details of a refund if the order was refunded.",
+          "properties": {
+            "refundAmount": { "type": "number" },
+            "reason": { "type": "string" },
+            "processedAt": { "type": "string", "format": "date-time" },
+            "processedByUid": { "type": "string" }
+          }
         }
       },
       "required": [

@@ -16,6 +16,7 @@ import { CategoryChips } from '@/components/menu/category-chips';
 import { MenuItemCard } from '@/components/menu/menu-item-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomizationDialog } from '@/components/menu/customization-dialog';
+import { RefundDialog, type RefundFormValues } from '@/components/staff/refund-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
@@ -33,6 +34,10 @@ export default function CashierPage() {
     const [activeTab, setActiveTab] = useState('pending-payments');
     const { toast } = useToast();
     const TENANT_ID = tenant?.id;
+
+    // --- Refund Dialog State ---
+    const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+    const [orderToRefund, setOrderToRefund] = useState<Order | null>(null);
 
     // --- Data for Pending Payments Tab ---
     const activeOrdersQuery = useMemoFirebase(() => 
@@ -247,6 +252,22 @@ export default function CashierPage() {
     );
     const { data: refundedOrders, isLoading: isLoadingRefunded } = useCollection<Order>(refundedOrdersQuery);
 
+    // --- Refund Handlers ---
+    const handleOpenRefundDialog = (order: Order) => {
+        setOrderToRefund(order);
+        setIsRefundDialogOpen(true);
+    };
+
+    const handleConfirmRefund = (data: RefundFormValues) => {
+        // TODO: Implement the actual refund logic in the next step
+        console.log("Refunding order:", orderToRefund?.id, "with data:", data);
+        toast({
+            title: "Refund Processed (Simulated)",
+            description: `A refund of $${data.refundAmount} was processed for order ${orderToRefund?.id}.`,
+        });
+        setIsRefundDialogOpen(false);
+        setOrderToRefund(null);
+    };
 
     const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded;
 
@@ -440,7 +461,7 @@ export default function CashierPage() {
                                                 <TableCell>{format(new Date(order.orderedAt.seconds * 1000), 'PPp')}</TableCell>
                                                 <TableCell className="text-right">${(order.totalAmount || 0).toFixed(2)}</TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="outline" size="sm">Process Refund</Button>
+                                                    <Button variant="outline" size="sm" onClick={() => handleOpenRefundDialog(order)}>Process Refund</Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -471,6 +492,12 @@ export default function CashierPage() {
                 isOpen={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
                 onAddToCart={handleAddToCartFromDialog}
+            />
+            <RefundDialog
+                isOpen={isRefundDialogOpen}
+                onOpenChange={setIsRefundDialogOpen}
+                order={orderToRefund}
+                onConfirm={handleConfirmRefund}
             />
         </>
     );

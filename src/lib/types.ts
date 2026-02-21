@@ -34,6 +34,12 @@ export type Order = {
   customerId?: string;
   totalAmount?: number;
   orderedAt?: any;
+  refundDetails?: {
+    refundAmount: number;
+    reason: string;
+    processedAt: { seconds: number; nanoseconds: number };
+    processedByUid: string;
+  };
 };
 
 export type OrderItem = {
