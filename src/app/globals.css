@@ -90,3 +90,50 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Embla 3D Carousel Styles */
+.embla {
+  max-width: 100%;
+  margin: auto;
+}
+
+.embla__viewport {
+  overflow: hidden;
+}
+
+.embla__container {
+  display: flex;
+  perspective: 1000px;
+  /* Make sure the container doesn't get clipped by the viewport */
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+.embla__slide {
+  flex: 0 0 50%; /* Show part of side slides */
+  min-width: 0;
+  padding: 0 1rem;
+  position: relative;
+}
+
+@media (min-width: 768px) {
+  .embla__slide {
+    flex-basis: 33.33%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .embla__slide {
+    flex-basis: 25%;
+  }
+}
+
+.embla__slide__inner {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  /* This ensures the slide animates smoothly */
+  transition: transform 0.2s ease-out; 
+  transform-style: preserve-3d;
+  will-change: transform;
+}

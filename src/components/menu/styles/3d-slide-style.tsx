@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import useEmblaCarousel, { EmblaCarouselType, EmblaEventType } from 'embla-carousel-react';
 import type { MenuItem } from '@/lib/types';
 import { MenuItemCard } from '@/components/menu/menu-item-card';
 
@@ -11,50 +11,85 @@ interface StyleProps {
     onSelectItem: (item: MenuItem) => void;
 }
 
+const TWEEN_FACTOR_BASE = 0.5;
+
 export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
-    const [emblaRef, emblaApi] = useEmblaCarousel({
+    const [emblaRef, emblaApi] = useEmblaCarousel({ 
+        loop: true,
         align: 'center',
         containScroll: 'trimSnaps',
-        loop: true,
     });
-    const [tweenValues, setTweenValues] = useState<number[]>([]);
+    
+    const tweenFactor = useRef(0);
+    const tweenNodes = useRef<HTMLElement[]>([]);
 
-    const onScroll = useCallback(() => {
-        if (!emblaApi) return;
-        const scrollProgress = emblaApi.scrollProgress();
-        const styles = emblaApi.scrollSnapList().map((scrollSnap) => {
-            return scrollSnap - scrollProgress;
-        });
-        setTweenValues(styles);
-    }, [emblaApi]);
+    const setTweenNodes = useCallback((emblaApi: EmblaCarouselType): void => {
+        tweenNodes.current = emblaApi.slideNodes().map((slideNode) => {
+          return slideNode.querySelector('.embla__slide__inner') as HTMLElement
+        })
+    }, [])
+
+    const setTweenFactor = useCallback((emblaApi: EmblaCarouselType) => {
+        tweenFactor.current = TWEEN_FACTOR_BASE * emblaApi.scrollSnapList().length
+    }, [])
+
+    const tween3d = useCallback((emblaApi: EmblaCarouselType, eventName?: EmblaEventType) => {
+        const engine = emblaApi.internalEngine()
+        const scrollProgress = emblaApi.scrollProgress()
+        const slidesInView = emblaApi.slidesInView()
+
+        emblaApi.scrollSnapList().forEach((scrollSnap, snapIndex) => {
+            let diffToTarget = scrollSnap - scrollProgress
+            const isSlideInView = slidesInView.indexOf(snapIndex) > -1
+
+            if (engine.options.loop) {
+                engine.slideLooper.loopPoints.forEach((loopItem) => {
+                    const target = loopItem.target().get()
+                    if (snapIndex === loopItem.index && target !== 0) {
+                        const sign = Math.sign(target)
+                        if (sign === -1) diffToTarget = scrollSnap - (1 + scrollProgress)
+                        if (sign === 1) diffToTarget = scrollSnap + (1 - scrollProgress)
+                    }
+                })
+            }
+            
+            const tweenValue = 1 - Math.abs(diffToTarget * tweenFactor.current)
+            const scale = Math.max(0.7, tweenValue).toString();
+            const rotation = (diffToTarget * 70).toString(); // Adjust rotation intensity
+            const opacity = Math.max(0.5, tweenValue).toString();
+
+            const node = tweenNodes.current[snapIndex]
+            if (node) {
+                 node.style.transform = `perspective(1000px) rotateY(${rotation}deg) scale(${scale})`
+                 node.style.opacity = opacity
+            }
+        })
+    }, []);
+
 
     useEffect(() => {
-        if (!emblaApi) return;
-        onScroll();
-        emblaApi.on('scroll', onScroll);
-        emblaApi.on('reInit', onScroll);
-    }, [emblaApi, onScroll]);
+        if (!emblaApi) return
+
+        setTweenNodes(emblaApi)
+        setTweenFactor(emblaApi)
+        tween3d(emblaApi)
+
+        emblaApi
+        .on('reInit', setTweenNodes)
+        .on('reInit', setTweenFactor)
+        .on('reInit', tween3d)
+        .on('scroll', tween3d)
+    }, [emblaApi, tween3d, setTweenFactor, setTweenNodes]);
+
 
     return (
         <div className="py-12">
-            <div className="overflow-hidden" ref={emblaRef} style={{ perspective: '1000px' }}>
-                <div className="flex -ml-4">
-                    {menuItems?.map((item, index) => {
-                        const diffToTarget = tweenValues[index] || 0;
-                        const scale = 1 - Math.abs(diffToTarget) * 0.3;
-                        const rotateY = diffToTarget * -25;
-                        const opacity = 1 - Math.abs(diffToTarget) * 0.5;
-
-                        return (
-                            <div
-                                className="flex-shrink-0 flex-grow-0 basis-full sm:basis-[45%] md:basis-1/3 lg:basis-1/4 xl:basis-1/5 pl-4"
-                                key={item.id}
-                                style={{ transition: 'transform 0.3s', transformStyle: 'preserve-3d' }}
-                            >
-                                <div style={{
-                                    transform: `rotateY(${rotateY}deg) scale(${scale})`,
-                                    opacity: opacity,
-                                }}>
+            <div className="embla">
+                <div className="embla__viewport" ref={emblaRef}>
+                    <div className="embla__container">
+                        {menuItems?.map((item) => (
+                            <div className="embla__slide" key={item.id}>
+                                <div className="embla__slide__inner">
                                     <MenuItemCard
                                         item={item}
                                         onSelect={() => onSelectItem(item)}
@@ -62,8 +97,8 @@ export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
                                     />
                                 </div>
                             </div>
-                        )
-                    })}
+                        ))}
+                    </div>
                 </div>
             </div>
              <div className="text-center mt-12">
