@@ -93,7 +93,6 @@ export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
                                     <MenuItemCard
                                         item={item}
                                         onSelect={() => onSelectItem(item)}
-                                        className="h-full"
                                     />
                                 </div>
                             </div>

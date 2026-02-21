@@ -110,7 +110,7 @@ body {
 }
 
 .embla__slide {
-  flex: 0 0 50%; /* Show part of side slides */
+  flex: 0 0 85%; /* Make slides much wider on mobile */
   min-width: 0;
   padding: 0 1rem;
   position: relative;
@@ -118,18 +118,17 @@ body {
 
 @media (min-width: 768px) {
   .embla__slide {
-    flex-basis: 33.33%;
+    flex-basis: 70%; /* Adjust for tablets */
   }
 }
 
 @media (min-width: 1024px) {
   .embla__slide {
-    flex-basis: 25%;
+    flex-basis: 60%; /* Adjust for desktops */
   }
 }
 
 .embla__slide__inner {
-  height: 100%;
   width: 100%;
   position: relative;
   /* This ensures the slide animates smoothly */
