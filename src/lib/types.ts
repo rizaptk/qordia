@@ -126,3 +126,18 @@ export type SupportTicket = {
     createdAt: { seconds: number; nanoseconds: number; };
     resolvedAt?: { seconds: number; nanoseconds: number; };
 }
+
+export type Shift = {
+  id: string;
+  tenantId: string;
+  cashierId: string;
+  status: 'active' | 'closed';
+  startedAt: { seconds: number; nanoseconds: number };
+  endedAt?: { seconds: number; nanoseconds: number };
+  totalOrders?: number;
+  totalCash?: number;
+  totalDigital?: number;
+  totalRefunds?: number;
+  declaredCash?: number;
+  variance?: number;
+};

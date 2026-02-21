@@ -10,7 +10,7 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2 } from 'lucide-react';
+import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2, LogOut } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { CategoryChips } from '@/components/menu/category-chips';
@@ -307,6 +307,20 @@ export default function CashierPage() {
 
     return (
         <>
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        Shift: Active
+                    </div>
+                </div>
+                <Button variant="outline" disabled>
+                    <LogOut className="mr-2 h-4 w-4" /> Close Shift
+                </Button>
+            </div>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <div className="flex items-center justify-between">
                     <TabsList>
