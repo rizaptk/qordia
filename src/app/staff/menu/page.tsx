@@ -5,7 +5,7 @@ import type { MenuItem } from '@/lib/types';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal } from 'lucide-react';
@@ -14,6 +14,7 @@ import { MenuItemFormDialog } from '@/components/staff/menu-item-form-dialog';
 import { Switch } from '@/components/ui/switch';
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TENANT_ID = 'qordiapro-tenant';
 
@@ -53,72 +54,108 @@ export default function MenuManagementPage() {
     };
 
     return (
-        <>
-            <div className="flex justify-end mb-4">
-                <Button onClick={handleAddNew}>
+        <div className="space-y-6">
+            <div className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-bold">Menu Management</h1>
+                    <p className="text-muted-foreground">Organize your products, categories, and modifiers.</p>
+                </div>
+                 <Button onClick={handleAddNew}>
                     <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
                 </Button>
             </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>All Menu Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Item</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Price</TableHead>
-                                <TableHead>
-                                    <span className="sr-only">Actions</span>
-                                </TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {isLoadingMenu || isLoadingCategories ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24">Loading menu items...</TableCell>
-                                </TableRow>
-                            ) : menuItems && menuItems.length > 0 ? (
-                                menuItems.map(item => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>
-                                            <Badge variant={item.isAvailable ? 'accent' : 'destructive'}>
-                                                {item.isAvailable ? 'Available' : 'Sold Out'}
-                                            </Badge>
-                                        </TableCell>
-                                        <TableCell className="font-medium">{item.name}</TableCell>
-                                        <TableCell>{item.categoryId ? categoryMap.get(item.categoryId) || 'N/A' : 'N/A'}</TableCell>
-                                        <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <span className="sr-only">Open menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => handleEdit(item)}>Edit</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleToggleAvailability(item)}>
-                                                        {item.isAvailable ? 'Mark as Sold Out' : 'Mark as Available'}
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+            <Tabs defaultValue="products">
+                <TabsList>
+                    <TabsTrigger value="products">Products</TabsTrigger>
+                    <TabsTrigger value="categories">Categories</TabsTrigger>
+                    <TabsTrigger value="modifiers">Modifiers</TabsTrigger>
+                </TabsList>
+                <TabsContent value="products">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>All Products</CardTitle>
+                             <CardDescription>Manage all the items available on your menu.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Item</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead className="text-right">Price</TableHead>
+                                        <TableHead>
+                                            <span className="sr-only">Actions</span>
+                                        </TableHead>
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center h-24">No menu items found. Add one to get started.</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoadingMenu || isLoadingCategories ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center h-24">Loading menu items...</TableCell>
+                                        </TableRow>
+                                    ) : menuItems && menuItems.length > 0 ? (
+                                        menuItems.map(item => (
+                                            <TableRow key={item.id}>
+                                                <TableCell>
+                                                    <Badge variant={item.isAvailable ? 'accent' : 'destructive'}>
+                                                        {item.isAvailable ? 'Available' : 'Sold Out'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{item.name}</TableCell>
+                                                <TableCell>{item.categoryId ? categoryMap.get(item.categoryId) || 'N/A' : 'N/A'}</TableCell>
+                                                <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Open menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => handleEdit(item)}>Edit</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleToggleAvailability(item)}>
+                                                                {item.isAvailable ? 'Mark as Sold Out' : 'Mark as Available'}
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center h-24">No menu items found. Add one to get started.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="categories">
+                     <Card>
+                        <CardHeader>
+                            <CardTitle>Categories</CardTitle>
+                            <CardDescription>Group your menu items into categories for better organization.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                           <p className="text-muted-foreground text-center py-16">Category management coming soon.</p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+                <TabsContent value="modifiers">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Modifiers</CardTitle>
+                            <CardDescription>Manage customization options like sizes, toppings, and add-ons.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-muted-foreground text-center py-16">Modifier management coming soon.</p>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             <MenuItemFormDialog
                 isOpen={isFormOpen}
@@ -126,6 +163,6 @@ export default function MenuManagementPage() {
                 itemToEdit={editingItem}
                 categories={categories || []}
             />
-        </>
+        </div>
     );
 }
