@@ -31,17 +31,18 @@ type CustomizationDialogProps = {
   onOpenChange: (open: boolean) => void
   modifierGroups: ModifierGroup[]
   onAddToCart?: (item: CartItem) => void;
+  itemToEdit?: CartItem | null;
 }
 
 type SelectedOptions = Record<string, ModifierOption[]>;
 
-export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups, onAddToCart }: CustomizationDialogProps) {
+export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups, onAddToCart, itemToEdit }: CustomizationDialogProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({});
   const [specialNotes, setSpecialNotes] = useState("")
   const [totalPrice, setTotalPrice] = useState(item?.price || 0)
 
-  const addToCartStore = useCartStore((state) => state.addToCart);
+  const { addToCart, updateCartItem } = useCartStore();
   const { toast } = useToast();
 
   const relevantGroups = useMemo(() => {
@@ -49,25 +50,46 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
     return modifierGroups.filter(g => item.modifierGroupIds?.includes(g.id));
   }, [item, modifierGroups]);
 
-  useEffect(() => {
-    if (item && isOpen) {
-      const initialSelections: SelectedOptions = {};
-      relevantGroups.forEach(group => {
-        if (group.selectionType === 'single' && group.options.length > 0) {
-          initialSelections[group.id] = [group.options[0]];
-        } else {
-          initialSelections[group.id] = [];
-        }
-      });
-      setSelectedOptions(initialSelections);
-    }
-
+ useEffect(() => {
     if (!isOpen) {
       setQuantity(1);
       setSpecialNotes("");
-      setTotalPrice(0);
+      setSelectedOptions({});
+      return;
     }
-  }, [item, isOpen, relevantGroups]);
+
+    if (itemToEdit && item) { // Edit mode
+        setQuantity(itemToEdit.quantity);
+        setSpecialNotes(itemToEdit.specialNotes);
+        
+        const initialSelections: SelectedOptions = {};
+        relevantGroups.forEach(group => {
+            const selectedNamesString = itemToEdit.customizations[group.name];
+            if (selectedNamesString) {
+                const selectedNames = selectedNamesString.split(', ');
+                const selectedInGroup = group.options.filter(opt => selectedNames.includes(opt.name));
+                initialSelections[group.id] = selectedInGroup;
+            } else {
+                initialSelections[group.id] = [];
+            }
+        });
+        setSelectedOptions(initialSelections);
+
+    } else if (item) { // Add mode
+        const initialSelections: SelectedOptions = {};
+        relevantGroups.forEach(group => {
+            if (group.selectionType === 'single' && group.options.length > 0) {
+                initialSelections[group.id] = [group.options[0]];
+            } else {
+                initialSelections[group.id] = [];
+            }
+        });
+        setSelectedOptions(initialSelections);
+        setQuantity(1);
+        setSpecialNotes("");
+    }
+  }, [item, isOpen, relevantGroups, itemToEdit]);
+
 
   useEffect(() => {
     if (!item) return;
@@ -100,7 +122,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
     return relevantGroups.some(group => group.required && (!selectedOptions[group.id] || selectedOptions[group.id].length === 0));
   }, [relevantGroups, selectedOptions]);
 
-  const handleAddToCartClick = () => {
+  const handleConfirmClick = () => {
     if (!item || isAddToCartDisabled) return;
 
     const finalCustomizations: { [key: string]: string } = {};
@@ -111,25 +133,45 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
       }
     });
 
-    const newCartItem: CartItem = {
-      id: `${item.id}-${Date.now()}`,
-      menuItem: item,
-      quantity,
-      customizations: finalCustomizations,
-      specialNotes,
-      price: totalPrice,
-    };
+    if (itemToEdit) { // UPDATE logic
+        const updatedCartItem: Partial<CartItem> = {
+            quantity,
+            customizations: finalCustomizations,
+            specialNotes,
+            price: totalPrice,
+        };
+        if (onAddToCart) {
+            // This case is for the cashier walk-in flow, which doesn't have an edit feature yet.
+        } else {
+            updateCartItem(itemToEdit.id, updatedCartItem);
+        }
+        toast({
+            title: "Item Updated",
+            description: `${item.name} has been updated in your order.`,
+        });
 
-    if (onAddToCart) {
-      onAddToCart(newCartItem);
-    } else {
-      addToCartStore(newCartItem);
+    } else { // ADD logic
+        const newCartItem: CartItem = {
+          id: `${item.id}-${Date.now()}`,
+          menuItem: item,
+          quantity,
+          customizations: finalCustomizations,
+          specialNotes,
+          price: totalPrice,
+        };
+
+        if (onAddToCart) {
+          onAddToCart(newCartItem);
+        } else {
+          addToCart(newCartItem);
+        }
+
+        toast({
+          title: "Added to order",
+          description: `${item.name} has been added to your order.`,
+        })
     }
-
-    toast({
-      title: "Added to order",
-      description: `${item.name} has been added to your order.`,
-    })
+    
     onOpenChange(false);
   }
 
@@ -248,8 +290,8 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
         <DialogFooter>
           <div className="w-full flex justify-between items-center">
             <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
-            <Button type="button" size="lg" onClick={handleAddToCartClick} disabled={isAddToCartDisabled}>
-              Add to Order
+            <Button type="button" size="lg" onClick={handleConfirmClick} disabled={isAddToCartDisabled}>
+              {itemToEdit ? 'Update Item' : 'Add to Order'}
             </Button>
           </div>
         </DialogFooter>

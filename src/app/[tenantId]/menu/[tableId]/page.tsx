@@ -30,6 +30,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   const { cart, removeFromCart, clearCart, totalItems, totalPrice } = useCartStore();
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [animateCart, setAnimateCart] = useState(false);
@@ -69,6 +70,19 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
     setSelectedItem(item);
     setIsDialogOpen(true);
   };
+  
+  const handleEditClick = (cartItem: CartItem) => {
+    setSelectedItem(cartItem.menuItem);
+    setEditingCartItem(cartItem);
+    setIsDialogOpen(true);
+  }
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    setEditingCartItem(null);
+    setSelectedItem(null);
+  }
+
 
   const placeOrder = async () => {
     if (!firestore || !user || !tenantId) {
@@ -165,8 +179,9 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
           <CustomizationDialog
             item={selectedItem}
             isOpen={isDialogOpen}
-            onOpenChange={setIsDialogOpen}
+            onOpenChange={handleDialogClose}
             modifierGroups={modifierGroups || []}
+            itemToEdit={editingCartItem}
           />
         </div>
         
@@ -210,7 +225,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                             </div>
                             <div className="flex items-center gap-1">
                                 <p className="font-semibold">${cartItem.price.toFixed(2)}</p>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => handleEditClick(cartItem)}>
                                     <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(cartItem.id)}>
