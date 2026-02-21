@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import type { MenuItem } from '@/lib/types';
+import type { MenuItem, MenuCategory } from '@/lib/types';
 import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,7 @@ export default function MenuManagementPage() {
         firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
         [firestore]
     );
-    const { data: categories, isLoading: isLoadingCategories } = useCollection<{id: string, name: string}>(categoriesRef);
+    const { data: categories, isLoading: isLoadingCategories } = useCollection<MenuCategory>(categoriesRef);
 
     const categoryMap = new Map(categories?.map(c => [c.id, c.name]));
     
@@ -135,12 +135,62 @@ export default function MenuManagementPage() {
                 </TabsContent>
                 <TabsContent value="categories">
                      <Card>
-                        <CardHeader>
-                            <CardTitle>Categories</CardTitle>
-                            <CardDescription>Group your menu items into categories for better organization.</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Categories</CardTitle>
+                                <CardDescription>Group your menu items for better organization.</CardDescription>
+                            </div>
+                             <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4"/>Add Category</Button>
                         </CardHeader>
                         <CardContent>
-                           <p className="text-muted-foreground text-center py-16">Category management coming soon.</p>
+                           <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Category Name</TableHead>
+                                        <TableHead>Display Order</TableHead>
+                                        <TableHead>
+                                            <span className="sr-only">Actions</span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                     {isLoadingCategories ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center h-24">Loading categories...</TableCell>
+                                        </TableRow>
+                                    ) : categories && categories.length > 0 ? (
+                                        categories.sort((a,b) => a.displayOrder - b.displayOrder).map(category => (
+                                            <TableRow key={category.id}>
+                                                <TableCell>
+                                                     <Badge variant={category.isActive ? 'accent' : 'secondary'}>
+                                                        {category.isActive ? 'Active' : 'Hidden'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium">{category.name}</TableCell>
+                                                <TableCell>{category.displayOrder}</TableCell>
+                                                <TableCell className="text-right">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                <span className="sr-only">Open menu</span>
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                         <TableRow>
+                                            <TableCell colSpan={4} className="text-center h-24">No categories found.</TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                           </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>

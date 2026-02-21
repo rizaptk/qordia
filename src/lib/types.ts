@@ -15,6 +15,13 @@ export type MenuItem = {
   };
 };
 
+export type MenuCategory = {
+  id: string;
+  name: string;
+  displayOrder: number;
+  isActive: boolean;
+};
+
 export type CartItem = {
   id: string; // Unique ID for the cart item instance
   menuItem: MenuItem;

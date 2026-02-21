@@ -81,9 +81,10 @@
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
-        "displayOrder": { "type": "number" }
+        "displayOrder": { "type": "number" },
+        "isActive": { "type": "boolean", "description": "Controls if the category is visible to customers." }
       },
-      "required": ["id", "name"]
+      "required": ["id", "name", "isActive"]
     },
     "MenuItem": {
       "title": "MenuItem",
