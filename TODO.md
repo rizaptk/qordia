@@ -87,6 +87,11 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Refactor the menu page into a tabbed interface for Products, Categories, and Modifiers, aligning with the detailed design in `MENU-MANAGEMENT.md`.
 - **Sprint:** [sprints/sprint-15-menu-upgrade.md](./sprints/sprint-15-menu-upgrade.md)
 
+## 16. Advanced Menu UX
+- [ ] **Task:** Implement modifier support for customer and cashier menus.
+- **Details:** Refactor the customer and cashier menu interfaces to handle product customization using the newly created modifier groups, as specified in `CUSTOMER-DIGITAL-MENU.md`.
+- **Sprint:** [sprints/sprint-16-advanced-menu-ux.md](./sprints/sprint-16-advanced-menu-ux.md)
+
 ## 🤖 Reminders for Gemini
 
 1.  **Never delete sprint tasks.** If changes are required, create a sub-sprint file (e.g., `sprint-02-A-updates.md`) and link to it.
