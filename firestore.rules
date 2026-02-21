@@ -88,6 +88,10 @@ service cloud.firestore {
       allow read: if true; // Publicly readable
       allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
+    match /tenants/{tenantId}/modifier_groups/{modifierGroupId} {
+      allow read: if true; // Publicly readable
+      allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
+    }
     match /tenants/{tenantId}/locations/{locationId} {
       allow read: if isStaffOfTenant(tenantId) || isPlatformAdmin();
       allow write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
