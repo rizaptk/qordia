@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect } from "react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default function PlatformAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -138,6 +139,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
                 <h1 className="text-xl font-semibold hidden md:block">{getPageTitle()}</h1>
             </div>
             <div className="flex items-center gap-4">
+                <ThemeToggle />
                 <Link href="/">
                   <Button variant="outline">
                     Customer View

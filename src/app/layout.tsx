@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AuthProvider } from '@/firebase/auth-provider';
 import { InvitationHandler } from '@/components/auth/InvitationHandler';
+import { ThemeHandler } from '@/components/theme/theme-handler';
 
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
         />
       </head>
       <body className={cn('font-body antialiased', 'min-h-screen bg-background')}>
+        <ThemeHandler />
         <FirebaseClientProvider>
           <AuthProvider>
             <InvitationHandler />

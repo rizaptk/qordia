@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { QordiaLogo } from '@/components/logo';
 import { useAuthStore } from '@/stores/auth-store';
+import { ThemeToggle } from '@/components/theme/theme-toggle';
 
 export default function Home() {
   const { isAuthenticated, isPlatformAdmin } = useAuthStore();
@@ -18,6 +19,7 @@ export default function Home() {
           <span className="text-lg font-semibold font-headline">Qordia</span>
         </Link>
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           {isAuthenticated ? (
              <Button asChild>
                 <Link href={dashboardUrl}>Go to Dashboard</Link>

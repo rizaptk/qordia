@@ -25,6 +25,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QordiaLogo } from "@/components/logo";
 import { useEffect } from "react";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const staffRoles = ['manager', 'barista', 'service', 'cashier'];
 
@@ -297,6 +298,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                       <h1 className="text-xl font-semibold hidden md:block">{getPageTitle()}</h1>
                   </div>
                   <div className="flex items-center gap-4">
+                      <ThemeToggle />
                       <Button variant="ghost" size="icon" className="rounded-full">
                           <Bell className="h-5 w-5" />
                           <span className="sr-only">Notifications</span>
@@ -316,6 +318,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   </Link>
                   {user && (
                   <div className="flex items-center gap-2">
+                          <ThemeToggle />
                           <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
                           <Button variant="ghost" size="icon" onClick={handleSignOut}>
                               <LogOut className="h-5 w-5" />
