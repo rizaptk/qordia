@@ -63,7 +63,7 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-10-ai-analytics.md](./sprints/sprint-10-ai-analytics.md)
 
 ## 11. Cashier Flow
-- [ ] **Task:** Implement the core cashier interface for payment processing.
+- [x] **Task:** Implement the core cashier interface for payment processing.
 - **Details:** Build the cashier dashboard for viewing open bills and a settlement page to process payments for table orders.
 - **Sprint:** [sprints/sprint-11-cashier-flow.md](./sprints/sprint-11-cashier-flow.md)
 
