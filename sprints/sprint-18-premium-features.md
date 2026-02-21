@@ -24,7 +24,8 @@ Implement the advanced menu presentation styles and enhanced user experience fea
     - [ ] Create a new directory `src/components/menu/styles/`.
     - [ ] **Default Style (`default-list-style.tsx`):** Refactor the existing grid layout from the menu page into this component.
     - [ ] **Carousel Style (`carousel-slides-style.tsx`):** Implement a new component using `embla-carousel-react` or a similar library to create a swipeable card interface for menu items.
-    - [ ] **(Placeholder) 3D & Promo Styles:** Create placeholder components (`3d-slide-style.tsx`, `promo-slide-style.tsx`) that render a basic message indicating the style is selected. Full implementation can be deferred.
+    - [ ] **3D Slide Style (`3d-slide-style.tsx`):** Implement a new component using `embla-carousel-react`. Use custom CSS transforms (e.g., `transform: perspective(...) rotateY(...)`) on the carousel slides to create the 3D stacking and parallax effect as the user swipes. This will require adding custom classes and styles.
+    - [ ] **Promotional Style (`promo-slide-style.tsx`):** Implement a new component that displays each menu item as a full-screen hero section. This will involve using large background images and prominent typography for the item name and price. The "Today's Special" and "Limited Time Offer" text will be part of this component's structure.
 
 - [ ] **Task 5: Implement Enhanced Modifier UX**
     - [ ] Refactor `src/components/menu/customization-dialog.tsx`.
