@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState, useMemo, use, useEffect, useRef } from "react";
@@ -233,7 +232,6 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
             isOpen={isDialogOpen}
             onOpenChange={handleDialogClose}
             modifierGroups={modifierGroups || []}
-            onAddToCart={onAddToCart} // For cashier walk-in
             itemToEdit={editingCartItem}
           />
         </div>
