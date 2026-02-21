@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -7,9 +8,6 @@ import { MenuItemCard } from '@/components/menu/menu-item-card';
 import { CategoryChips } from '@/components/menu/category-chips';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
-import { getSuggestedItems } from '@/app/actions/suggest-items';
-import { useCartStore } from '@/stores/cart-store';
-import { SuggestedItems } from '../suggested-items';
 
 interface StyleProps {
     menuItems: MenuItem[] | null;
@@ -20,10 +18,6 @@ interface StyleProps {
 export function DefaultListStyle({ menuItems, categories, onSelectItem }: StyleProps) {
     const [activeCategory, setActiveCategory] = useState<string | 'all'>('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [suggestedItems, setSuggestedItems] = useState<MenuItem[]>([]);
-    const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
-    const { cart } = useCartStore();
-
 
     const sortedCategories = useMemo(() => {
         if (!categories) return [];
@@ -44,26 +38,6 @@ export function DefaultListStyle({ menuItems, categories, onSelectItem }: StyleP
         });
     }, [menuItems, activeCategory, searchTerm]);
 
-    // This effect can be part of the style component if suggestions are style-specific
-    useMemo(() => {
-      if (cart.length > 0 && menuItems && menuItems.length > 0) {
-        setIsSuggestionsLoading(true);
-        const fetchSuggestions = async () => {
-          const cartItemIds = cart.map(item => item.menuItem.id);
-          try {
-            const suggestions = await getSuggestedItems(cartItemIds, menuItems);
-            const availableSuggestions = suggestions.filter(suggestion => menuItems.some(item => item.id === suggestion.id && item.isAvailable));
-            setSuggestedItems(availableSuggestions);
-          } finally {
-            setIsSuggestionsLoading(false);
-          }
-        };
-        const timer = setTimeout(fetchSuggestions, 500);
-        return () => clearTimeout(timer);
-      } else {
-        setSuggestedItems([]);
-      }
-    }, [cart, menuItems]);
 
     return (
         <main className="container mx-auto p-4 md:p-8">
@@ -131,8 +105,6 @@ export function DefaultListStyle({ menuItems, categories, onSelectItem }: StyleP
                     )}
                 </section>
             </div>
-            
-            {(menuItems && menuItems.length > 0) && <SuggestedItems items={suggestedItems} onSelectItem={onSelectItem} isLoading={isSuggestionsLoading} />}
         </main>
     );
 }

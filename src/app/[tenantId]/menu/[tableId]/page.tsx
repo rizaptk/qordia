@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useState, useMemo, use } from "react";
+import { useState, useMemo, use, useEffect, useRef } from "react";
 import type { MenuItem, ModifierGroup, Table, CartItem } from "@/lib/types";
 import { CustomizationDialog } from "@/components/menu/customization-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { collection, Timestamp, doc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
+import { getSuggestedItems } from "@/app/actions/suggest-items";
+import { SuggestedItems } from "@/components/menu/suggested-items";
+
 
 // Import style components
 import { DefaultListStyle } from "@/components/menu/styles/default-list-style";
@@ -34,12 +37,16 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [animateCart, setAnimateCart] = useState(false);
+  const [suggestedItems, setSuggestedItems] = useState<MenuItem[]>([]);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
+
+  const prevTotalItemsRef = useRef(totalItems());
 
   const router = useRouter();
   const { toast } = useToast();
 
   const firestore = useFirestore();
-  const { user, isUserLoading } = useAuthStore();
+  const { user, isUserLoading, hasAdvancedMenuStyles } = useAuthStore();
 
   // --- Data Fetching ---
   const tableRef = useMemoFirebase(() => 
@@ -65,7 +72,39 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
     [firestore, tenantId]
   );
   const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
+  
+  // --- Effects ---
+  useEffect(() => {
+    const currentTotalItems = totalItems();
+    if (currentTotalItems > prevTotalItemsRef.current) {
+        setAnimateCart(true);
+    }
+    prevTotalItemsRef.current = currentTotalItems;
+  }, [cart, totalItems]);
 
+  useEffect(() => {
+    if (cart.length > 0 && menuItems && menuItems.length > 0 && hasAdvancedMenuStyles) {
+      setIsSuggestionsLoading(true);
+      const fetchSuggestions = async () => {
+        const cartItemIds = cart.map(item => item.menuItem.id);
+        try {
+          const suggestions = await getSuggestedItems(cartItemIds, menuItems);
+          const availableSuggestions = suggestions.filter(suggestion => menuItems.some(item => item.id === suggestion.id && item.isAvailable));
+          setSuggestedItems(availableSuggestions);
+        } finally {
+          setIsSuggestionsLoading(false);
+        }
+      };
+      // Debounce the call
+      const timer = setTimeout(fetchSuggestions, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setSuggestedItems([]);
+    }
+  }, [cart, menuItems, hasAdvancedMenuStyles]);
+
+
+  // --- Handlers ---
   const handleSelectItem = (item: MenuItem) => {
     setSelectedItem(item);
     setIsDialogOpen(true);
@@ -173,7 +212,14 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                 <p className="ml-4 text-muted-foreground">Loading menu...</p>
               </div>
             ) : (
-              renderMenuByStyle()
+              <>
+                {renderMenuByStyle()}
+                {hasAdvancedMenuStyles && (
+                    <div className="container mx-auto p-4 md:p-8">
+                        <SuggestedItems items={suggestedItems} onSelectItem={handleSelectItem} isLoading={isSuggestionsLoading} />
+                    </div>
+                )}
+              </>
             )}
           
           <CustomizationDialog
