@@ -37,6 +37,13 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
     }
   }, [user, isPlatformAdmin, isLoading, router]);
 
+  const handleSignOut = async () => {
+    if (auth) {
+      await auth.signOut();
+      router.push('/login');
+    }
+  };
+
   const getPageTitle = () => {
     if (pathname.includes('/tenants')) return 'Tenant Management';
     if (pathname.includes('/monitoring')) return 'System Monitoring';
@@ -121,7 +128,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
                     <span className="text-xs text-muted-foreground">{user.email}</span>
                 </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                <Button variant="ghost" size="icon" onClick={handleSignOut}>
                     <LogOut className="h-5 w-5" />
                 </Button>
             </div>

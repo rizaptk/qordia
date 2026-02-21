@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog, Separator } from "lucide-react";
+import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -88,6 +88,13 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     }
   }, [isLoading, isManager, userProfile, pathname, router]);
 
+
+  const handleSignOut = async () => {
+    if (auth) {
+      await auth.signOut();
+      router.push('/login');
+    }
+  };
 
   const getPageTitle = () => {
     if (pathname.includes('/dashboard')) return 'Dashboard';
@@ -283,7 +290,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                           <span className="text-xs text-muted-foreground">{user.email}</span>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                      <Button variant="ghost" size="icon" onClick={handleSignOut}>
                           <LogOut className="h-5 w-5" />
                       </Button>
                   </div>
@@ -321,7 +328,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   {user && (
                   <div className="flex items-center gap-2">
                           <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
-                          <Button variant="ghost" size="icon" onClick={() => auth?.signOut()}>
+                          <Button variant="ghost" size="icon" onClick={handleSignOut}>
                               <LogOut className="h-5 w-5" />
                           </Button>
                       </div>
