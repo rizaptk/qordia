@@ -20,12 +20,19 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect } from "react";
 
 export default function PlatformAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
   const { user, isPlatformAdmin, isLoading } = useAuthStore();
+
+  useEffect(() => {
+    if (!isLoading && (!user || !isPlatformAdmin)) {
+      router.replace('/login');
+    }
+  }, [isLoading, user, isPlatformAdmin, router]);
   
   const handleSignOut = async () => {
     if (auth) {
@@ -42,21 +49,11 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
     return 'Platform Dashboard';
   }
 
-  if (isLoading) {
+  if (isLoading || !user || !isPlatformAdmin) {
     return (
         <div className="flex h-screen items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Verifying access...</p>
-        </div>
-    );
-  }
-
-  if (!user || !isPlatformAdmin) {
-    router.replace('/login');
-    return (
-        <div className="flex h-screen items-center justify-center bg-background">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Redirecting...</p>
         </div>
     );
   }

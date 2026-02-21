@@ -24,6 +24,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { QordiaLogo } from "@/components/logo";
+import { useEffect } from "react";
 
 const staffRoles = ['manager', 'barista', 'service', 'cashier'];
 
@@ -47,6 +48,12 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     hasServiceRoleFeature,
     isLoading,
   } = useAuthStore();
+
+  useEffect(() => {
+    if (!isLoading && (!user || !userProfile || !staffRoles.includes(userProfile.role))) {
+      router.replace('/login');
+    }
+  }, [isLoading, user, userProfile, router]);
   
   const handleSignOut = async () => {
     if (auth) {
@@ -72,21 +79,11 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  if (isLoading) {
+  if (isLoading || !user || !userProfile || !staffRoles.includes(userProfile.role)) {
     return (
         <div className="flex h-screen items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Verifying access...</p>
-        </div>
-    );
-  }
-
-  if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
-    router.replace('/login');
-    return (
-        <div className="flex h-screen items-center justify-center bg-background">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4 text-muted-foreground">Redirecting to login...</p>
         </div>
     );
   }
