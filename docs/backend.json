@@ -236,8 +236,7 @@
         "startedAt": { "type": "string", "format": "date-time" },
         "endedAt": { "type": "string", "format": "date-time" },
         "totalOrders": { "type": "number" },
-        "totalCash": { "type": "number" },
-        "totalDigital": { "type": "number" },
+        "totalSales": { "type": "number" },
         "totalRefunds": { "type": "number" },
         "declaredCash": { "type": "number" },
         "variance": { "type": "number" }

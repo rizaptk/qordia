@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
 
 export type ShiftSummaryData = {
     totalOrders: number;
@@ -17,6 +18,7 @@ type ShiftSummaryDialogProps = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     summary: ShiftSummaryData | null;
+    onConfirm: (declaredCash: number, variance: number) => Promise<void>;
 };
 
 function SummaryRow({ label, value, className }: { label: string; value: string; className?: string }) {
@@ -28,8 +30,9 @@ function SummaryRow({ label, value, className }: { label: string; value: string;
     );
 }
 
-export function ShiftSummaryDialog({ isOpen, onOpenChange, summary }: ShiftSummaryDialogProps) {
+export function ShiftSummaryDialog({ isOpen, onOpenChange, summary, onConfirm }: ShiftSummaryDialogProps) {
     const [declaredCash, setDeclaredCash] = useState<string>('');
+    const [isClosing, setIsClosing] = useState(false);
 
     const variance = useMemo(() => {
         const expected = summary?.totalSales || 0;
@@ -40,8 +43,15 @@ export function ShiftSummaryDialog({ isOpen, onOpenChange, summary }: ShiftSumma
     const handleOpenChange = (open: boolean) => {
         if (!open) {
             setDeclaredCash('');
+            setIsClosing(false);
         }
         onOpenChange(open);
+    }
+    
+    const handleConfirm = async () => {
+        setIsClosing(true);
+        await onConfirm(parseFloat(declaredCash) || 0, variance);
+        setIsClosing(false); // This might not be reached if the user is redirected
     }
 
     return (
@@ -92,8 +102,9 @@ export function ShiftSummaryDialog({ isOpen, onOpenChange, summary }: ShiftSumma
                     <DialogClose asChild>
                         <Button variant="outline">Cancel</Button>
                     </DialogClose>
-                    <Button variant="destructive" disabled>
-                        Confirm & Close Shift
+                    <Button variant="destructive" onClick={handleConfirm} disabled={isClosing || !declaredCash}>
+                        {isClosing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {isClosing ? 'Closing...' : 'Confirm & Close Shift'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

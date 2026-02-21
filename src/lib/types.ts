@@ -135,8 +135,7 @@ export type Shift = {
   startedAt: { seconds: number; nanoseconds: number };
   endedAt?: { seconds: number; nanoseconds: number };
   totalOrders?: number;
-  totalCash?: number;
-  totalDigital?: number;
+  totalSales?: number;
   totalRefunds?: number;
   declaredCash?: number;
   variance?: number;

@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Order, MenuItem, CartItem, OrderItem, Shift } from '@/lib/types';
-import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useAuth } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
-import { collection, query, where, Timestamp, doc } from 'firebase/firestore';
+import { collection, query, where, Timestamp, doc, updateDoc } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ShiftSummaryDialog, type ShiftSummaryData } from '@/components/staff/shift-summary-dialog';
+import { useRouter } from 'next/navigation';
 
 
 type TableBill = {
@@ -31,6 +32,8 @@ type TableBill = {
 
 export default function CashierPage() {
     const firestore = useFirestore();
+    const auth = useAuth();
+    const router = useRouter();
     const { user, tenant, isLoading: isAuthLoading } = useAuthStore();
     const [activeTab, setActiveTab] = useState('pending-payments');
     const { toast } = useToast();
@@ -313,6 +316,30 @@ export default function CashierPage() {
     const { data: activeShifts, isLoading: isLoadingShifts } = useCollection<Shift>(activeShiftQuery);
     const activeShift = useMemo(() => (activeShifts && activeShifts.length > 0 ? activeShifts[0] : null), [activeShifts]);
 
+    useEffect(() => {
+        // Automatically start a new shift if none is active
+        if (!isLoadingShifts && !isAuthLoading && user && TENANT_ID && !activeShift) {
+            const createNewShift = async () => {
+                const newShiftData = {
+                    tenantId: TENANT_ID,
+                    cashierId: user.uid,
+                    status: 'active' as const,
+                    startedAt: Timestamp.now(),
+                };
+                try {
+                    await addDocumentNonBlocking(collection(firestore!, `tenants/${TENANT_ID}/shifts`), newShiftData);
+                    toast({
+                        title: "Shift Started",
+                        description: "Your new shift has been automatically started.",
+                    });
+                } catch (e) {
+                    console.error("Failed to start new shift:", e);
+                }
+            };
+            createNewShift();
+        }
+    }, [isLoadingShifts, isAuthLoading, user, TENANT_ID, activeShift, firestore, toast]);
+
     const shiftSummary = useMemo((): ShiftSummaryData | null => {
         if (!activeShift || !completedOrders || !refundedOrders) return null;
 
@@ -330,6 +357,32 @@ export default function CashierPage() {
             totalRefunds: totalRefunds,
         };
     }, [activeShift, completedOrders, refundedOrders]);
+
+    const handleConfirmCloseShift = async (declaredCash: number, variance: number) => {
+        if (!firestore || !TENANT_ID || !activeShift) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No active shift found to close.' });
+            return;
+        }
+
+        const shiftRef = doc(firestore, `tenants/${TENANT_ID}/shifts`, activeShift.id);
+        
+        await updateDoc(shiftRef, {
+            status: 'closed',
+            endedAt: Timestamp.now(),
+            declaredCash: declaredCash,
+            variance: variance,
+            totalOrders: shiftSummary?.totalOrders ?? 0,
+            totalSales: shiftSummary?.totalSales ?? 0,
+            totalRefunds: shiftSummary?.totalRefunds ?? 0,
+        });
+
+        toast({ title: 'Shift Closed', description: 'Your shift has been successfully closed. Signing you out.' });
+        
+        if (auth) {
+            await auth.signOut();
+            router.push('/login');
+        }
+    };
 
 
     const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts;
@@ -350,7 +403,7 @@ export default function CashierPage() {
                         Shift: Active
                     </div>
                 </div>
-                <Button variant="outline" onClick={() => setIsShiftSummaryOpen(true)}>
+                <Button variant="outline" onClick={() => setIsShiftSummaryOpen(true)} disabled={!activeShift}>
                     <LogOut className="mr-2 h-4 w-4" /> Close Shift
                 </Button>
             </div>
@@ -605,6 +658,7 @@ export default function CashierPage() {
                 isOpen={isShiftSummaryOpen}
                 onOpenChange={setIsShiftSummaryOpen}
                 summary={shiftSummary}
+                onConfirm={handleConfirmCloseShift}
             />
         </>
     );
