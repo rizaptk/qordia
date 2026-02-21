@@ -17,31 +17,30 @@ import { useAuthStore } from '@/stores/auth-store';
 export default function AnalyticsPage() {
     const firestore = useFirestore();
     const { user, tenant, isLoading: isAuthLoading, hasAdvancedReportingFeature } = useAuthStore();
-    const TENANT_ID = tenant?.id;
 
     // Fetch completed orders for revenue-based analytics
     const completedOrdersQuery = useMemoFirebase(() => 
-        (firestore && tenant?.name && user?.displayName && !isAuthLoading)
+        (firestore && tenant?.id && user)
         ? query(
             collection(firestore, `tenants/${tenant.id}/orders`), 
             where('status', 'in', ['Served', 'Completed'])
           )
         : null, 
-        [firestore, tenant, user, isAuthLoading]
+        [firestore, tenant, user]
     );
     const { data: completedOrders, isLoading: isLoadingCompleted } = useCollection<Order>(completedOrdersQuery);
 
     // Fetch all orders for operational analytics (like peak hours)
     const allOrdersQuery = useMemoFirebase(() => 
-        (firestore && tenant?.name && user?.displayName && !isAuthLoading) ? collection(firestore, `tenants/${tenant.id}/orders`) : null, 
-        [firestore, tenant, user, isAuthLoading]
+        (firestore && tenant?.id && user) ? collection(firestore, `tenants/${tenant.id}/orders`) : null, 
+        [firestore, tenant, user]
     );
     const { data: allOrders, isLoading: isLoadingAll } = useCollection<Order>(allOrdersQuery);
     
     // Fetch menu items to map IDs to names for best-sellers chart
     const menuItemsRef = useMemoFirebase(() =>
-        (firestore && tenant?.name && user?.displayName && !isAuthLoading) ? collection(firestore, `tenants/${tenant.id}/menu_items`) : null,
-        [firestore, tenant, user, isAuthLoading]
+        (firestore && tenant?.id && user) ? collection(firestore, `tenants/${tenant.id}/menu_items`) : null,
+        [firestore, tenant, user]
     );
     const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 
@@ -159,5 +158,3 @@ export default function AnalyticsPage() {
         </div>
     )
 }
-
-    
