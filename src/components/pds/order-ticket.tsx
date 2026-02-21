@@ -87,7 +87,7 @@ export function OrderTicket({ order, tenantId }: { order: Order, tenantId: strin
                 <span>{time}</span>
               </p>
             </div>
-            <Badge className={cn('text-sm', statusStyles[order.status] || 'bg-gray-500/20 text-gray-700')}>
+            <Badge className={cn('text-sm capitalize', statusStyles[order.status] || 'bg-gray-500/20 text-gray-700')}>
                 {order.status}
             </Badge>
         </div>

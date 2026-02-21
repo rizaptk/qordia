@@ -93,7 +93,7 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-16-advanced-menu-ux.md](./sprints/sprint-16-advanced-menu-ux.md)
 
 ## 17. Kitchen Display System (PDS) Upgrade
-- [ ] **Task:** Enhance the PDS to support modifiers and improve usability.
+- [x] **Task:** Enhance the PDS to support modifiers and improve usability.
 - **Details:** Refactor the order tickets to clearly display customizations and update the UI to match the new color-coded status flow from `KITCHEN-FLOW.md`.
 - **Sprint:** [sprints/sprint-17-pds-upgrade.md](./sprints/sprint-17-pds-upgrade.md)
 

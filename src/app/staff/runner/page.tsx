@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo } from 'react';
@@ -38,7 +37,7 @@ export default function RunnerPage() {
         <div className="space-y-4">
             <h1 className="text-2xl font-bold">Ready for Delivery</h1>
              {sortedReadyOrders.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                     {sortedReadyOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                 </div>
              ) : (

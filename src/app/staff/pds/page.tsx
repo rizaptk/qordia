@@ -46,7 +46,7 @@ export default function PDSPage() {
             </TabsList>
             <TabsContent value="new" className="flex-grow">
                  {newOrders.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                         {newOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
@@ -55,7 +55,7 @@ export default function PDSPage() {
             </TabsContent>
             <TabsContent value="preparing" className="flex-grow">
                 {inProgressOrders.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                         {inProgressOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
@@ -64,7 +64,7 @@ export default function PDSPage() {
             </TabsContent>
             <TabsContent value="ready" className="flex-grow">
                 {readyOrders.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
                         {readyOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
                     </div>
                  ) : (
