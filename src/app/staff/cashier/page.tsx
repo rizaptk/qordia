@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -522,9 +523,9 @@ export default function CashierPage() {
                                                     </div>
                                                     {Object.keys(cartItem.customizations).length > 0 && (
                                                         <div className="text-sm text-muted-foreground pl-2">
-                                                        {Object.entries(cartItem.customizations).map(([key, value]) => (
-                                                            <p key={key}>- {value}</p>
-                                                        ))}
+                                                            {Object.entries(cartItem.customizations).map(([groupName, option]) => (
+                                                                <p key={groupName}>- {groupName}: {option}</p>
+                                                            ))}
                                                         </div>
                                                     )}
                                                 </div>

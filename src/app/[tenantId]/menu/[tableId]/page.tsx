@@ -294,9 +294,9 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                         <div className="flex-grow">
                             <p className="font-semibold">{cartItem.quantity}x {cartItem.menuItem.name}</p>
                             <div className="text-sm text-muted-foreground">
-                            {Object.entries(cartItem.customizations).map(([key, value]) => (
-                                <p key={key}>- {value}</p>
-                            ))}
+                                {Object.entries(cartItem.customizations).map(([groupName, option]) => (
+                                    <p key={groupName}>- {groupName}: {option}</p>
+                                ))}
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
