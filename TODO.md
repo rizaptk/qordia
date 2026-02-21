@@ -78,9 +78,14 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-13-cashier-refunds.md](./sprints/sprint-13-cashier-refunds.md)
 
 ## 14. Cashier End-of-Shift Closing
-- [ ] **Task:** Implement the end-of-shift closing flow for cashiers.
+- [x] **Task:** Implement the end-of-shift closing flow for cashiers.
 - **Details:** Build the UI and logic for cashiers to review their shift summary, declare cash, and close their session.
 - **Sprint:** [sprints/sprint-14-cashier-shift-closing.md](./sprints/sprint-14-cashier-shift-closing.md)
+
+## 15. Menu Management Upgrade
+- [ ] **Task:** Implement the advanced menu management interface.
+- **Details:** Refactor the menu page into a tabbed interface for Products, Categories, and Modifiers, aligning with the detailed design in `MENU-MANAGEMENT.md`.
+- **Sprint:** [sprints/sprint-15-menu-upgrade.md](./sprints/sprint-15-menu-upgrade.md)
 
 ## 🤖 Reminders for Gemini
 
