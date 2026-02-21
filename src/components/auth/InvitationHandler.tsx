@@ -18,21 +18,21 @@ import {
 import { Button } from '../ui/button';
 
 export function InvitationHandler() {
-  const { user, userProfile, isLoading: isAuthLoading } = useAuthStore();
+  const { user, userProfile } = useAuthStore();
   const firestore = useFirestore();
   const { toast } = useToast();
   
   const [invitation, setInvitation] = useState<TenantInvitation | null>(null);
 
   const invitationsRef = useMemoFirebase(() => 
-    (firestore && user?.email && !isAuthLoading)
+    (firestore && user?.email)
       ? query(
           collection(firestore, 'invitations'), 
           where('email', '==', user.email),
           where('status', '==', 'pending')
         ) 
       : null,
-    [firestore, user?.email, isAuthLoading]
+    [firestore, user]
   );
   const { data: pendingInvitations } = useCollection<TenantInvitation>(invitationsRef);
   
@@ -72,6 +72,10 @@ export function InvitationHandler() {
         description: `You have successfully joined ${invitation.tenantName}.`,
       });
       setInvitation(null);
+      // Force token refresh to get new custom claims
+      await user.getIdToken(true);
+      // Reload to apply new role and redirect
+      window.location.reload();
     } catch (error) {
       console.error("Failed to accept invitation:", error);
       toast({

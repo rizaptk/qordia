@@ -67,8 +67,8 @@ export default function StaffManagementPage() {
     const { data: customRoles, isLoading: isLoadingRoles } = useCollection<CustomRole>(rolesRef);
 
     const invitationsRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? query(collection(firestore, 'invitations'), where('tenantId', '==', TENANT_ID), where('status', '==', 'pending')) : null,
-        [firestore, TENANT_ID]
+        firestore && TENANT_ID && user ? query(collection(firestore, 'invitations'), where('tenantId', '==', TENANT_ID), where('status', '==', 'pending')) : null,
+        [firestore, TENANT_ID, user]
     );
     const { data: pendingInvitations, isLoading: isLoadingInvites } = useCollection<TenantInvitation>(invitationsRef);
 
@@ -455,5 +455,3 @@ export default function StaffManagementPage() {
         </div>
     );
 }
-
-    
