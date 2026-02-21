@@ -94,6 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthData({ user: null, userProfile: null, tenant: null, plan: null });
         return;
       }
+
+      // SAFETY NET: If the user is an email/password user but their email is not verified,
+      // treat them as logged out to prevent permission errors from downstream listeners.
+      const isEmailPasswordUser = authUser.providerData.some(p => p.providerId === 'password');
+      if (isEmailPasswordUser && !authUser.emailVerified) {
+          // Signing out will trigger onAuthStateChanged again with `null`, which will
+          // correctly clear the application state.
+          await auth.signOut();
+          return;
+      }
       
       try {
         const idTokenResult = await authUser.getIdTokenResult(true);

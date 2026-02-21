@@ -19,6 +19,7 @@ import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
+import { seedNewTenant } from '@/firebase/seed-tenant';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
