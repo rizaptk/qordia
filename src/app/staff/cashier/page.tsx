@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Order, MenuItem, CartItem, OrderItem } from '@/lib/types';
+import type { Order, MenuItem, CartItem, OrderItem, Shift } from '@/lib/types';
 import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where, Timestamp, doc } from 'firebase/firestore';
@@ -21,6 +20,7 @@ import { RefundDialog, type RefundFormValues } from '@/components/staff/refund-d
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
+import { ShiftSummaryDialog, type ShiftSummaryData } from '@/components/staff/shift-summary-dialog';
 
 
 type TableBill = {
@@ -36,9 +36,10 @@ export default function CashierPage() {
     const { toast } = useToast();
     const TENANT_ID = tenant?.id;
 
-    // --- Refund Dialog State ---
+    // --- Dialog States ---
     const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
     const [orderToRefund, setOrderToRefund] = useState<Order | null>(null);
+    const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
 
     // --- Data for Pending Payments Tab ---
     const activeOrdersQuery = useMemoFirebase(() => 
@@ -218,9 +219,8 @@ export default function CashierPage() {
             setIsSubmitting(false);
         }
     };
-    // --- End of Walk-in Order Logic ---
-
-    // --- Data for Paid Tab ---
+    
+    // --- Data for Paid & Refunded Tabs ---
     const [paidSearchTerm, setPaidSearchTerm] = useState('');
     const completedOrdersQuery = useMemoFirebase(() =>
         firestore && TENANT_ID
@@ -233,15 +233,6 @@ export default function CashierPage() {
     );
     const { data: completedOrders, isLoading: isLoadingCompleted } = useCollection<Order>(completedOrdersQuery);
 
-    const filteredCompletedOrders = useMemo(() => {
-        if (!completedOrders) return [];
-        return completedOrders.filter(order =>
-            order.id.toLowerCase().includes(paidSearchTerm.toLowerCase()) ||
-            order.tableId.toLowerCase().includes(paidSearchTerm.toLowerCase())
-        ).sort((a, b) => b.orderedAt.seconds - a.orderedAt.seconds);
-    }, [completedOrders, paidSearchTerm]);
-
-    // --- Data for Refunded Tab ---
     const refundedOrdersQuery = useMemoFirebase(() =>
         firestore && TENANT_ID
         ? query(
@@ -252,6 +243,15 @@ export default function CashierPage() {
         [firestore, TENANT_ID]
     );
     const { data: refundedOrders, isLoading: isLoadingRefunded } = useCollection<Order>(refundedOrdersQuery);
+
+    const filteredCompletedOrders = useMemo(() => {
+        if (!completedOrders) return [];
+        return completedOrders.filter(order =>
+            order.id.toLowerCase().includes(paidSearchTerm.toLowerCase()) ||
+            order.tableId.toLowerCase().includes(paidSearchTerm.toLowerCase())
+        ).sort((a, b) => b.orderedAt.seconds - a.orderedAt.seconds);
+    }, [completedOrders, paidSearchTerm]);
+
 
     // --- Refund Handlers ---
     const handleOpenRefundDialog = (order: Order) => {
@@ -298,8 +298,41 @@ export default function CashierPage() {
         setIsRefundDialogOpen(false);
         setOrderToRefund(null);
     };
+    
+    // --- Data for Shift Closing ---
+    const activeShiftQuery = useMemoFirebase(() =>
+        (firestore && TENANT_ID && user)
+        ? query(
+            collection(firestore, `tenants/${TENANT_ID}/shifts`),
+            where('cashierId', '==', user.uid),
+            where('status', '==', 'active'),
+        )
+        : null,
+        [firestore, TENANT_ID, user]
+    );
+    const { data: activeShifts, isLoading: isLoadingShifts } = useCollection<Shift>(activeShiftQuery);
+    const activeShift = useMemo(() => (activeShifts && activeShifts.length > 0 ? activeShifts[0] : null), [activeShifts]);
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded;
+    const shiftSummary = useMemo((): ShiftSummaryData | null => {
+        if (!activeShift || !completedOrders || !refundedOrders) return null;
+
+        const shiftStart = activeShift.startedAt.seconds;
+
+        const ordersInShift = completedOrders.filter(order => order.orderedAt.seconds >= shiftStart);
+        const refundsInShift = refundedOrders.filter(order => order.refundDetails?.processedAt.seconds >= shiftStart);
+
+        const totalSales = ordersInShift.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+        const totalRefunds = refundsInShift.reduce((sum, order) => sum + (order.refundDetails?.refundAmount || 0), 0);
+        
+        return {
+            totalOrders: ordersInShift.length,
+            totalSales: totalSales,
+            totalRefunds: totalRefunds,
+        };
+    }, [activeShift, completedOrders, refundedOrders]);
+
+
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
@@ -317,7 +350,7 @@ export default function CashierPage() {
                         Shift: Active
                     </div>
                 </div>
-                <Button variant="outline" disabled>
+                <Button variant="outline" onClick={() => setIsShiftSummaryOpen(true)}>
                     <LogOut className="mr-2 h-4 w-4" /> Close Shift
                 </Button>
             </div>
@@ -567,6 +600,11 @@ export default function CashierPage() {
                 onOpenChange={setIsRefundDialogOpen}
                 order={orderToRefund}
                 onConfirm={handleConfirmRefund}
+            />
+            <ShiftSummaryDialog
+                isOpen={isShiftSummaryOpen}
+                onOpenChange={setIsShiftSummaryOpen}
+                summary={shiftSummary}
             />
         </>
     );
