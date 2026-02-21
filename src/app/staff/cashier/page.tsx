@@ -327,8 +327,11 @@ export default function CashierPage() {
     const activeShift = useMemo(() => (activeShifts && activeShifts.length > 0 ? activeShifts[0] : null), [activeShifts]);
 
     useEffect(() => {
-        // Automatically start a new shift if none is active
-        if (!isLoadingShifts && !isAuthLoading && user && TENANT_ID && !activeShift) {
+        // Automatically start a new shift if we've finished loading and confirmed there are no active shifts.
+        // This check is very specific: it only runs if auth has loaded, shift loading is complete,
+        // and the resulting `activeShifts` array is confirmed to be empty.
+        // This prevents creating a duplicate shift during re-renders or navigation.
+        if (!isLoadingShifts && !isAuthLoading && user && TENANT_ID && activeShifts && activeShifts.length === 0) {
             const createNewShift = async () => {
                 const newShiftData = {
                     tenantId: TENANT_ID,
@@ -348,7 +351,7 @@ export default function CashierPage() {
             };
             createNewShift();
         }
-    }, [isLoadingShifts, isAuthLoading, user, TENANT_ID, activeShift, firestore, toast]);
+    }, [isLoadingShifts, isAuthLoading, user, TENANT_ID, activeShifts, firestore, toast]);
 
     const shiftSummary = useMemo((): ShiftSummaryData | null => {
         if (!activeShift || !completedOrders || !refundedOrders) return null;
@@ -675,4 +678,5 @@ export default function CashierPage() {
     );
 }
 
+    
     
