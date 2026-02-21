@@ -1,33 +1,38 @@
 # Sprint 12: Cashier Walk-in Orders
 
 ## Objective:
-Implement the complete walk-in order flow for cashiers, from item selection to payment, based on the detailed specifications in `CASHIER-WALK-IN-ORDER.md` and `CASHIER-WAIREFRAME.md`.
+Implement the complete walk-in order flow for cashiers within a dedicated tab on the main cashier dashboard, aligning with the detailed specifications in `CASHIER-WAIREFRAME.md` and `CASHIER-WALK-IN-ORDER.md`.
 
 ### Atomic Tasks:
 
-- [ ] **Task 1: Foundational UI for New Orders (`/staff/cashier/new`)**
-    - [ ] Add a `+ New Walk-in Order` button to the main cashier dashboard (`/staff/cashier`) that links to `/staff/cashier/new`.
-    - [ ] Create the new page `src/app/staff/cashier/new/page.tsx`.
-    - [ ] Implement the two-panel layout: a "Product Panel" (left, 70%) and a "Cart Panel" (right, 30%), as specified in the wireframes.
+- [ ] **Task 1: Refactor Cashier Dashboard into a Tabbed Interface.**
+    - [ ] Modify `src/app/staff/cashier/page.tsx` to use the `Tabs` component.
+    - [ ] Move the existing "Open Bills" functionality into a `<TabsContent value="pending-payments">`.
+    - [ ] Create a new, empty `<TabsContent value="walk-in-order">` which will house the walk-in order UI.
+    - [ ] Add a `TabsList` component with triggers for "Pending Payments" and "New Walk-in Order".
+    - [ ] Add a "+ New Walk-in Order" button to the "Pending Payments" tab that switches to the "walk-in-order" tab, as a clear call-to-action.
 
-- [ ] **Task 2: Implement the Product Panel**
-    - [ ] In the Product Panel, display the full menu of the tenant.
-    - [ ] Add a sticky, horizontally-scrolling `CategoryChips` component for filtering menu items.
-    - [ ] Add a `Search` bar to filter items by name.
-    - [ ] Display menu items using `MenuItemCard` components. Tapping a card should add the item to the cart.
-    - [ ] (Note: For now, tapping an item with options will add it without customization. We can add the modifier dialog in a subsequent task to keep this one atomic.)
+- [ ] **Task 2: Implement the Walk-in Order UI within the "Walk-in" Tab.**
+    - [ ] Inside the `walk-in-order` tab content, implement the two-panel layout: a "Product Panel" (left, 70%) and a "Cart Panel" (right, 30%).
+    - [ ] For the Product Panel:
+        - [ ] Fetch all menu items and categories for the tenant.
+        - [ ] Add a sticky, horizontally-scrolling `CategoryChips` component for filtering.
+        - [ ] Add a `Search` bar to filter items by name.
+        - [ ] Display the filtered menu items in a grid.
+    - [ ] The Cart Panel will be built in the next task.
 
-- [ ] **Task 3: Implement the Cart Panel**
-    - [ ] The Cart Panel should be always visible on the right.
-    - [ ] As items are added, display them in the cart with their name, quantity, and price.
+- [ ] **Task 3: Implement the Cart Panel & Local State Management.**
+    - [ ] Create a local state (e.g., using `useState` or a simple state management store) to manage the items for the walk-in order. This cart is temporary and separate from the customer-facing cart.
+    - [ ] As items are clicked in the Product Panel, add them to this local cart state.
+    - [ ] In the Cart Panel, display the items from the local state.
     - [ ] Implement `+` and `-` buttons for each cart item to adjust quantity.
     - [ ] Implement a `Remove` button for each item.
-    - [ ] Display a running `Subtotal` and `Total` at the bottom of the cart, which updates in real-time as items are added or removed.
+    - [ ] Display a running `Subtotal` and `Total` that updates in real-time.
 
-- [ ] **Task 4: Finalize Order & Placement**
-    - [ ] Below the cart total, add a "Proceed to Payment" button. This button should be disabled if the cart is empty.
-    - [ ] Clicking "Proceed to Payment" should:
-        - [ ] Create a new `Order` document in Firestore with a status of `Placed` (it will be immediately visible on the PDS).
-        - [ ] The order's `tableId` should be set to a default value like "Takeaway".
-        - [ ] The order items should be saved from the cart state.
-    - [ ] After the order is successfully created in Firestore, the system should show a success toast and redirect the cashier back to their main dashboard (`/staff/cashier`).
+- [ ] **Task 4: Finalize Order Placement & Payment.**
+    - [ ] Add a "Proceed to Payment" button at the bottom of the Cart Panel, which should be disabled if the cart is empty.
+    - [ ] When clicked, this button will create a new `Order` document in Firestore with:
+        - `status`: 'Placed' (so it appears on the PDS)
+        - `tableId`: 'Takeaway' (or a similar identifier)
+        - The items from the local cart state.
+    - [ ] After successful order creation, show a success toast and automatically switch the tab back to "Pending Payments".
