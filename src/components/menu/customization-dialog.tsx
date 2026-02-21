@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -22,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 type CustomizationDialogProps = {
   item: MenuItem | null
@@ -177,22 +179,29 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                   </AccordionTrigger>
                   <AccordionContent>
                     {group.selectionType === 'single' ? (
-                      <RadioGroup
-                        id={group.id}
-                        value={JSON.stringify(selectedOptions[group.id]?.[0])}
-                        onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
-                        className="pt-2 space-y-1"
-                      >
-                        {group.options.map(option => (
-                          <div key={option.name} className="flex items-center justify-between">
-                            <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-2 cursor-pointer">
-                              <RadioGroupItem value={JSON.stringify(option)} id={`${group.id}-${option.name}`} />
-                              {option.name}
-                            </Label>
-                            {option.priceAdjustment > 0 && <span className="text-sm text-muted-foreground">+${option.priceAdjustment.toFixed(2)}</span>}
-                          </div>
-                        ))}
-                      </RadioGroup>
+                       <ScrollArea className="w-full whitespace-nowrap">
+                          <RadioGroup
+                            value={JSON.stringify(selectedOptions[group.id]?.[0])}
+                            onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
+                            className="flex gap-2 py-2"
+                          >
+                            {group.options.map(option => (
+                              <Label
+                                key={option.name}
+                                htmlFor={`${group.id}-${option.name}`}
+                                className={cn(
+                                    "block cursor-pointer rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground",
+                                    selectedOptions[group.id]?.[0]?.name === option.name && "border-primary"
+                                )}
+                                >
+                                <RadioGroupItem value={JSON.stringify(option)} id={`${group.id}-${option.name}`} className="sr-only" />
+                                <span>{option.name}</span>
+                                {option.priceAdjustment > 0 && <p className="text-xs text-muted-foreground">+${option.priceAdjustment.toFixed(2)}</p>}
+                              </Label>
+                            ))}
+                          </RadioGroup>
+                        <ScrollBar orientation="horizontal" />
+                      </ScrollArea>
                     ) : (
                       <div className="pt-2 space-y-1">
                         {group.options.map(option => (

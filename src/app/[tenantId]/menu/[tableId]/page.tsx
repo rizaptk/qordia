@@ -3,13 +3,13 @@
 "use client";
 
 import { useState, useMemo, use } from "react";
-import type { MenuItem, ModifierGroup, Table } from "@/lib/types";
+import type { MenuItem, ModifierGroup, Table, CartItem } from "@/lib/types";
 import { CustomizationDialog } from "@/components/menu/customization-dialog";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShoppingCart, Trash2, Loader2 } from "lucide-react";
+import { ShoppingCart, Trash2, Loader2, Edit } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
 import { useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, useFirestore } from "@/firebase";
@@ -150,25 +150,6 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                     <div className="font-semibold">
                       {isLoadingTable ? '...' : `Table ${tableData?.tableNumber || tableId}`}
                     </div>
-                    
-                    {(cart?.length ?? 0) > 0 && (
-                        <SheetTrigger asChild>
-                            <Button variant="outline" className="relative">
-                                <ShoppingCart className="h-5 w-5" />
-                                <span className="ml-2 hidden sm:inline">View Order</span>
-                                {cartItemCount > 0 && (
-                                    <span 
-                                        className={cn(
-                                            "absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center",
-                                            animateCart && "animate-bounce"
-                                        )}
-                                    >
-                                        {cartItemCount}
-                                    </span>
-                                )}
-                            </Button>
-                        </SheetTrigger>
-                    )}
                 </div>
             </header>
 
@@ -188,6 +169,26 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
             modifierGroups={modifierGroups || []}
           />
         </div>
+        
+        {cartItemCount > 0 && (
+            <SheetTrigger asChild>
+                 <Button
+                    variant="default"
+                    className={cn(
+                        "fixed bottom-4 right-4 z-50 h-16 rounded-full px-6 shadow-lg text-lg flex items-center gap-4 animate-fade-in-up",
+                         animateCart && "animate-bounce"
+                    )}
+                    onAnimationEnd={() => setAnimateCart(false)}
+                 >
+                    <ShoppingCart className="h-6 w-6" />
+                    <div className="text-left">
+                        <p>{cartItemCount} item{cartItemCount > 1 ? 's' : ''}</p>
+                        <p className="font-bold">${cartTotal.toFixed(2)}</p>
+                    </div>
+                 </Button>
+            </SheetTrigger>
+        )}
+
         <SheetContent className="flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-2xl font-headline">Your Order</SheetTitle>
@@ -199,20 +200,23 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                     <div className="space-y-4 py-4">
                     {cart.map(cartItem => (
                         <div key={cartItem.id} className="flex justify-between items-start gap-4">
-                        <div className="flex-grow">
-                            <p className="font-semibold">{cartItem.quantity}x {cartItem.menuItem.name}</p>
-                            <div className="text-sm text-muted-foreground">
-                                {Object.entries(cartItem.customizations).map(([groupName, option]) => (
-                                    <p key={groupName}>- {groupName}: {option}</p>
-                                ))}
+                            <div className="flex-grow">
+                                <p className="font-semibold">{cartItem.quantity}x {cartItem.menuItem.name}</p>
+                                <div className="text-sm text-muted-foreground">
+                                    {Object.entries(cartItem.customizations).map(([groupName, option]) => (
+                                        <p key={groupName}>- {groupName}: {option}</p>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <p className="font-semibold">${cartItem.price.toFixed(2)}</p>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(cartItem.id)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
+                            <div className="flex items-center gap-1">
+                                <p className="font-semibold">${cartItem.price.toFixed(2)}</p>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" disabled>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeFromCart(cartItem.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     ))}
                     </div>
