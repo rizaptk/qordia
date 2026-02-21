@@ -30,7 +30,7 @@ import { PromoSlideStyle } from "@/components/menu/styles/promo-slide-style";
 
 export default function MenuPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
   const { tenantId, tableId } = use(params);
-  const { cart, removeFromCart, clearCart, totalItems, totalPrice } = useCartStore();
+  const { cart, removeFromCart, clearCart, totalItems, totalPrice, updateCartItem } = useCartStore();
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
@@ -83,7 +83,8 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   }, [cart, totalItems]);
 
   useEffect(() => {
-    if (cart.length > 0 && menuItems && menuItems.length > 0 && hasAdvancedMenuStyles) {
+    // Only run suggestions if the feature is enabled and cart has items.
+    if (hasAdvancedMenuStyles && cart.length > 0 && menuItems && menuItems.length > 0) {
       setIsSuggestionsLoading(true);
       const fetchSuggestions = async () => {
         const cartItemIds = cart.map(item => item.menuItem.id);
@@ -171,15 +172,15 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
     }
   };
   
+  // If the tenant doesn't have the feature, force default style.
+  const menuStyle = hasAdvancedMenuStyles ? tableData?.menuStyle : 'default';
+  
   const renderMenuByStyle = () => {
       const styleProps = {
           menuItems,
           categories,
           onSelectItem: handleSelectItem,
       };
-
-      // If the tenant doesn't have the feature, force default style.
-      const menuStyle = hasAdvancedMenuStyles ? tableData?.menuStyle : 'default';
 
       switch (menuStyle) {
           case 'carousel':
@@ -201,13 +202,15 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   return (
     <Sheet>
         <div className="min-h-screen bg-muted/30">
-            <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-                    <div className="font-semibold">
-                      {isLoadingTable ? '...' : `Table ${tableData?.tableNumber || tableId}`}
-                    </div>
-                </div>
-            </header>
+            {menuStyle !== 'promo' && (
+              <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
+                  <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+                      <div className="font-semibold">
+                        {isLoadingTable ? '...' : `Table ${tableData?.tableNumber || tableId}`}
+                      </div>
+                  </div>
+              </header>
+            )}
 
             {isLoading ? (
               <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
@@ -217,7 +220,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
             ) : (
               <>
                 {renderMenuByStyle()}
-                {hasAdvancedMenuStyles && (
+                {hasAdvancedMenuStyles && menuStyle !== 'promo' && (
                     <div className="container mx-auto p-4 md:p-8">
                         <SuggestedItems items={suggestedItems} onSelectItem={handleSelectItem} isLoading={isSuggestionsLoading} />
                     </div>
@@ -230,6 +233,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
             isOpen={isDialogOpen}
             onOpenChange={handleDialogClose}
             modifierGroups={modifierGroups || []}
+            onAddToCart={onAddToCart} // For cashier walk-in
             itemToEdit={editingCartItem}
           />
         </div>
