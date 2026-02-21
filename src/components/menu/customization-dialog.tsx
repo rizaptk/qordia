@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Image from "next/image"
-import type { MenuItem } from "@/lib/types"
+import type { MenuItem, CartItem } from "@/lib/types"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,14 +25,15 @@ type CustomizationDialogProps = {
   item: MenuItem | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  onAddToCart?: (item: CartItem) => void;
 }
 
-export function CustomizationDialog({ item, isOpen, onOpenChange }: CustomizationDialogProps) {
+export function CustomizationDialog({ item, isOpen, onOpenChange, onAddToCart }: CustomizationDialogProps) {
   const [quantity, setQuantity] = useState(1)
   const [customizations, setCustomizations] = useState<{ [key: string]: string }>({})
   const [specialNotes, setSpecialNotes] = useState("")
   
-  const addToCart = useCartStore((state) => state.addToCart);
+  const addToCartStore = useCartStore((state) => state.addToCart);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -54,14 +55,21 @@ export function CustomizationDialog({ item, isOpen, onOpenChange }: Customizatio
 
     const finalPrice = item.price * quantity; // In a real app, option prices would be added here
 
-    addToCart({
+    const newCartItem: CartItem = {
       id: `${item.id}-${Date.now()}`,
       menuItem: item,
       quantity,
       customizations,
       specialNotes,
       price: finalPrice
-    })
+    };
+
+    if (onAddToCart) {
+        onAddToCart(newCartItem);
+    } else {
+        addToCartStore(newCartItem);
+    }
+
     toast({
         title: "Added to order",
         description: `${item.name} has been added to your order.`,

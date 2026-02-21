@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Order, MenuItem } from '@/lib/types';
+import type { Order, MenuItem, CartItem } from '@/lib/types';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
@@ -9,12 +9,14 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Banknote, PlusCircle, Search } from 'lucide-react';
+import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { CategoryChips } from '@/components/menu/category-chips';
 import { MenuItemCard } from '@/components/menu/menu-item-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CustomizationDialog } from '@/components/menu/customization-dialog';
+import { Separator } from '@/components/ui/separator';
 
 type TableBill = {
     tableId: string;
@@ -61,6 +63,9 @@ export default function CashierPage() {
     // --- Data & State for Walk-in Order Tab ---
     const [searchTerm, setSearchTerm] = useState('');
     const [activeCategory, setActiveCategory] = useState<string | 'all'>('all');
+    const [walkInCart, setWalkInCart] = useState<CartItem[]>([]);
+    const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const menuItemsRef = useMemoFirebase(() => 
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
@@ -88,9 +93,63 @@ export default function CashierPage() {
         });
     }, [menuItems, activeCategory, searchTerm]);
 
+    const walkInTotal = useMemo(() => {
+        return walkInCart.reduce((total, item) => total + item.price, 0);
+    }, [walkInCart]);
+
     const handleSelectItem = (item: MenuItem) => {
-        // Placeholder for Task 3: Add to local cart state
-        console.log("Selected item:", item.name);
+        if (item.options && Object.keys(item.options).length > 0) {
+            setSelectedItem(item);
+            setIsDialogOpen(true);
+        } else {
+            const existingCartItem = walkInCart.find(cartItem => cartItem.menuItem.id === item.id && Object.keys(cartItem.customizations).length === 0);
+            if (existingCartItem) {
+                incrementQuantity(existingCartItem.id);
+            } else {
+                const newCartItem: CartItem = {
+                    id: `${item.id}-${Date.now()}`,
+                    menuItem: item,
+                    quantity: 1,
+                    customizations: {},
+                    specialNotes: '',
+                    price: item.price,
+                };
+                setWalkInCart(prev => [...prev, newCartItem]);
+            }
+        }
+    }
+
+    const handleAddToCartFromDialog = (item: CartItem) => {
+        setWalkInCart(prev => [...prev, item]);
+    }
+    
+    const incrementQuantity = (cartItemId: string) => {
+        setWalkInCart(prev => prev.map(item => {
+            if (item.id === cartItemId) {
+                const newQuantity = item.quantity + 1;
+                return { ...item, quantity: newQuantity, price: item.menuItem.price * newQuantity };
+            }
+            return item;
+        }));
+    }
+
+    const decrementQuantity = (cartItemId: string) => {
+        const itemInCart = walkInCart.find(i => i.id === cartItemId);
+        if (itemInCart && itemInCart.quantity > 1) {
+            setWalkInCart(prev => prev.map(item => {
+                if (item.id === cartItemId) {
+                    const newQuantity = item.quantity - 1;
+                    return { ...item, quantity: newQuantity, price: item.menuItem.price * newQuantity };
+                }
+                return item;
+            }));
+        } else {
+            removeFromWalkInCart(cartItemId);
+        }
+    }
+    
+    const removeFromWalkInCart = (cartItemId: string) => {
+        setWalkInCart(prev => prev.filter(item => item.id !== cartItemId));
     }
     // --- End of Walk-in Order Logic ---
 
@@ -101,98 +160,150 @@ export default function CashierPage() {
     }
 
     return (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <div className="flex items-center justify-between">
-                <TabsList>
-                    <TabsTrigger value="pending-payments">Pending Payments</TabsTrigger>
-                    <TabsTrigger value="walk-in-order">New Walk-in Order</TabsTrigger>
-                </TabsList>
-                 {activeTab === 'pending-payments' && (
-                    <Button onClick={() => setActiveTab('walk-in-order')}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        New Walk-in Order
-                    </Button>
-                )}
-            </div>
+        <>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <TabsList>
+                        <TabsTrigger value="pending-payments">Pending Payments</TabsTrigger>
+                        <TabsTrigger value="walk-in-order">New Walk-in Order</TabsTrigger>
+                    </TabsList>
+                    {activeTab === 'pending-payments' && (
+                        <Button onClick={() => setActiveTab('walk-in-order')}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            New Walk-in Order
+                        </Button>
+                    )}
+                </div>
 
-            <TabsContent value="pending-payments">
-                {openBills.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {openBills.map(bill => (
-                            <Card key={bill.tableId}>
-                                <CardHeader>
-                                    <CardTitle>Table {bill.tableId}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-3xl font-bold">${bill.totalAmount.toFixed(2)}</p>
-                                    <p className="text-sm text-muted-foreground">{bill.orderCount} order(s)</p>
-                                </CardContent>
-                                <CardFooter>
-                                    <Button asChild className="w-full">
-                                        <Link href={`/staff/cashier/${bill.tableId}`}>View & Settle Bill</Link>
-                                    </Button>
-                                </CardFooter>
-                            </Card>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4 border border-dashed rounded-lg">
-                        <Banknote className="w-16 h-16" />
-                        <p className="text-lg font-semibold">No open bills right now.</p>
-                        <p>Orders from QR code scans will appear here once placed.</p>
-                    </div>
-                )}
-            </TabsContent>
-            <TabsContent value="walk-in-order">
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Product Panel (70%) */}
-                    <div className="lg:col-span-2">
-                        <div className="space-y-4">
-                             <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                <Input 
-                                    placeholder="Search menu..." 
-                                    className="pl-10"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                <TabsContent value="pending-payments">
+                    {openBills.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {openBills.map(bill => (
+                                <Card key={bill.tableId}>
+                                    <CardHeader>
+                                        <CardTitle>Table {bill.tableId}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-3xl font-bold">${bill.totalAmount.toFixed(2)}</p>
+                                        <p className="text-sm text-muted-foreground">{bill.orderCount} order(s)</p>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button asChild className="w-full">
+                                            <Link href={`/staff/cashier/${bill.tableId}`}>View & Settle Bill</Link>
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4 border border-dashed rounded-lg">
+                            <Banknote className="w-16 h-16" />
+                            <p className="text-lg font-semibold">No open bills right now.</p>
+                            <p>Orders from QR code scans will appear here once placed.</p>
+                        </div>
+                    )}
+                </TabsContent>
+                <TabsContent value="walk-in-order">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Product Panel (70%) */}
+                        <div className="lg:col-span-2">
+                            <div className="space-y-4">
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                    <Input
+                                        placeholder="Search menu..."
+                                        className="pl-10"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                <CategoryChips
+                                    categories={sortedCategories}
+                                    activeCategory={activeCategory}
+                                    setActiveCategory={setActiveCategory}
                                 />
                             </div>
-                            <CategoryChips 
-                                categories={sortedCategories}
-                                activeCategory={activeCategory}
-                                setActiveCategory={setActiveCategory}
-                            />
+                            <ScrollArea className="h-[60vh] mt-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pr-4">
+                                    {filteredMenuItems.length > 0 ? filteredMenuItems.map((item) => (
+                                        <MenuItemCard
+                                            key={item.id}
+                                            item={item}
+                                            onSelect={() => handleSelectItem(item)}
+                                        />
+                                    )) : (
+                                        <div className="col-span-full text-center py-16 text-muted-foreground">
+                                            <p>No items found.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </ScrollArea>
                         </div>
-                        <ScrollArea className="h-[60vh] mt-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pr-4">
-                                {filteredMenuItems.length > 0 ? filteredMenuItems.map((item) => (
-                                    <MenuItemCard 
-                                        key={item.id} 
-                                        item={item} 
-                                        onSelect={() => handleSelectItem(item)}
-                                    />
-                                )) : (
-                                     <div className="col-span-full text-center py-16 text-muted-foreground">
-                                        <p>No items found.</p>
-                                    </div>
-                                )}
-                            </div>
-                        </ScrollArea>
-                    </div>
 
-                    {/* Cart Panel (30%) */}
-                    <div className="lg:col-span-1">
-                        <Card className="sticky top-20">
-                             <CardHeader>
-                                <CardTitle>Cart</CardTitle>
-                            </CardHeader>
-                            <CardContent className="h-[60vh] flex flex-col items-center justify-center">
-                                <p className="text-muted-foreground">Cart panel will be here.</p>
-                            </CardContent>
-                        </Card>
+                        {/* Cart Panel (30%) */}
+                        <div className="lg:col-span-1">
+                            <Card className="sticky top-20">
+                                <CardHeader>
+                                    <CardTitle>Cart</CardTitle>
+                                </CardHeader>
+                                <CardContent className="h-[60vh] flex flex-col p-0">
+                                    {walkInCart.length > 0 ? (
+                                        <ScrollArea className="flex-grow px-6">
+                                            <div className="space-y-4 py-4">
+                                            {walkInCart.map(cartItem => (
+                                                <div key={cartItem.id} className="space-y-2">
+                                                    <div className="flex justify-between items-start gap-2">
+                                                        <div className="flex-grow">
+                                                            <p className="font-semibold">{cartItem.menuItem.name}</p>
+                                                            <p className="font-bold text-lg">${cartItem.price.toFixed(2)}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 border rounded-md">
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => decrementQuantity(cartItem.id)}><Minus className="h-4 w-4" /></Button>
+                                                            <span className="w-6 text-center font-medium">{cartItem.quantity}</span>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => incrementQuantity(cartItem.id)}><Plus className="h-4 w-4" /></Button>
+                                                        </div>
+                                                    </div>
+                                                    {Object.keys(cartItem.customizations).length > 0 && (
+                                                        <div className="text-sm text-muted-foreground pl-2">
+                                                        {Object.entries(cartItem.customizations).map(([key, value]) => (
+                                                            <p key={key}>- {value}</p>
+                                                        ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            </div>
+                                        </ScrollArea>
+                                    ) : (
+                                        <div className="flex-grow flex flex-col items-center justify-center text-center text-muted-foreground">
+                                            <ShoppingCart className="w-12 h-12 mb-4" />
+                                            <p className="font-semibold">Cart is empty</p>
+                                            <p>Select items from the menu.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                                {walkInCart.length > 0 && (
+                                    <CardFooter className="flex-col items-stretch space-y-4 pt-4 border-t">
+                                        <div className="flex justify-between text-xl font-bold">
+                                            <span>Total</span>
+                                            <span>${walkInTotal.toFixed(2)}</span>
+                                        </div>
+                                        <Button size="lg" disabled>
+                                            Proceed to Payment
+                                        </Button>
+                                    </CardFooter>
+                                )}
+                            </Card>
+                        </div>
                     </div>
-                </div>
-            </TabsContent>
-        </Tabs>
+                </TabsContent>
+            </Tabs>
+            <CustomizationDialog
+                item={selectedItem}
+                isOpen={isDialogOpen}
+                onOpenChange={setIsDialogOpen}
+                onAddToCart={handleAddToCartFromDialog}
+            />
+        </>
     );
 }
