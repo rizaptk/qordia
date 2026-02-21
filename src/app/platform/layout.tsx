@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { LayoutGrid, Building2, Activity, CreditCard, LogOut, Loader2, LifeBuoy } from "lucide-react";
+import { LayoutGrid, Building2, Activity, CreditCard, LogOut, Loader2, LifeBuoy, BarChart3 } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -44,6 +44,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
 
   const getPageTitle = () => {
     if (pathname.includes('/tenants')) return 'Tenant Management';
+    if (pathname.includes('/reporting')) return 'Financial Reporting';
     if (pathname.includes('/monitoring')) return 'System Monitoring';
     if (pathname.includes('/billing')) return 'Billing & Subscriptions';
     if (pathname.includes('/support')) return 'Support Tickets';
@@ -85,6 +86,14 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
                 <Link href="/platform/tenants">
                   <Building2 />
                   <span className="group-data-[collapsible=icon]:hidden">Tenants</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname.includes("/platform/reporting")}>
+                <Link href="/platform/reporting">
+                  <BarChart3 />
+                  <span className="group-data-[collapsible=icon]:hidden">Reporting</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
