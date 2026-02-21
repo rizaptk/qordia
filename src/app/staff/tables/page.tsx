@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -18,27 +19,30 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, QrCode, Printer, Download, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { QordiaLogo } from '@/components/logo';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Table = {
     id: string;
     tableNumber: string;
     qrCodeIdentifier: string;
+    menuStyle?: 'default' | 'carousel' | '3d' | 'promo';
 }
 
 const newTableSchema = z.object({
   tableNumber: z.string().min(1, { message: "Table number cannot be empty." }),
+  menuStyle: z.enum(['default', 'carousel', '3d', 'promo']).default('default'),
 });
 type NewTableFormValues = z.infer<typeof newTableSchema>;
 
 export default function TableManagementPage() {
     const firestore = useFirestore();
-    const { tenant, tableLimit } = useAuthStore();
+    const { tenant, tableLimit, hasAdvancedMenuStyles } = useAuthStore();
     const TENANT_ID = tenant?.id;
 
     const [isTableFormOpen, setIsTableFormOpen] = useState(false);
@@ -58,14 +62,20 @@ export default function TableManagementPage() {
     const { toast } = useToast();
     const form = useForm<NewTableFormValues>({
         resolver: zodResolver(newTableSchema),
-        defaultValues: { tableNumber: '' },
+        defaultValues: { tableNumber: '', menuStyle: 'default' },
     });
     
     useEffect(() => {
         if (editingTable) {
-            form.setValue('tableNumber', editingTable.tableNumber);
+            form.reset({
+                tableNumber: editingTable.tableNumber,
+                menuStyle: editingTable.menuStyle || 'default',
+            });
         } else {
-            form.reset();
+            form.reset({
+                tableNumber: '',
+                menuStyle: 'default'
+            });
         }
     }, [editingTable, form]);
 
@@ -91,11 +101,12 @@ export default function TableManagementPage() {
         try {
             if (editingTable) {
                 const tableRef = doc(firestore, `tenants/${TENANT_ID}/tables`, editingTable.id);
-                await updateDocumentNonBlocking(tableRef, { tableNumber: data.tableNumber });
+                await updateDocumentNonBlocking(tableRef, data);
                 toast({ title: "Success", description: "Table details updated." });
             } else {
                 const newTableData = {
                     tableNumber: data.tableNumber,
+                    menuStyle: data.menuStyle,
                     qrCodeIdentifier: `qordia-table-${data.tableNumber.toLowerCase().replace(/\s+/g, '-')}`,
                 };
                 const tablesCollectionRef = collection(firestore, `tenants/${TENANT_ID}/tables`);
@@ -200,7 +211,7 @@ export default function TableManagementPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>{editingTable ? `Edit Table` : 'Add New Table'}</DialogTitle>
-                            <DialogDescription>{editingTable ? `Update the name for table ${editingTable.tableNumber}.` : 'Add a new table or seating area to your restaurant.'}</DialogDescription>
+                            <DialogDescription>{editingTable ? `Update the details for table ${editingTable.tableNumber}.` : 'Add a new table or seating area to your restaurant.'}</DialogDescription>
                         </DialogHeader>
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onTableFormSubmit)} className="space-y-4">
@@ -217,6 +228,34 @@ export default function TableManagementPage() {
                                         </FormItem>
                                     )}
                                 />
+                                {hasAdvancedMenuStyles && (
+                                    <FormField
+                                        control={form.control}
+                                        name="menuStyle"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Menu Display Style</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a display style" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="default">Default List</SelectItem>
+                                                        <SelectItem value="carousel">Carousel Slides</SelectItem>
+                                                        <SelectItem value="3d">3D Slide</SelectItem>
+                                                        <SelectItem value="promo">Promotional</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormDescription>
+                                                    Choose a premium menu style for this table. (Pro feature)
+                                                </FormDescription>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                                 <DialogFooter>
                                     <Button type="submit" disabled={form.formState.isSubmitting}>
                                         {form.formState.isSubmitting ? 'Saving...' : 'Save Table'}
