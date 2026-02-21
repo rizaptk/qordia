@@ -1,4 +1,4 @@
-{'use client';
+'use client';
 
 import { useMemo, useState } from 'react';
 import type { Order, MenuItem, CartItem, OrderItem } from '@/lib/types';
