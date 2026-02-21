@@ -74,7 +74,7 @@ export default function TenantDetailPage({ params }: { params: Promise<{ tenantI
         planId: tenant.planId || '',
         subscriptionStatus: tenant.subscriptionStatus,
         nextBillingDate: tenant.nextBillingDate ? new Date(tenant.nextBillingDate.seconds * 1000) : undefined,
-        priceOverride: tenant.priceOverride,
+        priceOverride: tenant.priceOverride ?? '',
         notes: tenant.notes || '',
       });
     }
