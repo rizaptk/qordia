@@ -57,6 +57,11 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Build out the UI components that are conditionally rendered based on a manager's subscription plan, ensuring that features like "Custom Staff Roles" and "Advanced Reporting" are tangible and accessible from the staff sidebar.
 - **Sprint:** [sprints/sprint-09-feature-implementation.md](./sprints/sprint-09-feature-implementation.md)
 
+## 10. AI Analytics Assistant
+- [x] **Task:** Implement an AI-powered assistant for sales analytics.
+- **Details:** Add a Genkit flow and UI component to provide natural-language summaries of sales data, available on the "Pro" plan.
+- **Sprint:** [sprints/sprint-10-ai-analytics.md](./sprints/sprint-10-ai-analytics.md)
+
 ---
 
 ## 🤖 Reminders for Gemini
