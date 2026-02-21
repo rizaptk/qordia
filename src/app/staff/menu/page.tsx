@@ -18,11 +18,13 @@ import { ModifierGroupFormDialog } from '@/components/staff/modifier-group-form-
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const TENANT_ID = 'qordiapro-tenant';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function MenuManagementPage() {
     const firestore = useFirestore();
+    const { tenant } = useAuthStore();
+    const TENANT_ID = tenant?.id;
+
     const [isItemFormOpen, setIsItemFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
@@ -31,20 +33,20 @@ export default function MenuManagementPage() {
     const [editingModifierGroup, setEditingModifierGroup] = useState<ModifierGroup | null>(null);
 
     const menuItemsRef = useMemoFirebase(() => 
-        firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
-        [firestore]
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
+        [firestore, TENANT_ID]
     );
     const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 
     const categoriesRef = useMemoFirebase(() => 
-        firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
-        [firestore]
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
+        [firestore, TENANT_ID]
     );
     const { data: categories, isLoading: isLoadingCategories } = useCollection<MenuCategory>(categoriesRef);
 
     const modifierGroupsRef = useMemoFirebase(() => 
-        firestore ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
-        [firestore]
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
+        [firestore, TENANT_ID]
     );
     const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
 
@@ -62,7 +64,7 @@ export default function MenuManagementPage() {
     };
 
     const handleToggleAvailability = (item: MenuItem) => {
-        if (!firestore) return;
+        if (!firestore || !TENANT_ID) return;
         const itemRef = doc(firestore, `tenants/${TENANT_ID}/menu_items`, item.id);
         updateDocumentNonBlocking(itemRef, { isAvailable: !item.isAvailable });
     };
@@ -255,7 +257,7 @@ export default function MenuManagementPage() {
                                 <TableBody>
                                     {isLoadingModifierGroups ? (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="h-24 text-center">Loading modifier groups...</TableCell>
+                                            <TableCell colSpan={4} className="text-center h-24">Loading modifier groups...</TableCell>
                                         </TableRow>
                                     ) : modifierGroups && modifierGroups.length > 0 ? (
                                         modifierGroups.map(group => (

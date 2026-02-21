@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -47,8 +48,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Trash2, PlusCircle } from 'lucide-react';
 import { Separator } from '../ui/separator';
 
-const TENANT_ID = 'qordiapro-tenant';
-
 const optionSchema = z.object({
   key: z.string().min(1, "Option name cannot be empty."),
   values: z.string().min(1, "Please provide comma-separated values."),
@@ -77,7 +76,8 @@ type MenuItemFormDialogProps = {
 export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categories }: MenuItemFormDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { hasMenuCustomizationFeature } = useAuthStore();
+  const { tenant, hasMenuCustomizationFeature } = useAuthStore();
+  const TENANT_ID = tenant?.id;
 
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(formSchema),
@@ -123,7 +123,7 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
   }, [itemToEdit, form]);
 
   const onSubmit = async (data: MenuItemFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !TENANT_ID) return;
 
     const optionsForFirestore = data.options?.reduce((acc, option) => {
         if (option.key && option.values) {
@@ -156,7 +156,7 @@ export function MenuItemFormDialog({ isOpen, onOpenChange, itemToEdit, categorie
   };
   
   const handleDelete = () => {
-    if (!firestore || !itemToEdit) return;
+    if (!firestore || !itemToEdit || !TENANT_ID) return;
     const itemRef = doc(firestore, `tenants/${TENANT_ID}/menu_items`, itemToEdit.id);
     deleteDocumentNonBlocking(itemRef);
     toast({ title: "Item Deleted", description: `${itemToEdit.name} has been removed from the menu.` });

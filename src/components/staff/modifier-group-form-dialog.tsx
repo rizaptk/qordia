@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -8,6 +9,7 @@ import { useFirestore, addDocumentNonBlocking, updateDocumentNonBlocking, delete
 import { doc, collection } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import type { ModifierGroup } from '@/lib/types';
+import { useAuthStore } from '@/stores/auth-store';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -45,8 +47,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Trash2, PlusCircle } from 'lucide-react';
 import { Separator } from '../ui/separator';
 
-const TENANT_ID = 'qordiapro-tenant';
-
 const formSchema = z.object({
   name: z.string().min(2, "Group name must be at least 2 characters."),
   selectionType: z.enum(['single', 'multiple']),
@@ -68,6 +68,8 @@ type ModifierGroupFormDialogProps = {
 export function ModifierGroupFormDialog({ isOpen, onOpenChange, groupToEdit }: ModifierGroupFormDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { tenant } = useAuthStore();
+  const TENANT_ID = tenant?.id;
 
   const form = useForm<ModifierGroupFormValues>({
     resolver: zodResolver(formSchema),
@@ -103,7 +105,7 @@ export function ModifierGroupFormDialog({ isOpen, onOpenChange, groupToEdit }: M
   }, [groupToEdit, form]);
 
   const onSubmit = async (data: ModifierGroupFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !TENANT_ID) return;
 
     try {
       if (groupToEdit) {
@@ -123,7 +125,7 @@ export function ModifierGroupFormDialog({ isOpen, onOpenChange, groupToEdit }: M
   };
   
   const handleDelete = () => {
-    if (!firestore || !groupToEdit) return;
+    if (!firestore || !groupToEdit || !TENANT_ID) return;
     const groupRef = doc(firestore, `tenants/${TENANT_ID}/modifier_groups`, groupToEdit.id);
     deleteDocumentNonBlocking(groupRef);
     toast({ title: "Modifier Group Deleted", description: `The group "${groupToEdit.name}" has been removed.` });

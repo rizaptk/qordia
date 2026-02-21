@@ -45,8 +45,6 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Trash2 } from 'lucide-react';
 
-const TENANT_ID = 'qordiapro-tenant';
-
 const formSchema = z.object({
   name: z.string().min(2, { message: "Category name must be at least 2 characters." }),
   displayOrder: z.coerce.number().int().min(0),
@@ -64,6 +62,8 @@ type CategoryFormDialogProps = {
 export function CategoryFormDialog({ isOpen, onOpenChange, categoryToEdit }: CategoryFormDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { tenant } = useAuthStore();
+  const TENANT_ID = tenant?.id;
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(formSchema),
@@ -91,7 +91,7 @@ export function CategoryFormDialog({ isOpen, onOpenChange, categoryToEdit }: Cat
   }, [categoryToEdit, form]);
 
   const onSubmit = async (data: CategoryFormValues) => {
-    if (!firestore) return;
+    if (!firestore || !TENANT_ID) return;
 
     try {
       if (categoryToEdit) {
@@ -111,7 +111,7 @@ export function CategoryFormDialog({ isOpen, onOpenChange, categoryToEdit }: Cat
   };
 
   const handleDelete = () => {
-    if (!firestore || !categoryToEdit) return;
+    if (!firestore || !categoryToEdit || !TENANT_ID) return;
     const categoryRef = doc(firestore, `tenants/${TENANT_ID}/menu_categories`, categoryToEdit.id);
     // Note: This does not handle re-assigning menu items from the deleted category.
     deleteDocumentNonBlocking(categoryRef);
