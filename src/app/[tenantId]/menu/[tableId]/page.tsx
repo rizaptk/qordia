@@ -178,7 +178,10 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
           onSelectItem: handleSelectItem,
       };
 
-      switch (tableData?.menuStyle) {
+      // If the tenant doesn't have the feature, force default style.
+      const menuStyle = hasAdvancedMenuStyles ? tableData?.menuStyle : 'default';
+
+      switch (menuStyle) {
           case 'carousel':
               return <CarouselSlidesStyle {...styleProps} />;
           case '3d':
