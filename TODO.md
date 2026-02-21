@@ -67,6 +67,10 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Build the cashier dashboard for viewing open bills and a settlement page to process payments for table orders.
 - **Sprint:** [sprints/sprint-11-cashier-flow.md](./sprints/sprint-11-cashier-flow.md)
 
+## 12. Cashier Walk-in Orders
+- [ ] **Task:** Implement the flow for cashiers to take orders for walk-in customers.
+- **Details:** Build an interface for item selection, order type assignment (takeaway), and payment processing for non-QR orders.
+- **Sprint:** [sprints/sprint-12-cashier-walk-in.md](./sprints/sprint-12-cashier-walk-in.md)
 
 ## 🤖 Reminders for Gemini
 
