@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, use } from 'react';
 import type { Order, OrderItem } from '@/lib/types';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
@@ -12,8 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-export default function SettleBillPage({ params }: { params: { tableId: string } }) {
-    const { tableId } = params;
+export default function SettleBillPage({ params }: { params: Promise<{ tableId: string }> }) {
+    const { tableId } = use(params);
     const firestore = useFirestore();
     const { tenant, isLoading: isAuthLoading } = useAuthStore();
     const { toast } = useToast();
