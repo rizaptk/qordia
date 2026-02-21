@@ -56,6 +56,8 @@ export type Tenant = {
     staffUids?: string[];
     shopType?: 'cafe' | 'coffee_shop' | 'food_court' | 'small_restaurant';
     logoUrl?: string;
+    priceOverride?: number;
+    notes?: string;
 }
 
 export type UserProfile = {

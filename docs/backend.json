@@ -22,6 +22,14 @@
             "type": "string",
             "format": "uri",
             "description": "URL of the business logo."
+        },
+        "priceOverride": {
+          "type": "number",
+          "description": "Custom monthly price for this tenant, overriding the plan's default price."
+        },
+        "notes": {
+            "type": "string",
+            "description": "Administrative notes for this tenant, e.g., billing adjustments or credits."
         }
       },
       "required": ["id", "name", "ownerId"]
