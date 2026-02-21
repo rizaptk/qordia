@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -78,12 +79,16 @@ export function OrderTicket({ order, tenantId }: { order: Order, tenantId: strin
             <div key={`${item.menuItemId}-${index}`}>
                 <div>
                     <p className="font-semibold">{item.quantity}x {item.name}</p>
-                    <div className="pl-4 text-sm text-muted-foreground">
-                        {Object.entries(item.customizations).map(([key, value]) => (
-                            <p key={key}>- {key}: {value}</p>
-                        ))}
-                        {item.specialNotes && <p className="text-amber-600 dark:text-amber-400">- Note: {item.specialNotes}</p>}
-                    </div>
+                    {(Object.keys(item.customizations).length > 0 || item.specialNotes) && (
+                         <div className="pl-4 mt-1 text-sm text-muted-foreground border-l-2 border-slate-300 dark:border-slate-700 ml-1">
+                            <div className="pl-3 space-y-0.5">
+                                {Object.entries(item.customizations).map(([key, value]) => (
+                                    <p key={key}><span className="font-medium text-foreground">{key}:</span> {value}</p>
+                                ))}
+                                {item.specialNotes && <p className="font-medium text-amber-600 dark:text-amber-400">Note: {item.specialNotes}</p>}
+                            </div>
+                        </div>
+                    )}
                 </div>
                 {index < order.items.length -1 && <Separator className="mt-3"/>}
             </div>
