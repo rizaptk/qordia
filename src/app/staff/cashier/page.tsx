@@ -1,22 +1,23 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Order, MenuItem, CartItem } from '@/lib/types';
-import { useCollection, useMemoFirebase } from '@/firebase';
+import type { Order, MenuItem, CartItem, OrderItem } from '@/lib/types';
+import { useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus } from 'lucide-react';
+import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { CategoryChips } from '@/components/menu/category-chips';
 import { MenuItemCard } from '@/components/menu/menu-item-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CustomizationDialog } from '@/components/menu/customization-dialog';
-import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+
 
 type TableBill = {
     tableId: string;
@@ -26,8 +27,9 @@ type TableBill = {
 
 export default function CashierPage() {
     const firestore = useFirestore();
-    const { tenant, isLoading: isAuthLoading } = useAuthStore();
+    const { user, tenant, isLoading: isAuthLoading } = useAuthStore();
     const [activeTab, setActiveTab] = useState('pending-payments');
+    const { toast } = useToast();
     const TENANT_ID = tenant?.id;
 
     // --- Data for Pending Payments Tab ---
@@ -66,6 +68,7 @@ export default function CashierPage() {
     const [walkInCart, setWalkInCart] = useState<CartItem[]>([]);
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const menuItemsRef = useMemoFirebase(() => 
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
@@ -151,6 +154,62 @@ export default function CashierPage() {
     const removeFromWalkInCart = (cartItemId: string) => {
         setWalkInCart(prev => prev.filter(item => item.id !== cartItemId));
     }
+    
+    const handleProceedToPayment = async () => {
+        if (!firestore || !TENANT_ID || walkInCart.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "Cannot place order",
+                description: "The cart is empty.",
+            });
+            return;
+        }
+        setIsSubmitting(true);
+        
+        const orderItems = walkInCart.map(item => ({
+            menuItemId: item.menuItem.id,
+            name: item.menuItem.name,
+            quantity: item.quantity,
+            price: item.price,
+            customizations: item.customizations,
+            specialNotes: item.specialNotes
+        }));
+
+        const newOrder: Omit<Order, 'id'> = {
+            tableId: 'Takeaway',
+            status: 'Placed',
+            totalAmount: walkInTotal,
+            orderedAt: Timestamp.now(),
+            items: orderItems,
+            customerId: user?.uid || 'cashier-walk-in',
+            total: walkInTotal, // to satisfy the type, totalAmount is preferred
+            timestamp: Timestamp.now(), // to satisfy the type, orderedAt is preferred
+        };
+        
+        try {
+            const ordersRef = collection(firestore, `tenants/${TENANT_ID}/orders`);
+            await addDocumentNonBlocking(ordersRef, newOrder);
+            
+            toast({
+                title: "Walk-in Order Placed!",
+                description: "The order has been sent to the kitchen display.",
+            });
+            
+            setWalkInCart([]);
+            setActiveTab('pending-payments');
+
+        } catch(e) {
+            // Non-blocking update will handle error emission, but we can catch other errors
+             console.error("Error placing walk-in order:", e);
+             toast({
+                 variant: "destructive",
+                 title: "Order Failed",
+                 description: "There was an error sending the order to the kitchen.",
+             });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
     // --- End of Walk-in Order Logic ---
 
     const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories;
@@ -288,8 +347,15 @@ export default function CashierPage() {
                                             <span>Total</span>
                                             <span>${walkInTotal.toFixed(2)}</span>
                                         </div>
-                                        <Button size="lg" disabled>
-                                            Proceed to Payment
+                                        <Button size="lg" onClick={handleProceedToPayment} disabled={isSubmitting}>
+                                            {isSubmitting ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Placing Order...
+                                                </>
+                                            ) : (
+                                                'Proceed to Payment'
+                                            )}
                                         </Button>
                                     </CardFooter>
                                 )}
