@@ -14,7 +14,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -24,6 +23,7 @@ import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import { Scaling, Droplet, Beaker, Cube, Bot } from "lucide-react"
 
 type CustomizationDialogProps = {
   item: MenuItem | null
@@ -35,6 +35,23 @@ type CustomizationDialogProps = {
 }
 
 type SelectedOptions = Record<string, ModifierOption[]>;
+
+const groupIcons: { [key: string]: React.ElementType } = {
+  'size': Scaling,
+  'milk': Droplet,
+  'syrup': Beaker,
+  'flavor': Beaker,
+  'sweetness': Cube,
+  'add-on': Cube,
+};
+
+const IconForGroup = ({ groupName }: { groupName: string }) => {
+  const lowerGroupName = groupName.toLowerCase();
+  const iconKey = Object.keys(groupIcons).find(key => lowerGroupName.includes(key));
+  const Icon = iconKey ? groupIcons[iconKey] : Bot;
+  return <Icon className="h-5 w-5 text-muted-foreground" />;
+};
+
 
 export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups, onAddToCart, itemToEdit }: CustomizationDialogProps) {
   const [quantity, setQuantity] = useState(1)
@@ -208,24 +225,23 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
               />
             )}
           </div>
-          <div className="flex flex-col space-y-4">
-            <Accordion type="multiple" className="w-full" defaultValue={relevantGroups.map(g => g.id)}>
+          <div className="flex flex-col space-y-6">
               {relevantGroups.map(group => (
-                <AccordionItem value={group.id} key={group.id}>
-                  <AccordionTrigger className="font-semibold">
+                <div key={group.id}>
+                  <Label className="font-semibold flex items-center gap-2 mb-3">
+                    <IconForGroup groupName={group.name} />
                     {group.name}
                     {group.required && <span className="text-destructive ml-1">*</span>}
-                    <span className="text-sm text-muted-foreground ml-2">
+                     <span className="text-sm text-muted-foreground ml-auto">
                         {group.selectionType === 'single' ? '(Select 1)' : '(Select multiple)'}
                     </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
+                  </Label>
                     {group.selectionType === 'single' ? (
                        <ScrollArea className="w-full whitespace-nowrap">
                           <RadioGroup
                             value={JSON.stringify(selectedOptions[group.id]?.[0])}
                             onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
-                            className="flex gap-2 py-2"
+                            className="flex gap-2 pb-4"
                           >
                             {group.options.map(option => (
                               <Label
@@ -245,10 +261,10 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                         <ScrollBar orientation="horizontal" />
                       </ScrollArea>
                     ) : (
-                      <div className="pt-2 space-y-1">
+                      <div className="pt-2 space-y-2">
                         {group.options.map(option => (
-                          <div key={option.name} className="flex items-center justify-between">
-                            <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-2 cursor-pointer">
+                          <div key={option.name} className="flex items-center justify-between rounded-md border p-3">
+                            <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-3 cursor-pointer">
                               <Checkbox
                                 id={`${group.id}-${option.name}`}
                                 checked={selectedOptions[group.id]?.some(o => o.name === option.name)}
@@ -261,10 +277,8 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                         ))}
                       </div>
                     )}
-                  </AccordionContent>
-                </AccordionItem>
+                </div>
               ))}
-            </Accordion>
             
             <div className="space-y-2 pt-2">
               <Label htmlFor="special-notes" className="font-semibold">Special Notes</Label>
