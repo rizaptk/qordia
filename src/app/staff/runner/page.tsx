@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from 'react';
@@ -8,6 +9,11 @@ import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
 import { Truck } from 'lucide-react';
+
+type TableData = {
+    id: string;
+    tableNumber: string;
+}
 
 export default function RunnerPage() {
     const firestore = useFirestore();
@@ -25,11 +31,21 @@ export default function RunnerPage() {
     );
     const { data: readyOrders, isLoading: isLoadingOrders } = useCollection<Order>(readyOrdersQuery);
     
-    const sortedReadyOrders = useMemo(() => {
-        return readyOrders?.sort((a,b) => (b.orderedAt.seconds || 0) - (a.orderedAt.seconds || 0)) ?? [];
-    }, [readyOrders]);
+    const tablesRef = useMemoFirebase(() => 
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
+        [firestore, TENANT_ID]
+    );
+    const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
 
-    if (isLoadingOrders || isAuthLoading || !TENANT_ID) {
+    const { sortedReadyOrders, tableMap } = useMemo(() => {
+        const sorted = readyOrders?.sort((a,b) => (b.orderedAt.seconds || 0) - (a.orderedAt.seconds || 0)) ?? [];
+        const map = new Map(tables?.map(t => [t.id, t.tableNumber]));
+        return { sortedReadyOrders: sorted, tableMap: map };
+    }, [readyOrders, tables]);
+
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingTables;
+
+    if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading ready orders...</div>
     }
 
@@ -38,7 +54,12 @@ export default function RunnerPage() {
             <h1 className="text-2xl font-bold">Ready for Delivery</h1>
              {sortedReadyOrders.length > 0 ? (
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
-                    {sortedReadyOrders.map(order => <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} />)}
+                    {sortedReadyOrders.map(order => {
+                        const tableNumberDisplay = order.tableId === 'Takeaway'
+                            ? 'Takeaway'
+                            : `Table ${tableMap.get(order.tableId) || order.tableId}`;
+                        return <OrderTicket key={order.id} order={order} tenantId={TENANT_ID} tableNumber={tableNumberDisplay} />
+                    })}
                 </div>
              ) : (
                 <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4">

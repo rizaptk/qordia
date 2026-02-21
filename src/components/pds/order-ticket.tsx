@@ -35,7 +35,7 @@ const statusStyles: Record<Order['status'], string> = {
 };
 
 
-export function OrderTicket({ order, tenantId }: { order: Order, tenantId: string }) {
+export function OrderTicket({ order, tenantId, tableNumber }: { order: Order, tenantId: string, tableNumber: string }) {
   const [time, setTime] = useState(formatTime(order.orderedAt));
   const firestore = useFirestore();
 
@@ -81,7 +81,7 @@ export function OrderTicket({ order, tenantId }: { order: Order, tenantId: strin
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="font-headline text-2xl">Table {order.tableId}</CardTitle>
+              <CardTitle className="font-headline text-2xl">{tableNumber}</CardTitle>
               <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
                 <Clock className="w-4 h-4" />
                 <span>{time}</span>
