@@ -262,5 +262,3 @@ export default function TenantDetailPage({ params }: { params: Promise<{ tenantI
     </div>
   );
 }
-
-    
