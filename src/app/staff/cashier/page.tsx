@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import type { Order, MenuItem, CartItem, OrderItem, Shift } from '@/lib/types';
+import type { Order, MenuItem, CartItem, OrderItem, Shift, ModifierGroup } from '@/lib/types';
 import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useAuth } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where, Timestamp, doc, updateDoc } from 'firebase/firestore';
@@ -93,6 +94,12 @@ export default function CashierPage() {
         [firestore, TENANT_ID]
     );
     const { data: categories, isLoading: isLoadingCategories } = useCollection<{id: string; name: string, displayOrder: number}>(categoriesRef);
+
+    const modifierGroupsRef = useMemoFirebase(() => 
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
+        [firestore, TENANT_ID]
+    );
+    const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
     
     const sortedCategories = useMemo(() => {
         if (!categories) return [];
@@ -113,7 +120,7 @@ export default function CashierPage() {
     }, [walkInCart]);
 
     const handleSelectItem = (item: MenuItem) => {
-        if (item.options && Object.keys(item.options).length > 0) {
+        if (item.modifierGroupIds && item.modifierGroupIds.length > 0) {
             setSelectedItem(item);
             setIsDialogOpen(true);
         } else {
@@ -141,8 +148,9 @@ export default function CashierPage() {
     const incrementQuantity = (cartItemId: string) => {
         setWalkInCart(prev => prev.map(item => {
             if (item.id === cartItemId) {
+                const singleItemPrice = item.price / item.quantity;
                 const newQuantity = item.quantity + 1;
-                return { ...item, quantity: newQuantity, price: item.menuItem.price * newQuantity };
+                return { ...item, quantity: newQuantity, price: singleItemPrice * newQuantity };
             }
             return item;
         }));
@@ -153,8 +161,9 @@ export default function CashierPage() {
         if (itemInCart && itemInCart.quantity > 1) {
             setWalkInCart(prev => prev.map(item => {
                 if (item.id === cartItemId) {
+                    const singleItemPrice = item.price / item.quantity;
                     const newQuantity = item.quantity - 1;
-                    return { ...item, quantity: newQuantity, price: item.menuItem.price * newQuantity };
+                    return { ...item, quantity: newQuantity, price: singleItemPrice * newQuantity };
                 }
                 return item;
             }));
@@ -385,7 +394,7 @@ export default function CashierPage() {
     };
 
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts;
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
@@ -647,6 +656,7 @@ export default function CashierPage() {
                 isOpen={isDialogOpen}
                 onOpenChange={setIsDialogOpen}
                 onAddToCart={handleAddToCartFromDialog}
+                modifierGroups={modifierGroups || []}
             />
             <RefundDialog
                 isOpen={isRefundDialogOpen}
@@ -663,3 +673,5 @@ export default function CashierPage() {
         </>
     );
 }
+
+    
