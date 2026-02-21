@@ -5,6 +5,7 @@ import { useMemo } from 'react';
 import { BestSellersChart } from "@/components/analytics/best-sellers-chart";
 import { PeakHoursChart } from "@/components/analytics/peak-hours-chart";
 import { SalesPerformanceChart } from "@/components/analytics/sales-performance-chart";
+import { AiSummaryCard } from "@/components/analytics/ai-summary-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
@@ -15,7 +16,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 export default function AnalyticsPage() {
     const firestore = useFirestore();
-    const { user, tenant, isLoading: isAuthLoading } = useAuthStore();
+    const { user, tenant, isLoading: isAuthLoading, hasAdvancedReportingFeature } = useAuthStore();
     const TENANT_ID = tenant?.id;
 
     // Fetch completed orders for revenue-based analytics
@@ -119,6 +120,9 @@ export default function AnalyticsPage() {
 
     return (
         <div className="space-y-6">
+            {hasAdvancedReportingFeature && tenant && (
+              <AiSummaryCard completedOrders={completedOrders || []} shopName={tenant.name} />
+            )}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader>
