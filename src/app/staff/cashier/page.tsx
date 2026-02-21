@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Order } from '@/lib/types';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
@@ -9,7 +9,8 @@ import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Banknote } from 'lucide-react';
+import { Banknote, PlusCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type TableBill = {
     tableId: string;
@@ -20,6 +21,7 @@ type TableBill = {
 export default function CashierPage() {
     const firestore = useFirestore();
     const { tenant, isLoading: isAuthLoading } = useAuthStore();
+    const [activeTab, setActiveTab] = useState('pending-payments');
     const TENANT_ID = tenant?.id;
 
     const activeOrdersQuery = useMemoFirebase(() => 
@@ -52,37 +54,57 @@ export default function CashierPage() {
     }, [activeOrders]);
 
     if (isLoadingOrders || isAuthLoading || !TENANT_ID) {
-        return <div className="text-center text-muted-foreground py-16">Loading open bills...</div>
+        return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
     }
 
     return (
-        <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Open Bills</h1>
-            {openBills.length > 0 ? (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {openBills.map(bill => (
-                        <Card key={bill.tableId}>
-                            <CardHeader>
-                                <CardTitle>Table {bill.tableId}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-3xl font-bold">${bill.totalAmount.toFixed(2)}</p>
-                                <p className="text-sm text-muted-foreground">{bill.orderCount} order(s)</p>
-                            </CardContent>
-                            <CardFooter>
-                                <Button asChild className="w-full">
-                                    <Link href={`/staff/cashier/${bill.tableId}`}>View & Settle Bill</Link>
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+            <div className="flex items-center justify-between">
+                <TabsList>
+                    <TabsTrigger value="pending-payments">Pending Payments</TabsTrigger>
+                    <TabsTrigger value="walk-in-order">New Walk-in Order</TabsTrigger>
+                </TabsList>
+                 {activeTab === 'pending-payments' && (
+                    <Button onClick={() => setActiveTab('walk-in-order')}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        New Walk-in Order
+                    </Button>
+                )}
+            </div>
+
+            <TabsContent value="pending-payments">
+                {openBills.length > 0 ? (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {openBills.map(bill => (
+                            <Card key={bill.tableId}>
+                                <CardHeader>
+                                    <CardTitle>Table {bill.tableId}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-3xl font-bold">${bill.totalAmount.toFixed(2)}</p>
+                                    <p className="text-sm text-muted-foreground">{bill.orderCount} order(s)</p>
+                                </CardContent>
+                                <CardFooter>
+                                    <Button asChild className="w-full">
+                                        <Link href={`/staff/cashier/${bill.tableId}`}>View & Settle Bill</Link>
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4 border border-dashed rounded-lg">
+                        <Banknote className="w-16 h-16" />
+                        <p className="text-lg font-semibold">No open bills right now.</p>
+                        <p>Orders from QR code scans will appear here once placed.</p>
+                    </div>
+                )}
+            </TabsContent>
+            <TabsContent value="walk-in-order">
+                 <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4 border border-dashed rounded-lg">
+                    <p>Walk-in order interface will be here.</p>
                 </div>
-            ) : (
-                 <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4">
-                    <Banknote className="w-16 h-16" />
-                    <p className="text-lg">No open bills right now.</p>
-                </div>
-            )}
-        </div>
+            </TabsContent>
+        </Tabs>
     );
 }
