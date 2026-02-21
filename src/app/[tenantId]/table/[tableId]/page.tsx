@@ -1,11 +1,25 @@
+
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { QordiaLogo } from '@/components/logo';
+import { initializeFirebase } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+
+type Table = {
+    tableNumber: string;
+}
 
 export default async function TableEntryPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
   const { tenantId, tableId } = await params;
+
+  const { firestore } = initializeFirebase();
+  const tableRef = doc(firestore, `tenants/${tenantId}/tables`, tableId);
+  const tableSnap = await getDoc(tableRef);
+  
+  const tableData = tableSnap.exists() ? tableSnap.data() as Table : null;
+  const tableNumber = tableData ? tableData.tableNumber : tableId;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
@@ -23,7 +37,7 @@ export default async function TableEntryPage({ params }: { params: Promise<{ ten
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="bg-primary/10 text-primary font-bold text-4xl rounded-lg p-6">
-            Table {tableId}
+            Table {tableNumber}
           </div>
           <Button asChild size="lg" className="w-full">
             <Link href={`/${tenantId}/menu/${tableId}`}>
