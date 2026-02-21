@@ -23,7 +23,7 @@ import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
-import { Scaling, Droplet, Beaker, Cube, Bot } from "lucide-react"
+import { Scaling, Droplet, Beaker, SlidersHorizontal, PlusSquare, Bot } from "lucide-react"
 
 type CustomizationDialogProps = {
   item: MenuItem | null
@@ -41,8 +41,8 @@ const groupIcons: { [key: string]: React.ElementType } = {
   'milk': Droplet,
   'syrup': Beaker,
   'flavor': Beaker,
-  'sweetness': Cube,
-  'add-on': Cube,
+  'sweetness': SlidersHorizontal,
+  'add-on': PlusSquare,
 };
 
 const IconForGroup = ({ groupName }: { groupName: string }) => {
