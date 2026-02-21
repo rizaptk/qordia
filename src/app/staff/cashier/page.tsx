@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
 import type { Order, MenuItem, CartItem, OrderItem } from '@/lib/types';
-import { useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
+import { collection, query, where, Timestamp, doc } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -259,12 +260,41 @@ export default function CashierPage() {
     };
 
     const handleConfirmRefund = (data: RefundFormValues) => {
-        // TODO: Implement the actual refund logic in the next step
-        console.log("Refunding order:", orderToRefund?.id, "with data:", data);
-        toast({
-            title: "Refund Processed (Simulated)",
-            description: `A refund of $${data.refundAmount} was processed for order ${orderToRefund?.id}.`,
+        if (!firestore || !orderToRefund || !user || !TENANT_ID) {
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Could not process refund. Missing context."
+            });
+            return;
+        }
+        
+        const refundAmount = data.refundType === 'full' ? orderToRefund.totalAmount : data.refundAmount;
+
+        if (refundAmount === undefined) {
+             toast({ variant: "destructive", title: "Error", description: "Refund amount is missing." });
+             return;
+        }
+
+        const refundDetails = {
+            refundAmount: refundAmount,
+            reason: data.reason,
+            processedAt: Timestamp.now(),
+            processedByUid: user.uid,
+        };
+        
+        const orderRef = doc(firestore, `tenants/${TENANT_ID}/orders`, orderToRefund.id);
+
+        updateDocumentNonBlocking(orderRef, {
+            status: 'Refunded',
+            refundDetails: refundDetails,
         });
+        
+        toast({
+            title: "Refund Processed",
+            description: `A refund of $${refundDetails.refundAmount.toFixed(2)} was processed for order ${orderToRefund.id}.`,
+        });
+        
         setIsRefundDialogOpen(false);
         setOrderToRefund(null);
     };
@@ -482,7 +512,32 @@ export default function CashierPage() {
                             <CardDescription>A log of all processed refunds.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground text-center py-10">Refunded orders will be listed here.</p>
+                             <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Order ID</TableHead>
+                                        <TableHead>Refund Date</TableHead>
+                                        <TableHead>Reason</TableHead>
+                                        <TableHead className="text-right">Amount</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoadingRefunded ? (
+                                        <TableRow><TableCell colSpan={4} className="h-24 text-center">Loading refunded orders...</TableCell></TableRow>
+                                    ) : refundedOrders && refundedOrders.length > 0 ? (
+                                        refundedOrders.sort((a, b) => (b.refundDetails?.processedAt.seconds ?? 0) - (a.refundDetails?.processedAt.seconds ?? 0)).map(order => (
+                                            <TableRow key={order.id}>
+                                                <TableCell className="font-mono text-xs">{order.id}</TableCell>
+                                                <TableCell>{order.refundDetails ? format(new Date(order.refundDetails.processedAt.seconds * 1000), 'PPp') : 'N/A'}</TableCell>
+                                                <TableCell className="max-w-xs truncate">{order.refundDetails?.reason}</TableCell>
+                                                <TableCell className="text-right text-destructive">- ${(order.refundDetails?.refundAmount || 0).toFixed(2)}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow><TableCell colSpan={4} className="h-24 text-center">No refunded orders found.</TableCell></TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
