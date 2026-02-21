@@ -6,8 +6,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useAuth, useFirestore } from '@/firebase';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
 import { useAuthStore } from '@/stores/auth-store';
 import Link from 'next/link';
 
@@ -18,6 +18,9 @@ import { Input } from '@/components/ui/input';
 import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, Loader2 } from 'lucide-react';
+import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
+import { seedNewTenant } from '@/firebase/seed-tenant';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -28,6 +31,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const { isAuthenticated, isManager, isPlatformAdmin, isBarista, isService, isCashier, isLoading } = useAuthStore();
   const [authError, setAuthError] = useState<string | null>(null);
@@ -85,11 +89,46 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = async () => {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setAuthError(null);
     try {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        const userCredential = await signInWithPopup(auth, provider);
+        const additionalUserInfo = getAdditionalUserInfo(userCredential);
+
+        if (additionalUserInfo?.isNewUser) {
+            const newUser = userCredential.user;
+
+            // Create the associated Tenant document in Firestore
+            const tenantData = {
+                name: `${newUser.displayName || newUser.email?.split('@')[0]}'s Cafe`,
+                ownerId: newUser.uid,
+                createdAt: Timestamp.now(),
+                planId: 'plan_free', // Assign the default free plan
+                subscriptionStatus: 'trialing',
+                nextBillingDate: Timestamp.fromDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)), // 14 day trial
+            };
+            const tenantRef = await addDocumentNonBlocking(collection(firestore, 'tenants'), tenantData);
+            
+            if (!tenantRef?.id) {
+              throw new Error("Failed to create tenant document.");
+            }
+
+            // Create the user's profile document in Firestore with the manager role
+            const userProfileData = {
+                email: newUser.email,
+                name: newUser.displayName || newUser.email?.split('@')[0],
+                role: 'manager',
+                tenantId: tenantRef.id,
+                createdAt: Timestamp.now(),
+            };
+            await setDoc(doc(firestore, 'users', newUser.uid), userProfileData);
+            
+            // Seed the new tenant with sample data
+            await seedNewTenant(firestore, tenantRef.id, newUser.uid);
+        }
+        // For both new and existing users, the useEffect will handle redirection.
+
     } catch(error: any) {
         setAuthError(error.message);
     }
