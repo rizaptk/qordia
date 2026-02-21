@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
 import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog } from "lucide-react";
@@ -32,11 +31,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const {
     user,
@@ -54,41 +48,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     isLoading,
   } = useAuthStore();
   
-  // === TOP-LEVEL ROUTE PROTECTION ===
-  useEffect(() => {
-    if (isLoading) return;
-
-    // 1. Immediately redirect platform admins away from the staff section
-    if (isPlatformAdmin) {
-      router.replace('/platform');
-      return;
-    }
-
-    // 2. Redirect non-staff users to login
-    if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
-        router.replace('/login');
-    }
-  }, [isLoading, user, userProfile, isPlatformAdmin, router]);
-  
-  // === NON-MANAGER ROUTE GUARD ===
-  // If a user is NOT a manager, ensure they can only access their designated page.
-  useEffect(() => {
-    if (isLoading || isManager || !userProfile) return;
-
-    const allowedPaths: { [key: string]: string } = {
-        barista: '/staff/pds',
-        service: '/staff/runner',
-        cashier: '/staff/cashier',
-    };
-    
-    const expectedPath = allowedPaths[userProfile.role];
-
-    if (expectedPath && pathname !== expectedPath) {
-        router.replace(expectedPath);
-    }
-  }, [isLoading, isManager, userProfile, pathname, router]);
-
-
   const handleSignOut = async () => {
     if (auth) {
       await auth.signOut();
@@ -113,21 +72,57 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     return 'Staff Portal';
   }
 
-  // Show loading screen until auth state is resolved and redirects have been processed.
-  if (!isClient || isLoading || isPlatformAdmin || !user) {
+  if (isLoading) {
     return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex h-screen items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="ml-4 text-muted-foreground">Verifying access...</p>
         </div>
     );
   }
 
-  // This is the unified layout. It ALWAYS renders SidebarProvider to ensure
-  // hook counts are stable. It then conditionally renders the content based on role.
+  if (!user || !userProfile || !staffRoles.includes(userProfile.role)) {
+    router.replace('/login');
+    return (
+        <div className="flex h-screen items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Redirecting to login...</p>
+        </div>
+    );
+  }
+
+  if (isPlatformAdmin) {
+    router.replace('/platform');
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-4 text-muted-foreground">Redirecting...</p>
+      </div>
+    );
+  }
+
+  if (!isManager) {
+    const allowedPaths: { [key: string]: string } = {
+        barista: '/staff/pds',
+        service: '/staff/runner',
+        cashier: '/staff/cashier',
+    };
+    
+    const expectedPath = allowedPaths[userProfile.role];
+
+    if (expectedPath && pathname !== expectedPath) {
+        router.replace(expectedPath);
+        return (
+          <div className="flex h-screen items-center justify-center bg-background">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Redirecting...</p>
+          </div>
+        );
+    }
+  }
+
   return (
     <SidebarProvider>
-      {/* The actual sidebar is only rendered for managers */}
       {isManager && (
         <Sidebar>
           <SidebarHeader>
@@ -151,7 +146,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
               
               <SidebarSeparator />
 
-              {/* Manager can see all primary staff views */}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname.includes("/staff/pds")}>
                     <Link href="/staff/pds">
@@ -181,7 +175,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                 </SidebarMenuItem>
               )}
               
-              {/* Manager-only tools */}
               <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname.includes("/staff/menu")}>
                   <Link href="/staff/menu">
@@ -299,7 +292,6 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
         </Sidebar>
       )}
       
-      {/* The main content area */}
       <SidebarInset>
           {isManager ? (
               <header className="flex h-16 items-center justify-between border-b bg-background px-4 lg:px-6 sticky top-0 z-10">

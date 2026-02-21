@@ -3,7 +3,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
 import { LayoutGrid, Building2, Activity, CreditCard, LogOut, Loader2, LifeBuoy } from "lucide-react";
@@ -28,15 +27,6 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
   const auth = useAuth();
   const { user, isPlatformAdmin, isLoading } = useAuthStore();
   
-  useEffect(() => {
-    if (isLoading) {
-      return; 
-    }
-    if (!user || !isPlatformAdmin) {
-      router.push('/login'); 
-    }
-  }, [user, isPlatformAdmin, isLoading, router]);
-
   const handleSignOut = async () => {
     if (auth) {
       await auth.signOut();
@@ -52,11 +42,21 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
     return 'Platform Dashboard';
   }
 
-  if (isLoading || !user || !isPlatformAdmin) {
+  if (isLoading) {
     return (
-        <div className="flex h-screen items-center justify-center">
+        <div className="flex h-screen items-center justify-center bg-background">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="ml-4">Verifying admin access...</p>
+            <p className="ml-4 text-muted-foreground">Verifying access...</p>
+        </div>
+    );
+  }
+
+  if (!user || !isPlatformAdmin) {
+    router.replace('/login');
+    return (
+        <div className="flex h-screen items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="ml-4 text-muted-foreground">Redirecting...</p>
         </div>
     );
   }
