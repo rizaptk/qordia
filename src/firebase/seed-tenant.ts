@@ -1,7 +1,6 @@
 
 import { Firestore, writeBatch, doc, Timestamp, collection } from 'firebase/firestore';
 import { menuItems as mockMenuItems } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 /**
  * Seeds a new tenant with a complete set of sample data, including categories,
@@ -61,11 +60,10 @@ export async function seedNewTenant(firestore: Firestore, tenantId: string, user
     const itemRefs: { [key: string]: {id: string, data: any} } = {};
     mockMenuItems.forEach((item) => {
         const itemRef = doc(collection(firestore, `tenants/${tenantId}/menu_items`));
-        const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image);
         const firestoreItem = {
             name: item.name, description: item.description, price: item.price,
             categoryId: categoryMap.get(item.category) || '',
-            imageUrl: imagePlaceholder?.imageUrl || '',
+            imageUrl: item.imageUrl || '',
             isAvailable: item.isAvailable, isPopular: item.isPopular,
             modifierGroupIds: item.modifierGroupIds?.map(id => modifierGroupMap[id]).filter(Boolean) || [],
         };
