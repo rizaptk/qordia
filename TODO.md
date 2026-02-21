@@ -77,6 +77,11 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Build the UI to find completed orders, initiate a refund, and update the order status to 'Refunded'.
 - **Sprint:** [sprints/sprint-13-cashier-refunds.md](./sprints/sprint-13-cashier-refunds.md)
 
+## 14. Cashier End-of-Shift Closing
+- [ ] **Task:** Implement the end-of-shift closing flow for cashiers.
+- **Details:** Build the UI and logic for cashiers to review their shift summary, declare cash, and close their session.
+- **Sprint:** [sprints/sprint-14-cashier-shift-closing.md](./sprints/sprint-14-cashier-shift-closing.md)
+
 ## 🤖 Reminders for Gemini
 
 1.  **Never delete sprint tasks.** If changes are required, create a sub-sprint file (e.g., `sprint-02-A-updates.md`) and link to it.
