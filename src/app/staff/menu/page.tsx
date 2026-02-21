@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MenuItemFormDialog } from '@/components/staff/menu-item-form-dialog';
-import { Switch } from '@/components/ui/switch';
+import { CategoryFormDialog } from '@/components/staff/category-form-dialog';
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,8 +21,10 @@ const TENANT_ID = 'qordiapro-tenant';
 
 export default function MenuManagementPage() {
     const firestore = useFirestore();
-    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isItemFormOpen, setIsItemFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+    const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
 
     const menuItemsRef = useMemoFirebase(() => 
         firestore ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
@@ -37,20 +40,30 @@ export default function MenuManagementPage() {
 
     const categoryMap = new Map(categories?.map(c => [c.id, c.name]));
     
-    const handleAddNew = () => {
+    const handleAddNewItem = () => {
         setEditingItem(null);
-        setIsFormOpen(true);
+        setIsItemFormOpen(true);
     };
 
-    const handleEdit = (item: MenuItem) => {
+    const handleEditItem = (item: MenuItem) => {
         setEditingItem(item);
-        setIsFormOpen(true);
+        setIsItemFormOpen(true);
     };
 
     const handleToggleAvailability = (item: MenuItem) => {
         if (!firestore) return;
         const itemRef = doc(firestore, `tenants/${TENANT_ID}/menu_items`, item.id);
         updateDocumentNonBlocking(itemRef, { isAvailable: !item.isAvailable });
+    };
+
+    const handleAddNewCategory = () => {
+        setEditingCategory(null);
+        setIsCategoryFormOpen(true);
+    };
+
+    const handleEditCategory = (category: MenuCategory) => {
+        setEditingCategory(category);
+        setIsCategoryFormOpen(true);
     };
 
     return (
@@ -60,9 +73,6 @@ export default function MenuManagementPage() {
                     <h1 className="text-2xl font-bold">Menu Management</h1>
                     <p className="text-muted-foreground">Organize your products, categories, and modifiers.</p>
                 </div>
-                 <Button onClick={handleAddNew}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
-                </Button>
             </div>
             <Tabs defaultValue="products">
                 <TabsList>
@@ -72,9 +82,14 @@ export default function MenuManagementPage() {
                 </TabsList>
                 <TabsContent value="products">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>All Products</CardTitle>
-                             <CardDescription>Manage all the items available on your menu.</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                             <div>
+                                <CardTitle>All Products</CardTitle>
+                                <CardDescription>Manage all the items available on your menu.</CardDescription>
+                            </div>
+                             <Button onClick={handleAddNewItem}>
+                                <PlusCircle className="mr-2 h-4 w-4" /> Add New Item
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <Table>
@@ -114,7 +129,7 @@ export default function MenuManagementPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => handleEdit(item)}>Edit</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleEditItem(item)}>Edit</DropdownMenuItem>
                                                             <DropdownMenuItem onClick={() => handleToggleAvailability(item)}>
                                                                 {item.isAvailable ? 'Mark as Sold Out' : 'Mark as Available'}
                                                             </DropdownMenuItem>
@@ -140,7 +155,7 @@ export default function MenuManagementPage() {
                                 <CardTitle>Categories</CardTitle>
                                 <CardDescription>Group your menu items for better organization.</CardDescription>
                             </div>
-                             <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4"/>Add Category</Button>
+                             <Button variant="outline" onClick={handleAddNewCategory}><PlusCircle className="mr-2 h-4 w-4"/>Add Category</Button>
                         </CardHeader>
                         <CardContent>
                            <Table>
@@ -178,7 +193,7 @@ export default function MenuManagementPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem>Edit</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => handleEditCategory(category)}>Edit</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
                                                 </TableCell>
@@ -208,10 +223,15 @@ export default function MenuManagementPage() {
             </Tabs>
 
             <MenuItemFormDialog
-                isOpen={isFormOpen}
-                onOpenChange={setIsFormOpen}
+                isOpen={isItemFormOpen}
+                onOpenChange={setIsItemFormOpen}
                 itemToEdit={editingItem}
                 categories={categories || []}
+            />
+            <CategoryFormDialog
+                isOpen={isCategoryFormOpen}
+                onOpenChange={setIsCategoryFormOpen}
+                categoryToEdit={editingCategory}
             />
         </div>
     );
