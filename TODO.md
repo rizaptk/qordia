@@ -92,6 +92,12 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Refactor the customer and cashier menu interfaces to handle product customization using the newly created modifier groups, as specified in `CUSTOMER-DIGITAL-MENU.md`.
 - **Sprint:** [sprints/sprint-16-advanced-menu-ux.md](./sprints/sprint-16-advanced-menu-ux.md)
 
+## 17. Kitchen Display System (PDS) Upgrade
+- [ ] **Task:** Enhance the PDS to support modifiers and improve usability.
+- **Details:** Refactor the order tickets to clearly display customizations and update the UI to match the new color-coded status flow from `KITCHEN-FLOW.md`.
+- **Sprint:** [sprints/sprint-17-pds-upgrade.md](./sprints/sprint-17-pds-upgrade.md)
+
+
 ## 🤖 Reminders for Gemini
 
 1.  **Never delete sprint tasks.** If changes are required, create a sub-sprint file (e.g., `sprint-02-A-updates.md`) and link to it.
