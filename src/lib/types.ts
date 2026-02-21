@@ -22,6 +22,19 @@ export type MenuCategory = {
   isActive: boolean;
 };
 
+export type ModifierOption = {
+  name: string;
+  priceAdjustment: number;
+};
+
+export type ModifierGroup = {
+  id: string;
+  name: string;
+  selectionType: 'single' | 'multiple';
+  required: boolean;
+  options: ModifierOption[];
+};
+
 export type CartItem = {
   id: string; // Unique ID for the cart item instance
   menuItem: MenuItem;

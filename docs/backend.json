@@ -97,9 +97,39 @@
         "price": { "type": "number" },
         "imageUrl": { "type": "string", "format": "uri" },
         "isAvailable": { "type": "boolean" },
-        "categoryId": { "type": "string" }
+        "isPopular": { "type": "boolean" },
+        "categoryId": { "type": "string" },
+        "modifierGroupIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of IDs of ModifierGroups that apply to this item."
+        }
       },
       "required": ["id", "name", "price", "isAvailable", "categoryId"]
+    },
+    "ModifierGroup": {
+      "title": "Modifier Group",
+      "type": "object",
+      "description": "A group of customization options for a menu item, like 'Size' or 'Add-ons'.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "The name of the group, e.g., 'Milk Options'." },
+        "selectionType": { "type": "string", "enum": ["single", "multiple"], "description": "Whether a user can select one or multiple options from this group." },
+        "required": { "type": "boolean", "description": "If true, the user must make a selection from this group." },
+        "options": {
+          "type": "array",
+          "description": "The list of available choices in this group.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "description": "The name of the option, e.g., 'Oat Milk'." },
+              "priceAdjustment": { "type": "number", "description": "The price difference for this option, e.g., 0.5 for +$0.50." }
+            },
+            "required": ["name"]
+          }
+        }
+      },
+      "required": ["name", "selectionType"]
     },
     "Order": {
       "title": "Order",
@@ -285,6 +315,10 @@
       {
         "path": "/tenants/{tenantId}/menu_items/{menuItemId}",
         "definition": { "schema": { "$ref": "#/entities/MenuItem" }, "description": "Menu items for a specific tenant." }
+      },
+      {
+        "path": "/tenants/{tenantId}/modifier_groups/{modifierGroupId}",
+        "definition": { "schema": { "$ref": "#/entities/ModifierGroup" }, "description": "Customization modifier groups for a tenant's menu items." }
       },
       {
         "path": "/tenants/{tenantId}/orders/{orderId}",

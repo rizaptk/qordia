@@ -211,12 +211,33 @@ export default function MenuManagementPage() {
                 </TabsContent>
                 <TabsContent value="modifiers">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Modifiers</CardTitle>
-                            <CardDescription>Manage customization options like sizes, toppings, and add-ons.</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle>Modifier Groups</CardTitle>
+                                <CardDescription>Manage customization options like sizes, toppings, and add-ons.</CardDescription>
+                            </div>
+                             <Button variant="outline" disabled><PlusCircle className="mr-2 h-4 w-4"/>Add Modifier Group</Button>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-muted-foreground text-center py-16">Modifier management coming soon.</p>
+                           <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Group Name</TableHead>
+                                        <TableHead>Selection Type</TableHead>
+                                        <TableHead>Options</TableHead>
+                                        <TableHead>
+                                            <span className="sr-only">Actions</span>
+                                        </TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                            No modifier groups found.
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                           </Table>
                         </CardContent>
                     </Card>
                 </TabsContent>
