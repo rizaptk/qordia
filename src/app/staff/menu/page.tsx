@@ -299,6 +299,7 @@ export default function MenuManagementPage() {
                 onOpenChange={setIsItemFormOpen}
                 itemToEdit={editingItem}
                 categories={categories || []}
+                modifierGroups={modifierGroups || []}
             />
             <CategoryFormDialog
                 isOpen={isCategoryFormOpen}

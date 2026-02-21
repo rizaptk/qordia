@@ -10,9 +10,7 @@ export type MenuItem = {
   imageUrl?: string; // The actual URL, optional for mock data
   isAvailable: boolean;
   isPopular: boolean;
-  options?: {
-    [key: string]: string[];
-  };
+  modifierGroupIds?: string[];
 };
 
 export type MenuCategory = {
