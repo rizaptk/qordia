@@ -345,6 +345,14 @@ export default function TableManagementPage() {
 
             <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
                 <DialogContent className="sm:max-w-md printable-dialog-container" onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>
+                            {selectedTable ? `QR Code for Table ${selectedTable.tableNumber}` : 'QR Code'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Scan this QR code to view the menu and place your order.
+                        </DialogDescription>
+                    </DialogHeader>
                     <div ref={qrDialogContentRef} className="bg-background p-8 rounded-lg text-center space-y-6 printable-content">
                         {selectedTable && tenant && (
                             <>
