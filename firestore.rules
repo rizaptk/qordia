@@ -110,5 +110,8 @@ service cloud.firestore {
     match /tenants/{tenantId}/api_keys/{apiKeyId} {
       allow read, write: if isManagerOfTenant(tenantId) || isPlatformAdmin();
     }
+    match /tenants/{tenantId}/shifts/{shiftId} {
+      allow read, write: if isStaffOfTenant(tenantId);
+    }
   }
 }
