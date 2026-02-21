@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth, useUserClaims, useFirestore } from '@/firebase';
 import { useAuthStore } from '@/stores/auth-store';
 import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { addDoc, collection, doc, setDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import { Input } from '@/components/ui/input';
 import { QordiaLogo } from '@/components/logo';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { seedNewTenant } from '@/firebase/seed-tenant';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 const registerSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -70,10 +72,14 @@ export default function RegisterPage() {
             ownerId: newUser.uid,
             createdAt: Timestamp.now(),
             planId: 'plan_free', // Assign the default free plan
-            subscriptionStatus: 'active',
-            nextBillingDate: null, 
+            subscriptionStatus: 'trialing',
+            nextBillingDate: Timestamp.fromDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)), // 14 day trial
         };
-        const tenantRef = await addDoc(collection(firestore, 'tenants'), tenantData);
+        const tenantRef = await addDocumentNonBlocking(collection(firestore, 'tenants'), tenantData);
+        
+        if (!tenantRef?.id) {
+          throw new Error("Failed to create tenant document.");
+        }
 
         // Create the user's profile document in Firestore with the manager role
         const userProfileData = {
@@ -84,6 +90,9 @@ export default function RegisterPage() {
             createdAt: Timestamp.now(),
         };
         await setDoc(doc(firestore, 'users', newUser.uid), userProfileData);
+        
+        // Seed the new tenant with sample data
+        await seedNewTenant(firestore, tenantRef.id, newUser.uid);
         
         // Send verification email and sign out to force verification
         await sendEmailVerification(userCredential.user);
@@ -116,7 +125,7 @@ export default function RegisterPage() {
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                     <AlertTitle>Verification Email Sent!</AlertTitle>
                     <AlertDescription>
-                        Your business account has been created. Please check your inbox to verify your email address before signing in.
+                        Your business account has been created and populated with sample data. Please check your inbox to verify your email address before signing in.
                     </AlertDescription>
                 </Alert>
                 <Button asChild className="w-full">
