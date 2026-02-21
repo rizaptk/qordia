@@ -53,7 +53,7 @@ This document outlines the development plan to build the Qordia application base
 - **Sprint:** [sprints/sprint-08-final-polish.md](./sprints/sprint-08-final-polish.md)
 
 ## 9. Feature Implementation
-- [ ] **Task:** Implement UI and logic for all subscription features.
+- [x] **Task:** Implement UI and logic for all subscription features.
 - **Details:** Build out the UI components that are conditionally rendered based on a manager's subscription plan, ensuring that features like "Custom Staff Roles" and "Advanced Reporting" are tangible and accessible from the staff sidebar.
 - **Sprint:** [sprints/sprint-09-feature-implementation.md](./sprints/sprint-09-feature-implementation.md)
 
