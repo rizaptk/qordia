@@ -211,8 +211,8 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
           <DialogTitle className="font-headline text-2xl">{item.name}</DialogTitle>
           <DialogDescription>{item.description}</DialogDescription>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto pr-4 -mr-4 grid gap-6 md:grid-cols-2">
-          <div className="relative aspect-video rounded-lg overflow-hidden">
+        <div className="grid md:grid-cols-2 gap-6 flex-grow min-h-0">
+          <div className="relative aspect-video md:aspect-auto rounded-lg overflow-hidden">
             {imageUrl && (
               <Image
                 src={imageUrl}
@@ -223,10 +223,11 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
               />
             )}
           </div>
-          <div className="flex flex-col space-y-6">
+
+          <div className="flex flex-col space-y-6 overflow-y-auto -mr-4 pr-4">
               {relevantGroups.map(group => (
                 <div key={group.id}>
-                  <Label className="font-semibold flex items-center gap-2 mb-3">
+                  <Label className="font-semibold flex items-center gap-2 mb-2">
                     <IconForGroup groupName={group.name} />
                     {group.name}
                     {group.required && <span className="text-destructive ml-1">*</span>}
@@ -238,7 +239,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                       <RadioGroup
                         value={JSON.stringify(selectedOptions[group.id]?.[0])}
                         onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
-                        className="space-y-2 pt-2"
+                        className="space-y-2"
                       >
                         {group.options.map(option => (
                           <Label
@@ -267,7 +268,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                         ))}
                       </RadioGroup>
                     ) : (
-                      <div className="pt-2 space-y-2">
+                      <div className="space-y-2">
                         {group.options.map(option => (
                           <div key={option.name} className="flex items-center justify-between rounded-md border p-3">
                             <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-3 cursor-pointer">
@@ -286,7 +287,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                 </div>
               ))}
             
-            <div className="space-y-2 pt-2">
+            <div className="space-y-2">
               <Label htmlFor="special-notes" className="font-semibold">Special Notes</Label>
               <Textarea
                 id="special-notes"
@@ -296,7 +297,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
               />
             </div>
             
-            <div className="space-y-2 !mt-auto">
+            <div className="space-y-2">
               <Label htmlFor="quantity" className="font-semibold">Quantity</Label>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</Button>
