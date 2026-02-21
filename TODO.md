@@ -97,6 +97,11 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Refactor the order tickets to clearly display customizations and update the UI to match the new color-coded status flow from `KITCHEN-FLOW.md`.
 - **Sprint:** [sprints/sprint-17-pds-upgrade.md](./sprints/sprint-17-pds-upgrade.md)
 
+## 18. Premium Menu Experience
+- [ ] **Task:** Implement the advanced menu presentation styles from the Pro Plan.
+- **Details:** Add support for different menu layouts (e.g., Carousel, 3D) and enhance the modifier and cart UX, as specified in `PREMIUM-FEATURES.md`.
+- **Sprint:** [sprints/sprint-18-premium-features.md](./sprints/sprint-18-premium-features.md)
+
 
 ## 🤖 Reminders for Gemini
 
