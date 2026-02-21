@@ -1,25 +1,29 @@
+'use client';
 
-import { ArrowRight } from 'lucide-react';
+import { use } from 'react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { QordiaLogo } from '@/components/logo';
-import { initializeFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 type Table = {
     tableNumber: string;
 }
 
-export default async function TableEntryPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
-  const { tenantId, tableId } = await params;
+export default function TableEntryPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
+  const { tenantId, tableId } = use(params);
+  const firestore = useFirestore();
 
-  const { firestore } = initializeFirebase();
-  const tableRef = doc(firestore, `tenants/${tenantId}/tables`, tableId);
-  const tableSnap = await getDoc(tableRef);
-  
-  const tableData = tableSnap.exists() ? tableSnap.data() as Table : null;
-  const tableNumber = tableData ? tableData.tableNumber : tableId;
+  const tableRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, `tenants/${tenantId}/tables`, tableId) : null),
+    [firestore, tenantId, tableId]
+  );
+  const { data: tableData, isLoading } = useDoc<Table>(tableRef);
+
+  const tableNumber = isLoading ? '...' : (tableData ? tableData.tableNumber : tableId);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
@@ -36,10 +40,14 @@ export default async function TableEntryPage({ params }: { params: Promise<{ ten
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="bg-primary/10 text-primary font-bold text-4xl rounded-lg p-6">
-            Table {tableNumber}
+          <div className="bg-primary/10 text-primary font-bold text-4xl rounded-lg p-6 min-h-[96px] flex items-center justify-center">
+            {isLoading ? (
+                <Loader2 className="h-8 w-8 animate-spin" />
+            ) : (
+                `Table ${tableNumber}`
+            )}
           </div>
-          <Button asChild size="lg" className="w-full">
+          <Button asChild size="lg" className="w-full" disabled={isLoading}>
             <Link href={`/${tenantId}/menu/${tableId}`}>
               Start Ordering
               <ArrowRight className="ml-2 h-5 w-5" />
