@@ -58,6 +58,7 @@ export default function SeedPage() {
         batch.set(categoryRef, {
           name: categoryName,
           displayOrder: index,
+          isActive: true,
         });
       });
       
@@ -107,10 +108,61 @@ export default function SeedPage() {
           imageUrl: imagePlaceholder?.imageUrl || '',
           isAvailable: item.isAvailable,
           isPopular: item.isPopular,
-          options: item.options || {},
+          modifierGroupIds: item.modifierGroupIds || [],
         };
         batch.set(itemRef, firestoreItem);
       });
+      
+      // 6. Seed Modifier Groups
+      const milkOptionsRef = doc(firestore, `tenants/${TENANT_ID}/modifier_groups`, 'milk-options');
+      batch.set(milkOptionsRef, {
+          name: 'Milk Options',
+          selectionType: 'single',
+          required: true,
+          options: [
+              { name: 'Whole Milk', priceAdjustment: 0 },
+              { name: 'Skim Milk', priceAdjustment: 0 },
+              { name: 'Oat Milk', priceAdjustment: 0.5 },
+              { name: 'Almond Milk', priceAdjustment: 0.5 },
+          ]
+      });
+
+      const syrupFlavorsRef = doc(firestore, `tenants/${TENANT_ID}/modifier_groups`, 'syrup-flavors');
+      batch.set(syrupFlavorsRef, {
+          name: 'Syrup Flavors',
+          selectionType: 'multiple',
+          required: false,
+          options: [
+              { name: 'Vanilla', priceAdjustment: 0.75 },
+              { name: 'Caramel', priceAdjustment: 0.75 },
+              { name: 'Hazelnut', priceAdjustment: 0.75 },
+          ]
+      });
+      
+       const sizesRef = doc(firestore, `tenants/${TENANT_ID}/modifier_groups`, 'sizes');
+       batch.set(sizesRef, {
+           name: 'Size',
+           selectionType: 'single',
+           required: true,
+           options: [
+               { name: 'Small', priceAdjustment: -0.5 },
+               { name: 'Medium', priceAdjustment: 0 },
+               { name: 'Large', priceAdjustment: 1.0 },
+           ]
+       });
+       
+       const sweetnessRef = doc(firestore, `tenants/${TENANT_ID}/modifier_groups`, 'sweetness-level');
+       batch.set(sweetnessRef, {
+           name: 'Sweetness',
+           selectionType: 'single',
+           required: false,
+           options: [
+               { name: 'Unsweetened', priceAdjustment: 0 },
+               { name: 'Lightly Sweet', priceAdjustment: 0 },
+               { name: 'Regular Sweet', priceAdjustment: 0 },
+           ]
+       });
+
 
       await batch.commit();
 
@@ -139,7 +191,7 @@ export default function SeedPage() {
         <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
                 This action will populate the Firestore database with initial test data.
-                This includes subscription plans (Free, Basic, Pro), and a test tenant ({TENANT_ID}) with menu items, categories, and a sample table.
+                This includes subscription plans, a test tenant ({TENANT_ID}) with menu items, categories, modifier groups, and a sample table.
                 Do not run this in a production environment.
             </p>
           <Button onClick={handleSeedData} disabled={isLoading || !firestore} className="w-full">

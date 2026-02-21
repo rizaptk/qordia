@@ -1,8 +1,9 @@
+
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
-import type { MenuItem, CartItem } from "@/lib/types"
+import type { MenuItem, CartItem, ModifierGroup, ModifierOption } from "@/lib/types"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,149 +17,220 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
 
 type CustomizationDialogProps = {
   item: MenuItem | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  modifierGroups: ModifierGroup[]
   onAddToCart?: (item: CartItem) => void;
 }
 
-export function CustomizationDialog({ item, isOpen, onOpenChange, onAddToCart }: CustomizationDialogProps) {
+type SelectedOptions = Record<string, ModifierOption[]>;
+
+export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups, onAddToCart }: CustomizationDialogProps) {
   const [quantity, setQuantity] = useState(1)
-  const [customizations, setCustomizations] = useState<{ [key: string]: string }>({})
+  const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({});
   const [specialNotes, setSpecialNotes] = useState("")
-  
+  const [totalPrice, setTotalPrice] = useState(item?.price || 0)
+
   const addToCartStore = useCartStore((state) => state.addToCart);
   const { toast } = useToast();
 
+  const relevantGroups = useMemo(() => {
+    if (!item || !modifierGroups) return [];
+    return modifierGroups.filter(g => item.modifierGroupIds?.includes(g.id));
+  }, [item, modifierGroups]);
+
   useEffect(() => {
-    // Pre-fill customizations with default values when the item changes
-    if (item?.options) {
-      const defaultCustomizations = Object.entries(item.options).reduce((acc, [key, values]) => {
-        acc[key] = values[0];
-        return acc;
-      }, {} as { [key: string]: string });
-      setCustomizations(defaultCustomizations);
+    if (item && isOpen) {
+      const initialSelections: SelectedOptions = {};
+      relevantGroups.forEach(group => {
+        if (group.selectionType === 'single' && group.options.length > 0) {
+          initialSelections[group.id] = [group.options[0]];
+        } else {
+          initialSelections[group.id] = [];
+        }
+      });
+      setSelectedOptions(initialSelections);
     }
-  }, [item]);
 
+    if (!isOpen) {
+      setQuantity(1);
+      setSpecialNotes("");
+      setTotalPrice(0);
+    }
+  }, [item, isOpen, relevantGroups]);
 
-  const imagePlaceholder = PlaceHolderImages.find(p => p.id === item?.image)
+  useEffect(() => {
+    if (!item) return;
+    let calculatedPrice = item.price;
+    Object.values(selectedOptions).flat().forEach(option => {
+      calculatedPrice += option.priceAdjustment;
+    });
+    setTotalPrice(calculatedPrice * quantity);
+  }, [selectedOptions, quantity, item]);
+
+  const handleSingleSelect = (groupId: string, option: ModifierOption) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [groupId]: [option],
+    }));
+  };
+
+  const handleMultiSelect = (groupId: string, option: ModifierOption, checked: boolean | 'indeterminate') => {
+    setSelectedOptions(prev => {
+      const currentSelections = prev[groupId] || [];
+      if (checked) {
+        return { ...prev, [groupId]: [...currentSelections, option] };
+      } else {
+        return { ...prev, [groupId]: currentSelections.filter(o => o.name !== option.name) };
+      }
+    });
+  };
+
+  const isAddToCartDisabled = useMemo(() => {
+    return relevantGroups.some(group => group.required && (!selectedOptions[group.id] || selectedOptions[group.id].length === 0));
+  }, [relevantGroups, selectedOptions]);
 
   const handleAddToCartClick = () => {
-    if (!item) return;
+    if (!item || isAddToCartDisabled) return;
 
-    const finalPrice = item.price * quantity; // In a real app, option prices would be added here
+    const finalCustomizations: { [key: string]: string } = {};
+    Object.entries(selectedOptions).forEach(([groupId, selections]) => {
+      const group = relevantGroups.find(g => g.id === groupId);
+      if (group && selections.length > 0) {
+        finalCustomizations[group.name] = selections.map(s => s.name).join(', ');
+      }
+    });
 
     const newCartItem: CartItem = {
       id: `${item.id}-${Date.now()}`,
       menuItem: item,
       quantity,
-      customizations,
+      customizations: finalCustomizations,
       specialNotes,
-      price: finalPrice
+      price: totalPrice,
     };
 
     if (onAddToCart) {
-        onAddToCart(newCartItem);
+      onAddToCart(newCartItem);
     } else {
-        addToCartStore(newCartItem);
+      addToCartStore(newCartItem);
     }
 
     toast({
-        title: "Added to order",
-        description: `${item.name} has been added to your order.`,
+      title: "Added to order",
+      description: `${item.name} has been added to your order.`,
     })
-    onOpenChange(false)
+    onOpenChange(false);
   }
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      // Reset state on close
-      setQuantity(1)
-      setCustomizations({})
-      setSpecialNotes("")
-    }
-    onOpenChange(open)
-  }
+  const imagePlaceholder = PlaceHolderImages.find(p => p.id === item?.image)
 
   if (!item) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] md:max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">{item.name}</DialogTitle>
           <DialogDescription>{item.description}</DialogDescription>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto pr-4 -mr-4 grid gap-6 md:grid-cols-2">
-            <div className="relative aspect-video rounded-lg overflow-hidden">
-                {imagePlaceholder?.imageUrl && (
-                    <Image
-                        src={imagePlaceholder.imageUrl}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                        data-ai-hint={imagePlaceholder.imageHint}
-                    />
-                )}
-            </div>
+          <div className="relative aspect-video rounded-lg overflow-hidden">
+            {imagePlaceholder?.imageUrl && (
+              <Image
+                src={imagePlaceholder.imageUrl}
+                alt={item.name}
+                fill
+                className="object-cover"
+                data-ai-hint={imagePlaceholder.imageHint}
+              />
+            )}
+          </div>
           <div className="flex flex-col space-y-4">
-            {item.options && Object.keys(item.options).length > 0 && (
-              <Accordion type="multiple" className="w-full" defaultValue={Object.keys(item.options)}>
-                {Object.entries(item.options).map(([optionKey, values]) => (
-                  <AccordionItem value={optionKey} key={optionKey}>
-                    <AccordionTrigger className="font-semibold">{optionKey}</AccordionTrigger>
-                    <AccordionContent>
+            <Accordion type="multiple" className="w-full" defaultValue={relevantGroups.map(g => g.id)}>
+              {relevantGroups.map(group => (
+                <AccordionItem value={group.id} key={group.id}>
+                  <AccordionTrigger className="font-semibold">
+                    {group.name}
+                    {group.required && <span className="text-destructive ml-1">*</span>}
+                    <span className="text-sm text-muted-foreground ml-2">
+                        {group.selectionType === 'single' ? '(Select 1)' : '(Select multiple)'}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    {group.selectionType === 'single' ? (
                       <RadioGroup
-                        id={optionKey}
-                        value={customizations[optionKey]}
-                        onValueChange={(value) => setCustomizations(prev => ({ ...prev, [optionKey]: value }))}
-                        className="pt-2"
+                        id={group.id}
+                        value={JSON.stringify(selectedOptions[group.id]?.[0])}
+                        onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
+                        className="pt-2 space-y-1"
                       >
-                        {values.map(value => (
-                          <div key={value} className="flex items-center space-x-2">
-                            <RadioGroupItem value={value} id={`${optionKey}-${value}`} />
-                            <Label htmlFor={`${optionKey}-${value}`}>{value}</Label>
+                        {group.options.map(option => (
+                          <div key={option.name} className="flex items-center justify-between">
+                            <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-2 cursor-pointer">
+                              <RadioGroupItem value={JSON.stringify(option)} id={`${group.id}-${option.name}`} />
+                              {option.name}
+                            </Label>
+                            {option.priceAdjustment > 0 && <span className="text-sm text-muted-foreground">+${option.priceAdjustment.toFixed(2)}</span>}
                           </div>
                         ))}
                       </RadioGroup>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            )}
+                    ) : (
+                      <div className="pt-2 space-y-1">
+                        {group.options.map(option => (
+                          <div key={option.name} className="flex items-center justify-between">
+                            <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-2 cursor-pointer">
+                              <Checkbox
+                                id={`${group.id}-${option.name}`}
+                                checked={selectedOptions[group.id]?.some(o => o.name === option.name)}
+                                onCheckedChange={(checked) => handleMultiSelect(group.id, option, checked)}
+                              />
+                              {option.name}
+                            </Label>
+                             {option.priceAdjustment > 0 && <span className="text-sm text-muted-foreground">+${option.priceAdjustment.toFixed(2)}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
             
             <div className="space-y-2 pt-2">
               <Label htmlFor="special-notes" className="font-semibold">Special Notes</Label>
               <Textarea
                 id="special-notes"
-                placeholder="Any special requests? (e.g., allergies)"
+                placeholder="Any special requests? (e.g., allergies, no foam)"
                 value={specialNotes}
                 onChange={(e) => setSpecialNotes(e.target.value)}
               />
             </div>
             
             <div className="space-y-2 !mt-auto">
-                <Label htmlFor="quantity" className="font-semibold">Quantity</Label>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q-1))}>-</Button>
-                    <Input id="quantity" value={quantity} readOnly className="w-16 text-center" />
-                    <Button variant="outline" size="icon" onClick={() => setQuantity(q => q+1)}>+</Button>
-                </div>
+              <Label htmlFor="quantity" className="font-semibold">Quantity</Label>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</Button>
+                <Input id="quantity" value={quantity} readOnly className="w-16 text-center" />
+                <Button variant="outline" size="icon" onClick={() => setQuantity(q => q + 1)}>+</Button>
+              </div>
             </div>
 
           </div>
         </div>
         <DialogFooter>
           <div className="w-full flex justify-between items-center">
-            <span className="text-2xl font-bold">${(item.price * quantity).toFixed(2)}</span>
-            <Button type="button" size="lg" onClick={handleAddToCartClick}>
+            <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
+            <Button type="button" size="lg" onClick={handleAddToCartClick} disabled={isAddToCartDisabled}>
               Add to Order
             </Button>
           </div>

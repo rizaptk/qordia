@@ -3,7 +3,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, use } from "react";
-import type { MenuItem } from "@/lib/types";
+import type { MenuItem, ModifierGroup } from "@/lib/types";
 import { getSuggestedItems } from "@/app/actions/suggest-items";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
 import { CustomizationDialog } from "@/components/menu/customization-dialog";
@@ -53,6 +53,13 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
     [firestore, tenantId]
   );
   const { data: categories, isLoading: isLoadingCategories } = useCollection<{id: string; name: string, displayOrder: number}>(categoriesRef);
+
+  const modifierGroupsRef = useMemoFirebase(() =>
+    firestore && tenantId ? collection(firestore, `tenants/${tenantId}/modifier_groups`) : null,
+    [firestore, tenantId]
+  );
+  const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
+
 
   const sortedCategories = useMemo(() => {
     if (!categories) return [];
@@ -212,7 +219,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                 />
             </div>
 
-            {isLoadingMenu || isLoadingCategories || isUserLoading ? (
+            {isLoadingMenu || isLoadingCategories || isUserLoading || isLoadingModifierGroups ? (
               <div className="text-center p-16">Loading menu...</div>
             ) : (
               <div className="space-y-12">
@@ -270,6 +277,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
             item={selectedItem}
             isOpen={isDialogOpen}
             onOpenChange={setIsDialogOpen}
+            modifierGroups={modifierGroups || []}
           />
         </div>
         <SheetContent className="flex flex-col">

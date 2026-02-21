@@ -20,10 +20,7 @@ export const menuItems: MenuItem[] = [
     image: 'cappuccino',
     isAvailable: true,
     isPopular: true,
-    options: {
-      'Milk': ['Whole', 'Skim', 'Oat', 'Almond'],
-      'Size': ['Regular', 'Large'],
-    },
+    modifierGroupIds: ['milk-options', 'sizes']
   },
   {
     id: 'coffee-03',
@@ -34,10 +31,7 @@ export const menuItems: MenuItem[] = [
     image: 'latte',
     isAvailable: true,
     isPopular: false,
-    options: {
-      'Milk': ['Whole', 'Skim', 'Oat', 'Almond'],
-      'Flavor': ['None', 'Vanilla', 'Caramel'],
-    },
+    modifierGroupIds: ['milk-options', 'syrup-flavors']
   },
   {
     id: 'coffee-04',
@@ -48,10 +42,7 @@ export const menuItems: MenuItem[] = [
     image: 'iced-coffee',
     isAvailable: true,
     isPopular: true,
-    options: {
-      'Sweetness': ['Unsweetened', 'Lightly Sweet', 'Regular'],
-      'Ice Level': ['Less', 'Normal', 'Extra'],
-    },
+    modifierGroupIds: ['sweetness-level']
   },
   {
     id: 'tea-01',
@@ -169,7 +160,7 @@ export const mockOrders: Order[] = [
         id: 'ci-3',
         menuItem: menuItems.find(mi => mi.id === 'coffee-04')!,
         quantity: 2,
-        customizations: { 'Sweetness': 'Lightly Sweet', 'Ice Level': 'Normal' },
+        customizations: { 'Sweetness': 'Lightly Sweet' },
         specialNotes: '',
         price: 4.0
       },
