@@ -72,6 +72,11 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Build an interface for item selection, order type assignment (takeaway), and payment processing for non-QR orders.
 - **Sprint:** [sprints/sprint-12-cashier-walk-in.md](./sprints/sprint-12-cashier-walk-in.md)
 
+## 13. Cashier Refund Handling
+- [ ] **Task:** Implement the flow for cashiers to process full or partial refunds on completed orders.
+- **Details:** Build the UI to find completed orders, initiate a refund, and update the order status to 'Refunded'.
+- **Sprint:** [sprints/sprint-13-cashier-refunds.md](./sprints/sprint-13-cashier-refunds.md)
+
 ## 🤖 Reminders for Gemini
 
 1.  **Never delete sprint tasks.** If changes are required, create a sub-sprint file (e.g., `sprint-02-A-updates.md`) and link to it.
