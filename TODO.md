@@ -62,13 +62,7 @@ This document outlines the development plan to build the Qordia application base
 - **Details:** Add a Genkit flow and UI component to provide natural-language summaries of sales data, available on the "Pro" plan.
 - **Sprint:** [sprints/sprint-10-ai-analytics.md](./sprints/sprint-10-ai-analytics.md)
 
----
-
-## 🤖 Reminders for Gemini
-
-1.  **Never delete sprint tasks.** If changes are required, create a sub-sprint file (e.g., `sprint-02-A-updates.md`) and link to it.
-2.  **Always update sprint progress.** Mark tasks as `[x]` for done, `[s]` for skipped, or `[u]` for updated in a sub-sprint.
-3.  **Always refer to the Source of Truth files.** If confused, stuck, or considering a new approach, re-read the linked documents above.
-4.  **Focus on the planned design.** Adhere strictly to the established plans and develop from the existing codebase.
-5.  **Implement real features, not placeholders.** Break down large tasks into smaller, fully functional atomic tasks.
-6.  **Request review after each task.** Announce task completion, state the next step, and always re-read these reminders before starting a new task.
+## 11. Cashier Flow
+- [ ] **Task:** Implement the core cashier interface for payment processing.
+- **Details:** Build the cashier dashboard for viewing open bills and a settlement page to process payments for table orders.
+- **Sprint:** [sprints/sprint-11-cashier-flow.md](./sprints/sprint-11-cashier-flow.md)
