@@ -1,12 +1,13 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { useAuthStore } from '@/stores/auth-store';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import type { Order } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -14,15 +15,15 @@ import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { PlusCircle, QrCode, Printer, Download } from 'lucide-react';
+import { PlusCircle, QrCode, Printer, Download, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { QordiaLogo } from '@/components/logo';
-import { cn } from '@/lib/utils';
-
 
 type Table = {
     id: string;
@@ -40,7 +41,8 @@ export default function TableManagementPage() {
     const { tenant, tableLimit } = useAuthStore();
     const TENANT_ID = tenant?.id;
 
-    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [isTableFormOpen, setIsTableFormOpen] = useState(false);
+    const [editingTable, setEditingTable] = useState<Table | null>(null);
     const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
     const [selectedTable, setSelectedTable] = useState<Table | null>(null);
     const [origin, setOrigin] = useState('');
@@ -58,6 +60,14 @@ export default function TableManagementPage() {
         resolver: zodResolver(newTableSchema),
         defaultValues: { tableNumber: '' },
     });
+    
+    useEffect(() => {
+        if (editingTable) {
+            form.setValue('tableNumber', editingTable.tableNumber);
+        } else {
+            form.reset();
+        }
+    }, [editingTable, form]);
 
     const tablesRef = useMemoFirebase(() => 
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
@@ -75,23 +85,29 @@ export default function TableManagementPage() {
     const isLimitReached = tableLimit !== null && tableLimit !== 0 && tableCount >= tableLimit;
 
 
-    const onAddNewTable = async (data: NewTableFormValues) => {
+    const onTableFormSubmit = async (data: NewTableFormValues) => {
         if (!firestore || !TENANT_ID) return;
         
-        const newTableData = {
-            tableNumber: data.tableNumber,
-            qrCodeIdentifier: `qordia-table-${data.tableNumber.toLowerCase().replace(/\s+/g, '-')}`,
-        };
-        
         try {
-            const tablesCollectionRef = collection(firestore, `tenants/${TENANT_ID}/tables`);
-            await addDocumentNonBlocking(tablesCollectionRef, newTableData);
-            toast({ title: "Success", description: `Table ${data.tableNumber} has been added.` });
+            if (editingTable) {
+                const tableRef = doc(firestore, `tenants/${TENANT_ID}/tables`, editingTable.id);
+                await updateDocumentNonBlocking(tableRef, { tableNumber: data.tableNumber });
+                toast({ title: "Success", description: "Table details updated." });
+            } else {
+                const newTableData = {
+                    tableNumber: data.tableNumber,
+                    qrCodeIdentifier: `qordia-table-${data.tableNumber.toLowerCase().replace(/\s+/g, '-')}`,
+                };
+                const tablesCollectionRef = collection(firestore, `tenants/${TENANT_ID}/tables`);
+                await addDocumentNonBlocking(tablesCollectionRef, newTableData);
+                toast({ title: "Success", description: `Table ${data.tableNumber} has been added.` });
+            }
             form.reset();
-            setIsAddDialogOpen(false);
+            setIsTableFormOpen(false);
+            setEditingTable(null);
         } catch (error) {
-            console.error("Error adding table:", error);
-            toast({ variant: "destructive", title: "Error", description: "Could not add new table." });
+            console.error("Error saving table:", error);
+            toast({ variant: "destructive", title: "Error", description: "Could not save table." });
         }
     };
     
@@ -99,6 +115,19 @@ export default function TableManagementPage() {
         setSelectedTable(table);
         setIsQrDialogOpen(true);
     };
+    
+    const handleEditTable = (table: Table) => {
+        setEditingTable(table);
+        setIsTableFormOpen(true);
+    };
+
+    const handleDeleteTable = (tableId: string) => {
+        if (!firestore || !TENANT_ID) return;
+        const tableRef = doc(firestore, `tenants/${TENANT_ID}/tables`, tableId);
+        deleteDocumentNonBlocking(tableRef);
+        toast({ title: 'Table Deleted', description: 'The table has been successfully removed.' });
+    };
+
 
     const handlePrint = () => {
         window.print();
@@ -162,18 +191,19 @@ export default function TableManagementPage() {
             
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Configured Tables</h1>
-                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                 <Dialog open={isTableFormOpen} onOpenChange={(open) => { setIsTableFormOpen(open); if(!open) setEditingTable(null); }}>
                     <DialogTrigger asChild>
-                        <Button disabled={isLimitReached}>
+                        <Button disabled={isLimitReached} onClick={() => setIsTableFormOpen(true)}>
                             <PlusCircle className="mr-2 h-4 w-4" /> Add New Table
                         </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader>
-                            <DialogTitle>Add a New Table</DialogTitle>
+                            <DialogTitle>{editingTable ? `Edit Table` : 'Add New Table'}</DialogTitle>
+                            <DialogDescription>{editingTable ? `Update the name for table ${editingTable.tableNumber}.` : 'Add a new table or seating area to your restaurant.'}</DialogDescription>
                         </DialogHeader>
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onAddNewTable)} className="space-y-4">
+                            <form onSubmit={form.handleSubmit(onTableFormSubmit)} className="space-y-4">
                                 <FormField
                                     control={form.control}
                                     name="tableNumber"
@@ -189,7 +219,7 @@ export default function TableManagementPage() {
                                 />
                                 <DialogFooter>
                                     <Button type="submit" disabled={form.formState.isSubmitting}>
-                                        {form.formState.isSubmitting ? 'Adding...' : 'Add Table'}
+                                        {form.formState.isSubmitting ? 'Saving...' : 'Save Table'}
                                     </Button>
                                 </DialogFooter>
                             </form>
@@ -218,20 +248,53 @@ export default function TableManagementPage() {
                             {tables.sort((a,b) => a.tableNumber.localeCompare(b.tableNumber, undefined, {numeric: true})).map(table => {
                                 const isActive = activeTableIds.has(table.id);
                                 return (
-                                    <Card key={table.id} className="flex flex-col">
-                                        <CardHeader className="flex-row items-center justify-between">
-                                            <CardTitle>{table.tableNumber}</CardTitle>
-                                            <Badge variant={isActive ? "destructive" : "secondary"}>
-                                                {isActive ? "Occupied" : "Available"}
-                                            </Badge>
-                                        </CardHeader>
-                                        <CardContent className="flex-grow flex items-center justify-center">
-                                            <Button variant="outline" className="w-full" onClick={() => handleShowQrDialog(table)}>
-                                                <QrCode className="mr-2 h-4 w-4" />
-                                                Get QR Code
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
+                                    <AlertDialog key={table.id}>
+                                        <Card className="flex flex-col">
+                                            <CardHeader className="flex-row items-start justify-between pb-2">
+                                                <div>
+                                                    <CardTitle>{table.tableNumber}</CardTitle>
+                                                    <Badge variant={isActive ? "destructive" : "secondary"}>
+                                                        {isActive ? "Occupied" : "Available"}
+                                                    </Badge>
+                                                </div>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem onSelect={() => handleEditTable(table)}>
+                                                            Edit
+                                                        </DropdownMenuItem>
+                                                        <AlertDialogTrigger asChild>
+                                                            <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </AlertDialogTrigger>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </CardHeader>
+                                            <CardContent className="flex-grow flex items-center justify-center pt-2">
+                                                <Button variant="outline" className="w-full" onClick={() => handleShowQrDialog(table)}>
+                                                    <QrCode className="mr-2 h-4 w-4" />
+                                                    Get QR Code
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This will permanently delete table "{table.tableNumber}". This action cannot be undone.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDeleteTable(table.id)}>Delete</AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
                                 );
                             })}
                         </div>

@@ -28,8 +28,14 @@ import { useRouter } from 'next/navigation';
 
 type TableBill = {
     tableId: string;
+    tableNumber: string;
     totalAmount: number;
     orderCount: number;
+}
+
+type TableData = {
+    id: string;
+    tableNumber: string;
 }
 
 export default function CashierPage() {
@@ -58,12 +64,22 @@ export default function CashierPage() {
     );
     const { data: activeOrders, isLoading: isLoadingOrders } = useCollection<Order>(activeOrdersQuery);
 
+    const tablesRef = useMemoFirebase(() => 
+        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
+        [firestore, TENANT_ID]
+    );
+    const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
+
     const openBills = useMemo(() => {
-        if (!activeOrders) return [];
+        if (!activeOrders || !tables) return [];
+        const tableMap = new Map(tables.map(t => [t.id, t.tableNumber]));
+
         const billsByTable = activeOrders.reduce((acc, order) => {
+            // Group by tableId, but store the friendly tableNumber
             if (!acc[order.tableId]) {
                 acc[order.tableId] = {
                     tableId: order.tableId,
+                    tableNumber: tableMap.get(order.tableId) || order.tableId, // Fallback to ID if not found
                     totalAmount: 0,
                     orderCount: 0,
                 };
@@ -73,8 +89,8 @@ export default function CashierPage() {
             return acc;
         }, {} as Record<string, TableBill>);
 
-        return Object.values(billsByTable).sort((a,b) => a.tableId.localeCompare(b.tableId, undefined, {numeric: true}));
-    }, [activeOrders]);
+        return Object.values(billsByTable).sort((a,b) => a.tableNumber.localeCompare(b.tableNumber, undefined, {numeric: true}));
+    }, [activeOrders, tables]);
 
     // --- Data & State for Walk-in Order Tab ---
     const [searchTerm, setSearchTerm] = useState('');
@@ -327,10 +343,6 @@ export default function CashierPage() {
     const activeShift = useMemo(() => (activeShifts && activeShifts.length > 0 ? activeShifts[0] : null), [activeShifts]);
 
     useEffect(() => {
-        // Automatically start a new shift if we've finished loading and confirmed there are no active shifts.
-        // This check is very specific: it only runs if auth has loaded, shift loading is complete,
-        // and the resulting `activeShifts` array is confirmed to be empty.
-        // This prevents creating a duplicate shift during re-renders or navigation.
         if (!isLoadingShifts && !isAuthLoading && user && TENANT_ID && activeShifts && activeShifts.length === 0) {
             const createNewShift = async () => {
                 const newShiftData = {
@@ -398,7 +410,7 @@ export default function CashierPage() {
     };
 
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups;
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups || isLoadingTables;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
@@ -442,7 +454,7 @@ export default function CashierPage() {
                             {openBills.map(bill => (
                                 <Card key={bill.tableId}>
                                     <CardHeader>
-                                        <CardTitle>Table {bill.tableId}</CardTitle>
+                                        <CardTitle>Table {bill.tableNumber}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-3xl font-bold">${bill.totalAmount.toFixed(2)}</p>
