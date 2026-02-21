@@ -20,27 +20,27 @@ export default function AnalyticsPage() {
 
     // Fetch completed orders for revenue-based analytics
     const completedOrdersQuery = useMemoFirebase(() => 
-        (firestore && TENANT_ID && user && !isAuthLoading)
+        (firestore && tenant?.name && user?.displayName && !isAuthLoading)
         ? query(
-            collection(firestore, `tenants/${TENANT_ID}/orders`), 
+            collection(firestore, `tenants/${tenant.id}/orders`), 
             where('status', 'in', ['Served', 'Completed'])
           )
         : null, 
-        [firestore, TENANT_ID, user, isAuthLoading]
+        [firestore, tenant, user, isAuthLoading]
     );
     const { data: completedOrders, isLoading: isLoadingCompleted } = useCollection<Order>(completedOrdersQuery);
 
     // Fetch all orders for operational analytics (like peak hours)
     const allOrdersQuery = useMemoFirebase(() => 
-        (firestore && TENANT_ID && user && !isAuthLoading) ? collection(firestore, `tenants/${TENANT_ID}/orders`) : null, 
-        [firestore, TENANT_ID, user, isAuthLoading]
+        (firestore && tenant?.name && user?.displayName && !isAuthLoading) ? collection(firestore, `tenants/${tenant.id}/orders`) : null, 
+        [firestore, tenant, user, isAuthLoading]
     );
     const { data: allOrders, isLoading: isLoadingAll } = useCollection<Order>(allOrdersQuery);
     
     // Fetch menu items to map IDs to names for best-sellers chart
     const menuItemsRef = useMemoFirebase(() =>
-        (firestore && TENANT_ID && user && !isAuthLoading) ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null,
-        [firestore, TENANT_ID, user, isAuthLoading]
+        (firestore && tenant?.name && user?.displayName && !isAuthLoading) ? collection(firestore, `tenants/${tenant.id}/menu_items`) : null,
+        [firestore, tenant, user, isAuthLoading]
     );
     const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 
@@ -155,3 +155,5 @@ export default function AnalyticsPage() {
         </div>
     )
 }
+
+    

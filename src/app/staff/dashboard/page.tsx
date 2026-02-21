@@ -17,7 +17,6 @@ import { startOfDay, endOfDay } from 'date-fns';
 export default function StaffDashboardPage() {
     const { user, tenant, isLoading: isAuthLoading, hasAnalyticsFeature, hasCustomRolesFeature } = useAuthStore();
     const firestore = useFirestore();
-    // const TENANT_ID = tenant?.id;
 
     const welcomeMessage = useMemo(() => user ? `Welcome back, ${user.displayName || user.email?.split('@')[0]}!` : 'Welcome!', [user]);
     const shopName = useMemo(() => tenant ? tenant.name : 'your business', [tenant]);
@@ -276,3 +275,5 @@ export default function StaffDashboardPage() {
         </div>
     );
 }
+
+    
