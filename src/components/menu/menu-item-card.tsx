@@ -1,3 +1,4 @@
+
 "use client"
 
 import Image from "next/image"
@@ -10,20 +11,20 @@ import { cn } from "@/lib/utils"
 type MenuItemCardProps = {
   item: MenuItem
   onSelect: () => void
-  className?: string
-}
+} & React.ComponentProps<'div'>;
 
-export function MenuItemCard({ item, onSelect, className }: MenuItemCardProps) {
+export function MenuItemCard({ item, onSelect, className, ...props }: MenuItemCardProps) {
   const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image)
 
   return (
     <Card 
         className={cn(
-            "overflow-hidden transition-all duration-300 hover:shadow-lg animate-fade-in-up",
+            "overflow-hidden transition-all duration-300 hover:shadow-lg",
             item.isAvailable ? 'cursor-pointer' : 'opacity-50',
             className
         )}
         onClick={item.isAvailable ? onSelect : undefined}
+        {...props}
     >
       <div className="relative aspect-video">
         {imagePlaceholder && (

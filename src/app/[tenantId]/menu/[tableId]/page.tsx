@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect, useMemo, use } from "react";
@@ -224,6 +225,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                                     key={item.id} 
                                     item={item} 
                                     onSelect={() => handleSelectItem(item)} 
+                                    className="animate-fade-in-up"
                                     style={{ animationDelay: `${i * 50}ms`}}
                                 />
                             ))}
@@ -246,6 +248,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
                                 key={item.id} 
                                 item={item} 
                                 onSelect={() => handleSelectItem(item)}
+                                className="animate-fade-in-up"
                                 style={{ animationDelay: `${i * 50}ms`}}
                             />
                         ))}
