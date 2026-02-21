@@ -1,13 +1,14 @@
 "use client";
 
-import React from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
+import Fade from 'embla-carousel-fade';
 import type { MenuItem } from '@/lib/types';
 import Image from 'next/image';
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Flame, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Flame } from 'lucide-react';
 
 interface StyleProps {
     menuItems: MenuItem[] | null;
@@ -16,13 +17,46 @@ interface StyleProps {
 }
 
 export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+    const [emblaRef, emblaApi] = useEmblaCarousel(
+        { loop: true },
+        [Autoplay({ delay: 5000, stopOnInteraction: false }), Fade()]
+    );
     
+    const [progress, setProgress] = useState(0);
+
+    const updateProgress = useCallback((emblaApi: EmblaCarouselType) => {
+        const autoplay = (emblaApi?.plugins() as any)?.autoplay;
+        if (!autoplay) return;
+
+        const timeUntilNext = autoplay.timeUntilNext();
+        const delay = autoplay.options.delay;
+        const currentProgress = Math.max(0, 1 - (timeUntilNext / delay)) * 100;
+        
+        setProgress(currentProgress);
+    }, []);
+
+    useEffect(() => {
+        if (!emblaApi) return;
+        
+        let animationFrame: number;
+        const animate = () => {
+          updateProgress(emblaApi);
+          animationFrame = requestAnimationFrame(animate);
+        };
+        
+        animationFrame = requestAnimationFrame(animate);
+        
+        emblaApi.on('select', () => setProgress(0));
+        emblaApi.on('reInit', () => setProgress(0));
+        
+        return () => cancelAnimationFrame(animationFrame);
+    }, [emblaApi, updateProgress]);
+
     const popularItems = menuItems?.filter(item => item.isPopular && item.isAvailable) || [];
 
     if (!popularItems || popularItems.length === 0) {
         return (
-            <div className="container mx-auto p-4 md:p-8 text-center">
+            <div className="container mx-auto p-4 md:p-8 text-center h-[60vh] flex flex-col justify-center items-center">
                 <h1 className="text-2xl font-bold">No Promotions Today</h1>
                 <p className="text-muted-foreground">Check back later for special offers!</p>
             </div>
@@ -30,9 +64,9 @@ export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
     }
     
     return (
-        <div className="w-full py-8 relative max-w-4xl mx-auto">
-             <div className="overflow-hidden rounded-lg" ref={emblaRef}>
-                <div className="flex">
+        <section className="promo-hero">
+            <div className="promo-hero__viewport" ref={emblaRef}>
+                <div className="promo-hero__container">
                     {popularItems.map((item) => {
                         let imageUrl: string | undefined = item.imageUrl;
                         let imageHint: string | undefined;
@@ -46,24 +80,20 @@ export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
                         }
 
                         return (
-                             <div className="flex-grow-0 flex-shrink-0 basis-full min-w-0" key={item.id}>
-                                <div className="relative aspect-video md:aspect-[2/1] w-full overflow-hidden">
-                                    {imageUrl && (
-                                        <Image src={imageUrl} alt={item.name} fill className="object-cover" data-ai-hint={imageHint} />
-                                    )}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                                    <div className="absolute top-4 left-4">
-                                        <Badge variant="warning" className="text-lg px-4 py-2">
-                                             <Flame className="mr-2 h-5 w-5" /> Today's Special
-                                        </Badge>
-                                    </div>
-                                    <div className="absolute bottom-4 left-4 md:bottom-8 md:left-8 text-white">
-                                         <h2 className="text-3xl md:text-5xl font-extrabold font-headline drop-shadow-lg">{item.name}</h2>
-                                         <p className="text-xl md:text-2xl font-semibold drop-shadow-md">${item.price.toFixed(2)}</p>
-                                         <p className="mt-2 max-w-md text-sm md:text-base text-white/90 drop-shadow-sm">{item.description}</p>
-                                         <Button size="lg" className="mt-4" onClick={() => onSelectItem(item)}>
-                                            Customize & Add
-                                         </Button>
+                            <div className="promo-hero__slide" key={item.id}>
+                                {imageUrl && <Image className="promo-hero__img" src={imageUrl} alt={item.name} fill data-ai-hint={imageHint} priority />}
+                                <div className="promo-hero__overlay">
+                                    <div className="promo-hero__content">
+                                        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1 bg-background/20 backdrop-blur-sm rounded-full border border-white/20">
+                                            <Flame className="h-4 w-4 text-warning" />
+                                            <span className="font-semibold text-sm">Today's Special</span>
+                                        </div>
+                                        <h1 className="promo-hero__title">{item.name}</h1>
+                                        <p className="promo-hero__price">${item.price.toFixed(2)}</p>
+                                        <p className="promo-hero__description">{item.description}</p>
+                                        <Button size="lg" className="promo-hero__cta" onClick={() => onSelectItem(item)}>
+                                            Customize & Add to Order
+                                        </Button>
                                     </div>
                                 </div>
                             </div>
@@ -71,8 +101,9 @@ export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
                     })}
                 </div>
             </div>
-            <Button variant="outline" size="icon" className="absolute top-1/2 -translate-y-1/2 left-2 rounded-full z-10" onClick={() => emblaApi?.scrollPrev()}><ArrowLeft /></Button>
-            <Button variant="outline" size="icon" className="absolute top-1/2 -translate-y-1/2 right-2 rounded-full z-10" onClick={() => emblaApi?.scrollNext()}><ArrowRight /></Button>
-        </div>
+            <div className="promo-hero__progress">
+                <div className="promo-hero__progress__inner" style={{ width: `${progress}%` }} />
+            </div>
+        </section>
     );
 }
