@@ -40,12 +40,16 @@ All endpoints are prefixed with `/api/v1`. The base URL depends on your environm
 ### Menu Endpoints
 
 #### `GET /api/v1/menu`
--   **Description:** Retrieves a list of all menu items and categories for your tenant.
+-   **Description:** Retrieves a list of all menu items for your tenant. `MenuItem` objects contain `modifierGroupIds` which can be cross-referenced with the `/modifier_groups` endpoint.
 -   **Response:** An array of `MenuItem` objects.
 
 #### `GET /api/v1/menu/{itemId}`
 -   **Description:** Retrieves a single menu item by its ID.
 -   **Response:** A single `MenuItem` object.
+
+#### `GET /api/v1/modifier_groups`
+-   **Description:** Retrieves a list of all modifier groups (e.g., "Size", "Milk Options") for your tenant.
+-   **Response:** An array of `ModifierGroup` objects.
 
 ### Order Endpoints
 
@@ -58,7 +62,7 @@ All endpoints are prefixed with `/api/v1`. The base URL depends on your environm
 -   **Response:** An array of `Order` objects.
 
 #### `POST /api/v1/orders`
--   **Description:** Creates a new order. This is useful for POS integrations where an order is taken in person but needs to be sent to the Qordia Kitchen Display System.
+-   **Description:** Creates a new order. This is useful for POS integrations. Order items can include a `customizations` object.
 -   **Request Body:** A JSON object representing the new order.
 -   **Response:** The newly created `Order` object.
 
@@ -75,6 +79,17 @@ All endpoints are prefixed with `/api/v1`. The base URL depends on your environm
     }
     ```
 -   **Response:** The updated `Order` object.
+
+### Table Endpoints
+
+#### `GET /api/v1/tables`
+-   **Description:** Retrieves a list of all configured tables for your tenant.
+-   **Response:** An array of `Table` objects.
+
+#### `GET /api/v1/tables/{tableId}`
+-   **Description:** Retrieves a single table by its ID.
+-   **Response:** A single `Table` object.
+
 
 ---
 
