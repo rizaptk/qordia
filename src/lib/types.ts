@@ -1,5 +1,6 @@
 
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -115,6 +116,7 @@ export type SubscriptionPlan = {
   price: number;
   features: string[];
   tableLimit?: number;
+  trialPeriodDays?: number;
 };
 
 export type CustomRole = {

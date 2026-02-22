@@ -201,7 +201,8 @@
         "name": { "type": "string" },
         "price": { "type": "number", "description": "Monthly price in USD." },
         "features": { "type": "array", "items": { "type": "string" } },
-        "tableLimit": { "type": "number", "description": "The maximum number of tables this plan allows. 0 for unlimited." }
+        "tableLimit": { "type": "number", "description": "The maximum number of tables this plan allows. 0 for unlimited." },
+        "trialPeriodDays": { "type": "number", "description": "Number of days for a trial period. 0 means no trial." }
       },
       "required": ["id", "name", "price"]
     },
