@@ -11,6 +11,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Banknote, LifeBuoy, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { TicketDetailDialog } from '@/components/platform/ticket-detail-dialog';
 
 type Status = 'new' | 'in-progress' | 'resolved';
 
@@ -29,7 +30,7 @@ const priorityStyles: Record<SupportTicket['priority'], string> = {
 };
 
 
-function TicketCard({ ticket }: { ticket: SupportTicket }) {
+function TicketCard({ ticket, onSelect }: { ticket: SupportTicket; onSelect: () => void; }) {
     const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
         e.dataTransfer.setData('ticketId', ticket.id);
     };
@@ -45,7 +46,8 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
         <Card 
             draggable 
             onDragStart={handleDragStart}
-            className="mb-4 cursor-grab active:cursor-grabbing"
+            onClick={onSelect}
+            className="mb-4 cursor-pointer active:cursor-grabbing hover:bg-muted/80 transition-colors"
         >
             <CardHeader className='pb-2'>
                 <div className='flex justify-between items-start'>
@@ -79,10 +81,12 @@ function StatusColumn({
     status, 
     tickets,
     onDrop,
+    onTicketSelect,
 }: { 
     status: Status, 
     tickets: SupportTicket[],
     onDrop: (status: Status, ticketId: string) => void,
+    onTicketSelect: (ticket: SupportTicket) => void;
 }) {
     const [isOver, setIsOver] = useState(false);
 
@@ -118,7 +122,7 @@ function StatusColumn({
             <h2 className="text-lg font-semibold mb-4 capitalize">{statusLabels[status]} ({tickets.length})</h2>
             <div className="space-y-4">
                 {tickets.map(ticket => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
+                    <TicketCard key={ticket.id} ticket={ticket} onSelect={() => onTicketSelect(ticket)} />
                 ))}
                 {tickets.length === 0 && (
                     <div className="text-center text-muted-foreground py-10">No tickets here.</div>
@@ -132,6 +136,7 @@ function StatusColumn({
 export default function SupportPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
+    const [viewingTicket, setViewingTicket] = useState<SupportTicket | null>(null);
     
     const ticketsRef = useMemoFirebase(() => 
         firestore ? collection(firestore, 'support_tickets') : null,
@@ -167,14 +172,11 @@ export default function SupportPage() {
         return grouped;
     }, [allTickets, priorityOrder]);
 
-    const handleTicketDrop = async (newStatus: Status, ticketId: string) => {
+    const updateTicketStatus = async (ticket: SupportTicket, newStatus: Status) => {
         if (!firestore) return;
     
-        const ticket = allTickets?.find(t => t.id === ticketId);
-        if (!ticket) return;
-    
         const batch = writeBatch(firestore);
-        const ticketRef = doc(firestore, 'support_tickets', ticketId);
+        const ticketRef = doc(firestore, 'support_tickets', ticket.id);
     
         const updateData: any = { status: newStatus };
         if (newStatus === 'resolved') {
@@ -182,17 +184,16 @@ export default function SupportPage() {
         }
         batch.update(ticketRef, updateData);
     
-        // If a payment ticket is resolved, activate the tenant's subscription
         if (newStatus === 'resolved' && ticket.type === 'payment' && ticket.paymentDetails) {
             const tenantRef = doc(firestore, 'tenants', ticket.tenantId);
             const nextBillingDate = new Date();
-            nextBillingDate.setDate(nextBillingDate.getDate() + 30); // Activate for 30 days
+            nextBillingDate.setDate(nextBillingDate.getDate() + 30);
     
             batch.update(tenantRef, {
                 subscriptionStatus: 'active',
                 planId: ticket.paymentDetails.planId,
                 nextBillingDate: Timestamp.fromDate(nextBillingDate),
-                hasUsedTrial: true, // Mark trial as used on first payment
+                hasUsedTrial: true,
             });
             
             toast({
@@ -204,7 +205,7 @@ export default function SupportPage() {
         try {
             await batch.commit();
 
-            if (newStatus === 'resolved' && ticket) {
+            if (newStatus === 'resolved' && ticket.type !== 'feedback') {
                 const managerNotification = {
                     userId: ticket.submittedByUid,
                     title: `Ticket Resolved: "${ticket.subject}"`,
@@ -217,6 +218,7 @@ export default function SupportPage() {
                 const notificationsRef = collection(firestore, 'users', ticket.submittedByUid, 'notifications');
                 addDocumentNonBlocking(notificationsRef, managerNotification);
             }
+            setViewingTicket(null); // Close dialog on successful update
         } catch (error) {
             console.error("Error updating ticket status:", error);
             toast({
@@ -227,26 +229,43 @@ export default function SupportPage() {
         }
     };
 
+    const handleTicketDrop = (newStatus: Status, ticketId: string) => {
+        const ticket = allTickets?.find(t => t.id === ticketId);
+        if (ticket) {
+            updateTicketStatus(ticket, newStatus);
+        }
+    };
+
+
     if (isLoading) {
         return <div className="text-center text-muted-foreground p-8">Loading support tickets...</div>;
     }
 
     return (
-        <div className="flex flex-col h-full">
-             <div className="mb-6">
-                <h1 className="text-3xl font-bold">Support Ticket Board</h1>
-                <p className="text-muted-foreground">Manage and resolve support requests from tenants.</p>
+        <>
+            <div className="flex flex-col h-full">
+                <div className="mb-6">
+                    <h1 className="text-3xl font-bold">Support Ticket Board</h1>
+                    <p className="text-muted-foreground">Manage and resolve support requests from tenants.</p>
+                </div>
+                <div className="flex-grow flex gap-6">
+                    {TICKET_STATUSES.map(status => (
+                        <StatusColumn 
+                            key={status}
+                            status={status}
+                            tickets={ticketsByStatus[status]}
+                            onDrop={handleTicketDrop}
+                            onTicketSelect={setViewingTicket}
+                        />
+                    ))}
+                </div>
             </div>
-            <div className="flex-grow flex gap-6">
-                {TICKET_STATUSES.map(status => (
-                    <StatusColumn 
-                        key={status}
-                        status={status}
-                        tickets={ticketsByStatus[status]}
-                        onDrop={handleTicketDrop}
-                    />
-                ))}
-            </div>
-        </div>
+            <TicketDetailDialog 
+                ticket={viewingTicket}
+                isOpen={!!viewingTicket}
+                onOpenChange={() => setViewingTicket(null)}
+                onUpdateStatus={updateTicketStatus}
+            />
+        </>
     );
 }
