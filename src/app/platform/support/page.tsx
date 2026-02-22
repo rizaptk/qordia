@@ -2,13 +2,15 @@
 'use client';
 
 import { useMemo, useState, DragEvent } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, Timestamp } from 'firebase/firestore';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, doc, Timestamp, writeBatch } from 'firebase/firestore';
 import type { SupportTicket } from '@/lib/types';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Banknote, LifeBuoy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type Status = 'new' | 'in-progress' | 'resolved';
 
@@ -31,6 +33,8 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
     const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
         e.dataTransfer.setData('ticketId', ticket.id);
     };
+    
+    const isPaymentTicket = ticket.type === 'payment';
 
     return (
         <Card 
@@ -40,12 +44,23 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
         >
             <CardHeader className='pb-2'>
                 <div className='flex justify-between items-start'>
-                    <CardTitle className="text-base">{ticket.subject}</CardTitle>
+                    <CardTitle className="text-base flex items-center gap-2">
+                        {isPaymentTicket ? <Banknote className="h-5 w-5 text-green-600" /> : <LifeBuoy className="h-5 w-5 text-blue-600" />}
+                        {ticket.subject}
+                    </CardTitle>
                     <Badge variant="outline" className={cn('capitalize', priorityStyles[ticket.priority])}>{ticket.priority}</Badge>
                 </div>
                 <p className='text-xs text-muted-foreground font-mono'>{ticket.tenantName}</p>
             </CardHeader>
             <CardContent>
+                {isPaymentTicket && ticket.paymentDetails && (
+                    <div className="mb-2 p-2 bg-muted rounded-md">
+                        <p className="text-sm font-semibold">Payment for: {ticket.paymentDetails.planName}</p>
+                        {ticket.attachmentUrl && (
+                             <a href={ticket.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">View Attachment</a>
+                        )}
+                    </div>
+                )}
                 <p className="text-sm text-muted-foreground line-clamp-3">{ticket.message}</p>
                 <p className="text-xs text-muted-foreground mt-4">
                     {formatDistanceToNow(new Date(ticket.createdAt.seconds * 1000), { addSuffix: true })}
@@ -111,6 +126,7 @@ function StatusColumn({
 
 export default function SupportPage() {
     const firestore = useFirestore();
+    const { toast } = useToast();
     
     const ticketsRef = useMemoFirebase(() => 
         firestore ? collection(firestore, 'support_tickets') : null,
@@ -136,16 +152,49 @@ export default function SupportPage() {
         return grouped;
     }, [allTickets]);
 
-    const handleTicketDrop = (newStatus: Status, ticketId: string) => {
+    const handleTicketDrop = async (newStatus: Status, ticketId: string) => {
         if (!firestore) return;
+    
+        const ticket = allTickets?.find(t => t.id === ticketId);
+        if (!ticket) return;
+    
+        const batch = writeBatch(firestore);
         const ticketRef = doc(firestore, 'support_tickets', ticketId);
-        
-        const updateData: { status: Status, resolvedAt?: Timestamp } = { status: newStatus };
+    
+        const updateData: any = { status: newStatus };
         if (newStatus === 'resolved') {
-            updateData.resolvedAt = Timestamp.now();
+          updateData.resolvedAt = Timestamp.now();
         }
-        
-        updateDocumentNonBlocking(ticketRef, updateData);
+        batch.update(ticketRef, updateData);
+    
+        // If a payment ticket is resolved, activate the tenant's subscription
+        if (newStatus === 'resolved' && ticket.type === 'payment' && ticket.paymentDetails) {
+            const tenantRef = doc(firestore, 'tenants', ticket.tenantId);
+            const nextBillingDate = new Date();
+            nextBillingDate.setDate(nextBillingDate.getDate() + 30); // Activate for 30 days
+    
+            batch.update(tenantRef, {
+                subscriptionStatus: 'active',
+                planId: ticket.paymentDetails.planId,
+                nextBillingDate: Timestamp.fromDate(nextBillingDate),
+            });
+            
+            toast({
+                title: 'Subscription Activated!',
+                description: `${ticket.tenantName}'s plan has been successfully activated.`
+            });
+        }
+    
+        try {
+            await batch.commit();
+        } catch (error) {
+            console.error("Error updating ticket status:", error);
+            toast({
+                variant: "destructive",
+                title: "Update Failed",
+                description: "Could not update the ticket status."
+            });
+        }
     };
 
     if (isLoading) {

@@ -2,6 +2,7 @@
 
 
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -86,7 +87,7 @@ export type Tenant = {
     ownerId: string;
     createdAt: { seconds: number; nanoseconds: number };
     planId?: string;
-    subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';
+    subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled' | 'pending_payment';
     nextBillingDate?: { seconds: number; nanoseconds: number };
     staffUids?: string[];
     hasUsedTrial?: boolean;
@@ -150,12 +151,18 @@ export type SupportTicket = {
     tenantId: string;
     tenantName: string;
     submittedByUid: string;
+    type: 'support' | 'payment';
     subject: string;
     message: string;
     priority: 'normal' | 'high' | 'urgent';
     status: 'new' | 'in-progress' | 'resolved';
     createdAt: { seconds: number; nanoseconds: number; };
     resolvedAt?: { seconds: number; nanoseconds: number; };
+    attachmentUrl?: string;
+    paymentDetails?: {
+        planId: string;
+        planName: string;
+    };
 }
 
 export type Shift = {
