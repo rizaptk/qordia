@@ -39,6 +39,10 @@ All endpoints are prefixed with `/api/v1`. The base URL depends on your environm
 
 ### Menu Endpoints
 
+#### `GET /api/v1/menu_categories`
+-   **Description:** Retrieves a list of all menu categories for your tenant.
+-   **Response:** An array of `MenuCategory` objects.
+
 #### `GET /api/v1/menu`
 -   **Description:** Retrieves a list of all menu items for your tenant. `MenuItem` objects contain `modifierGroupIds` which can be cross-referenced with the `/modifier_groups` endpoint.
 -   **Response:** An array of `MenuItem` objects.
@@ -99,6 +103,13 @@ Here is an example of how to fetch your menu items using cURL:
 
 ```bash
 curl "https://<your-qordia-domain>/api/v1/menu" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+And here is an example for fetching menu categories:
+
+```bash
+curl "https://<your-qordia-domain>/api/v1/menu_categories" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
