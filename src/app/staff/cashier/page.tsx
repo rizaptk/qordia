@@ -6,11 +6,11 @@ import { useMemo, useState, useEffect } from 'react';
 import type { Order, MenuItem, CartItem, Shift, ModifierGroup } from '@/lib/types';
 import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useAuth } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
-import { collection, query, where, Timestamp, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, Timestamp, doc, updateDoc, writeBatch } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2, LogOut } from 'lucide-react';
+import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2, LogOut, Bell } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { CategoryChips } from '@/components/menu/category-chips';
@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { useTableStore } from '@/stores/table-store';
 import { useMenuStore } from '@/stores/products-store';
 import { SettleBillDialog } from '@/components/staff/settle-bill-dialog';
+import { Badge } from '@/components/ui/badge';
 
 export type TableBill = {
     tableId: string;
@@ -34,17 +35,11 @@ export type TableBill = {
     orderCount: number;
 }
 
-type TableData = {
-    id: string;
-    tableNumber: string;
-}
-
 export default function CashierPage() {
     const firestore = useFirestore();
     const auth = useAuth();
     const router = useRouter();
     const { user, tenant, isLoading: isAuthLoading } = useAuthStore();
-    const [activeTab, setActiveTab] = useState('pending-payments');
     const { toast } = useToast();
     const TENANT_ID = tenant?.id;
 
@@ -53,6 +48,8 @@ export default function CashierPage() {
     const [orderToRefund, setOrderToRefund] = useState<Order | null>(null);
     const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
     const [selectedBill, setSelectedBill] = useState<TableBill | null>(null);
+    const [activeTab, setActiveTab] = useState('pending-confirmation');
+
 
     // stored data
     const { tables } = useTableStore();
@@ -60,6 +57,27 @@ export default function CashierPage() {
 
     const { menus: menuItems } = useMenuStore();
     const menuMap = useMemo(() => new Map(menuItems.map(m => [m.id, m])), [menuItems]);
+
+    // --- Data for Pending Confirmation Tab ---
+     const pendingOrdersQuery = useMemoFirebase(() => 
+        firestore && TENANT_ID && !isAuthLoading
+        ? query(
+            collection(firestore, `tenants/${TENANT_ID}/orders`), 
+            where('status', '==', 'Pending Confirmation')
+          )
+        : null, 
+        [firestore, TENANT_ID, isAuthLoading]
+    );
+    const { data: pendingOrders, isLoading: isLoadingPending } = useCollection<Order>(pendingOrdersQuery);
+    
+    // Set active tab to pending confirmation if there are any
+    useEffect(() => {
+        if (pendingOrders && pendingOrders.length > 0) {
+            setActiveTab('pending-confirmation');
+        } else {
+            setActiveTab('pending-payments');
+        }
+    }, [pendingOrders]);
 
     // --- Data for Pending Payments Tab ---
     const activeOrdersQuery = useMemoFirebase(() => 
@@ -78,11 +96,10 @@ export default function CashierPage() {
         const tableMap = new Map(tables.map(t => [t.id, t.tableNumber]));
 
         const billsByTable = activeOrders.reduce((acc, order) => {
-            // Group by tableId, but store the friendly tableNumber
             if (!acc[order.tableId]) {
                 acc[order.tableId] = {
                     tableId: order.tableId,
-                    tableNumber: tableMap.get(order.tableId) || order.tableId, // Fallback to ID if not found
+                    tableNumber: tableMap.get(order.tableId) || order.tableId,
                     totalAmount: 0,
                     orderCount: 0,
                 };
@@ -234,7 +251,6 @@ export default function CashierPage() {
             setActiveTab('pending-payments');
 
         } catch(e) {
-            // Non-blocking update will handle error emission, but we can catch other errors
              console.error("Error placing walk-in order:", e);
              toast({
                  variant: "destructive",
@@ -245,6 +261,33 @@ export default function CashierPage() {
             setIsSubmitting(false);
         }
     };
+
+    const handleConfirmFirstOrder = async (order: Order) => {
+        if (!firestore || !TENANT_ID) return;
+        
+        const batch = writeBatch(firestore);
+        
+        const orderRef = doc(firestore, `tenants/${TENANT_ID}/orders`, order.id);
+        batch.update(orderRef, { status: 'Placed' });
+        
+        const tableRef = doc(firestore, `tenants/${TENANT_ID}/tables`, order.tableId);
+        batch.update(tableRef, { status: 'active' });
+        
+        try {
+            await batch.commit();
+            toast({
+                title: "Order Confirmed",
+                description: `Order for Table ${tableMap.get(order.tableId)?.tableNumber || order.tableId} has been sent to the kitchen.`
+            });
+        } catch (error) {
+            console.error("Error confirming order:", error);
+            toast({
+                variant: "destructive",
+                title: "Confirmation Failed",
+                description: "Could not confirm the order."
+            });
+        }
+    }
     
     // --- Data for Paid & Refunded Tabs ---
     const [paidSearchTerm, setPaidSearchTerm] = useState('');
@@ -407,7 +450,7 @@ export default function CashierPage() {
     };
 
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups;
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups || isLoadingPending;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
@@ -432,18 +475,44 @@ export default function CashierPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <div className="flex items-center justify-between">
                     <TabsList>
+                        <TabsTrigger value="pending-confirmation">Pending Confirmation <Badge className="ml-2">{pendingOrders?.length ?? 0}</Badge></TabsTrigger>
                         <TabsTrigger value="pending-payments">Pending Payments</TabsTrigger>
                         <TabsTrigger value="walk-in-order">New Walk-in Order</TabsTrigger>
                         <TabsTrigger value="paid">Paid</TabsTrigger>
                         <TabsTrigger value="refunded">Refunded</TabsTrigger>
                     </TabsList>
-                    {activeTab === 'pending-payments' && (
-                        <Button onClick={() => setActiveTab('walk-in-order')}>
-                            <PlusCircle className="mr-2 h-4 w-4" />
-                            New Walk-in Order
-                        </Button>
-                    )}
                 </div>
+                
+                <TabsContent value="pending-confirmation">
+                    {pendingOrders && pendingOrders.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {pendingOrders.map(order => (
+                                <Card key={order.id} className="border-primary">
+                                    <CardHeader>
+                                        <CardTitle>Table {tableMap.get(order.tableId)?.tableNumber || order.tableId}</CardTitle>
+                                        <CardDescription>
+                                            A new customer has placed their first order.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-sm text-muted-foreground">{order.items.length} item(s)</p>
+                                        <p className="text-2xl font-bold">${(order.totalAmount || 0).toFixed(2)}</p>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button className="w-full" onClick={() => handleConfirmFirstOrder(order)}>
+                                            <Bell className="mr-2 h-4 w-4" />
+                                            Confirm Order
+                                        </Button>
+                                    </CardFooter>
+                                </Card>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center text-muted-foreground py-16 flex flex-col items-center gap-4 border border-dashed rounded-lg">
+                            <p>No new orders are waiting for confirmation.</p>
+                        </div>
+                    )}
+                </TabsContent>
 
                 <TabsContent value="pending-payments">
                     {openBills.length > 0 ? (
@@ -475,7 +544,6 @@ export default function CashierPage() {
                 </TabsContent>
                 <TabsContent value="walk-in-order">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Product Panel (70%) */}
                         <div className="lg:col-span-2">
                             <div className="space-y-4">
                                 <div className="relative">
@@ -510,7 +578,6 @@ export default function CashierPage() {
                             </ScrollArea>
                         </div>
 
-                        {/* Cart Panel (30%) */}
                         <div className="lg:col-span-1">
                             <Card className="sticky top-20">
                                 <CardHeader>

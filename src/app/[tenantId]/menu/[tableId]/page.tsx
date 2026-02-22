@@ -137,10 +137,12 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
         specialNotes: item.specialNotes
     }));
 
+    const newStatus = tableData?.status === 'active' ? 'Placed' : 'Pending Confirmation';
+
     const newOrder = {
         customerId: user.uid,
         tableId: tableId,
-        status: 'Placed' as const,
+        status: newStatus,
         totalAmount: cartTotal,
         orderedAt: Timestamp.now(),
         items: orderItems,
@@ -152,8 +154,8 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
         
         if (docRef?.id) {
             toast({
-                title: "Order Placed!",
-                description: "Your order has been sent to the kitchen.",
+                title: newStatus === 'Placed' ? "Order Placed!" : "Order Submitted for Confirmation!",
+                description: newStatus === 'Placed' ? "Your order has been sent to the kitchen." : "A staff member will confirm your order shortly.",
             });
             clearCart();
             router.push(`/${tenantId}/order/${docRef.id}`);

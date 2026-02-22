@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -63,16 +64,22 @@ export function SettleBillDialog({ bill, isOpen, onOpenChange }: SettleBillDialo
 
 
     const handleSettleBill = async () => {
-        if (!firestore || !TENANT_ID || !orders || orders.length === 0) {
+        if (!firestore || !TENANT_ID || !orders || orders.length === 0 || !bill) {
             toast({ variant: 'destructive', title: 'Error', description: 'No orders to settle.' });
             return;
         }
 
         const batch = writeBatch(firestore);
+        
+        // Mark all orders as completed
         orders.forEach(order => {
             const orderRef = doc(firestore, `tenants/${TENANT_ID}/orders`, order.id);
             batch.update(orderRef, { status: 'Completed' });
         });
+
+        // Reset the table status to inactive
+        const tableRef = doc(firestore, `tenants/${TENANT_ID}/tables`, bill.tableId);
+        batch.update(tableRef, { status: 'inactive' });
 
         try {
             await batch.commit();

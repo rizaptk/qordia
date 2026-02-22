@@ -1,10 +1,11 @@
 
 "use client"
 import type { Order } from '@/lib/types';
-import { Check, ChefHat, Coffee, PackageCheck } from 'lucide-react';
+import { Check, ChefHat, Coffee, PackageCheck, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const statuses: { name: Order['status'], icon: React.ElementType }[] = [
+    { name: 'Pending Confirmation', icon: Bell },
     { name: 'Placed', icon: Check },
     { name: 'In Progress', icon: ChefHat },
     { name: 'Ready', icon: Coffee },

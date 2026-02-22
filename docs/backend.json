@@ -81,11 +81,6 @@
           "type": "string",
           "enum": ["inactive", "active"],
           "description": "The current session status of the table. 'inactive' by default."
-        },
-        "sessionExpiresAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Timestamp for when the current active session expires."
         }
       },
       "required": ["id", "tableNumber"]

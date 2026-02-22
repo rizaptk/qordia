@@ -76,7 +76,6 @@ export type Table = {
     qrCodeIdentifier: string;
     menuStyle?: 'default' | 'carousel' | '3d' | 'promo';
     status?: 'inactive' | 'active';
-    sessionExpiresAt?: { seconds: number; nanoseconds: number };
 }
 
 export type Tenant = {

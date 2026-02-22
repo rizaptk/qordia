@@ -12,6 +12,7 @@ import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const statusMessages = {
+  'Pending Confirmation': "Your order is waiting for staff confirmation.",
   Placed: "We've received your order and will start preparing it soon.",
   'In Progress': "Our team is now preparing your items with care.",
   Ready: "Your order is ready for pickup at the counter!",
@@ -81,5 +82,3 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ tenant
     </main>
   );
 }
-
-    

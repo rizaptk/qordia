@@ -82,3 +82,23 @@ For tenants on the Pro plan, the analytics dashboard includes an AI-powered assi
 Instead of just looking at raw charts, a manager can click "Generate Summary" to get a concise, natural-language analysis of their sales data. The AI identifies best-selling items, peak hours, and overall performance trends.
 
 **Value:** This saves managers time and helps them quickly understand actionable insights without needing to be data experts. It transforms raw data into business intelligence.
+---
+
+## 7. First Order Confirmation: Spam & Fraud Prevention
+
+To prevent fraudulent or spam orders from users who are not physically present, Qordia implements a "First Order Confirmation" workflow.
+
+**The Problem:**
+Since the customer menu is a web page, anyone with the link could potentially place fake orders, causing confusion and wasting resources in the kitchen.
+
+**The Qordia Solution: A Trusted Table Session**
+Instead of using intrusive location tracking, Qordia creates a trusted session for each table.
+
+*   **Initial State:** All tables are considered `Inactive`.
+*   **First Order Pending:** When a customer at an inactive table places their first order, it does **not** go to the kitchen. Instead, it enters a `Pending Confirmation` state.
+*   **Staff Verification:** This pending order appears on the cashier's terminal, prompting them to confirm the new session. With a single glance to verify the table is occupied, the staff member taps "Confirm."
+*   **Session Activated:** Confirming the order simultaneously sends it to the kitchen and sets the table's status to `Active`.
+*   **Frictionless Subsequent Orders:** For the rest of the dining session, all further orders from that table are trusted and sent directly to the kitchen without needing confirmation.
+*   **Session End:** The session remains active until the cashier settles the final bill for that table, at which point the table's status is reset to `Inactive`.
+
+**Value:** This system provides robust protection against spam with minimal operational overhead—just one quick tap per table, per dining session. It maintains an effortless customer experience while giving staff full control.
