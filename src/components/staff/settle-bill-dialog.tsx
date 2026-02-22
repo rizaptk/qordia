@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { Order, OrderItem } from '@/lib/types';
 import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
@@ -12,6 +11,8 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type TableBill } from '@/app/staff/cashier/page';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 type SettleBillDialogProps = {
     bill: TableBill | null;
@@ -24,6 +25,8 @@ export function SettleBillDialog({ bill, isOpen, onOpenChange }: SettleBillDialo
     const { tenant } = useAuthStore();
     const { toast } = useToast();
     const TENANT_ID = tenant?.id;
+
+    const [amountPaid, setAmountPaid] = useState<number | undefined>();
 
     const tableOrdersQuery = useMemoFirebase(() =>
         firestore && TENANT_ID && bill
@@ -45,6 +48,19 @@ export function SettleBillDialog({ bill, isOpen, onOpenChange }: SettleBillDialo
 
         return { billItems: allItems, totalAmount: total };
     }, [orders]);
+    
+    const changeDue = useMemo(() => {
+        if (amountPaid === undefined || amountPaid < totalAmount) return 0;
+        return amountPaid - totalAmount;
+    }, [amountPaid, totalAmount]);
+    
+    // Reset amount paid when dialog opens for a new bill
+    useEffect(() => {
+        if(isOpen) {
+            setAmountPaid(undefined);
+        }
+    }, [isOpen, bill]);
+
 
     const handleSettleBill = async () => {
         if (!firestore || !TENANT_ID || !orders || orders.length === 0) {
@@ -81,7 +97,7 @@ export function SettleBillDialog({ bill, isOpen, onOpenChange }: SettleBillDialo
                     {isLoadingOrders ? (
                         <div className="text-center text-muted-foreground py-16">Loading bill...</div>
                     ) : billItems.length > 0 ? (
-                        <ScrollArea className="h-96">
+                        <ScrollArea className="h-64">
                             <div className="space-y-4 pr-6">
                                 {billItems.map((item, index) => (
                                     <div key={`${item.menuItemId}-${index}`} className="flex justify-between items-start">
@@ -110,12 +126,30 @@ export function SettleBillDialog({ bill, isOpen, onOpenChange }: SettleBillDialo
                             <span>Total Due</span>
                             <span>${totalAmount.toFixed(2)}</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <Button variant="outline">Cash</Button>
-                            <Button variant="outline">Card</Button>
-                            <Button variant="outline">QR Pay</Button>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="amount-paid">Cash Received</Label>
+                            <Input 
+                                id="amount-paid"
+                                type="number"
+                                placeholder="0.00"
+                                value={amountPaid ?? ''}
+                                onChange={(e) => setAmountPaid(e.target.value ? parseFloat(e.target.value) : undefined)}
+                            />
                         </div>
-                        <Button size="lg" onClick={handleSettleBill}>
+                        
+                        {(amountPaid !== undefined && amountPaid > 0) && (
+                             <div className="flex justify-between text-xl font-semibold text-primary">
+                                <span>Change Due</span>
+                                <span>${changeDue.toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        <Button 
+                            size="lg" 
+                            onClick={handleSettleBill}
+                            disabled={amountPaid === undefined || amountPaid < totalAmount}
+                        >
                             Mark as Paid & Close Table
                         </Button>
                     </DialogFooter>
