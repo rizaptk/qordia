@@ -1,22 +1,15 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { use, useEffect, useMemo, useState } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { QordiaLogo } from '@/components/logo';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
 import { useTableStore } from '@/stores/table-store';
-
-type Table = {
-    tableNumber: string;
-}
 
 export default function TableEntryPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
   const { tenantId, tableId } = use(params);
-  const firestore = useFirestore();
 
   const [isMount, setIsMount] = useState(false);
   useEffect(() => {
@@ -24,14 +17,7 @@ export default function TableEntryPage({ params }: { params: Promise<{ tenantId:
   }, []);
 
   const { getTable } = useTableStore();
-  const tableData = useMemoFirebase(() => isMount ? getTable(tableId) : null ,[tableId, isMount]);
-
-
-  // const tableRef = useMemoFirebase(
-  //   () => (firestore ? doc(firestore, `tenants/${tenantId}/tables`, tableId) : null),
-  //   [firestore, tenantId, tableId]
-  // );
-  // const { data: tableData, isLoading } = useDoc<Table>(tableRef);
+  const tableData = useMemo(() => isMount ? getTable(tableId) : null ,[tableId, isMount]);
 
   const tableNumber = !isMount ? '...' : (tableData ? tableData.tableNumber : tableId);
 

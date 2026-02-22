@@ -14,14 +14,15 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/stores/cart-store"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { Scaling, Droplet, Beaker, SlidersHorizontal, PlusSquare, Bot } from "lucide-react"
+import { 
+  Scaling, Droplet, Beaker, SlidersHorizontal, 
+  PlusSquare, Bot, FileText, X 
+} from "lucide-react"
 
 type CustomizationDialogProps = {
   item: MenuItem | null
@@ -35,27 +36,23 @@ type CustomizationDialogProps = {
 type SelectedOptions = Record<string, ModifierOption[]>;
 
 const groupIcons: { [key: string]: React.ElementType } = {
-  'size': Scaling,
-  'milk': Droplet,
-  'syrup': Beaker,
-  'flavor': Beaker,
-  'sweetness': SlidersHorizontal,
-  'add-on': PlusSquare,
+  'size': Scaling, 'milk': Droplet, 'syrup': Beaker, 'flavor': Beaker,
+  'sweetness': SlidersHorizontal, 'add-on': PlusSquare,
 };
 
 const IconForGroup = ({ groupName }: { groupName: string }) => {
   const lowerGroupName = groupName.toLowerCase();
   const iconKey = Object.keys(groupIcons).find(key => lowerGroupName.includes(key));
   const Icon = iconKey ? groupIcons[iconKey] : Bot;
-  return <Icon className="h-5 w-5 text-muted-foreground" />;
+  return <Icon className="h-5 w-5" />;
 };
-
 
 export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups, onAddToCart, itemToEdit }: CustomizationDialogProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({});
   const [specialNotes, setSpecialNotes] = useState("")
-  const [totalPrice, setTotalPrice] = useState(item?.price || 0)
+  const [totalPrice, setTotalPrice] = useState(item?.price || 0);
+  const [activePanel, setActivePanel] = useState<string | 'note' | null>(null);
 
   const { addToCart, updateCartItem } = useCartStore();
   const { toast } = useToast();
@@ -65,47 +62,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
     return modifierGroups.filter(g => item.modifierGroupIds?.includes(g.id));
   }, [item, modifierGroups]);
 
- useEffect(() => {
-    if (!isOpen) {
-      setQuantity(1);
-      setSpecialNotes("");
-      setSelectedOptions({});
-      return;
-    }
-
-    if (itemToEdit && item) { // Edit mode
-        setQuantity(itemToEdit.quantity);
-        setSpecialNotes(itemToEdit.specialNotes);
-        
-        const initialSelections: SelectedOptions = {};
-        relevantGroups.forEach(group => {
-            const selectedNamesString = itemToEdit.customizations[group.name];
-            if (selectedNamesString) {
-                const selectedNames = selectedNamesString.split(', ');
-                const selectedInGroup = group.options.filter(opt => selectedNames.includes(opt.name));
-                initialSelections[group.id] = selectedInGroup;
-            } else {
-                initialSelections[group.id] = [];
-            }
-        });
-        setSelectedOptions(initialSelections);
-
-    } else if (item) { // Add mode
-        const initialSelections: SelectedOptions = {};
-        relevantGroups.forEach(group => {
-            if (group.selectionType === 'single' && group.options.length > 0) {
-                initialSelections[group.id] = [group.options[0]];
-            } else {
-                initialSelections[group.id] = [];
-            }
-        });
-        setSelectedOptions(initialSelections);
-        setQuantity(1);
-        setSpecialNotes("");
-    }
-  }, [item, isOpen, relevantGroups, itemToEdit]);
-
-
+  // Pricing Logic
   useEffect(() => {
     if (!item) return;
     let calculatedPrice = item.price;
@@ -115,207 +72,167 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
     setTotalPrice(calculatedPrice * quantity);
   }, [selectedOptions, quantity, item]);
 
-  const handleSingleSelect = (groupId: string, option: ModifierOption) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [groupId]: [option],
-    }));
-  };
-
-  const handleMultiSelect = (groupId: string, option: ModifierOption, checked: boolean | 'indeterminate') => {
-    setSelectedOptions(prev => {
-      const currentSelections = prev[groupId] || [];
-      if (checked) {
-        return { ...prev, [groupId]: [...currentSelections, option] };
-      } else {
-        return { ...prev, [groupId]: currentSelections.filter(o => o.name !== option.name) };
-      }
-    });
-  };
-
-  const isAddToCartDisabled = useMemo(() => {
-    return relevantGroups.some(group => group.required && (!selectedOptions[group.id] || selectedOptions[group.id].length === 0));
-  }, [relevantGroups, selectedOptions]);
-
-  const handleConfirmClick = () => {
-    if (!item || isAddToCartDisabled) return;
-
-    const finalCustomizations: { [key: string]: string } = {};
-    Object.entries(selectedOptions).forEach(([groupId, selections]) => {
-      const group = relevantGroups.find(g => g.id === groupId);
-      if (group && selections.length > 0) {
-        finalCustomizations[group.name] = selections.map(s => s.name).join(', ');
-      }
-    });
-
-    if (itemToEdit) { // UPDATE logic
-        const updatedCartItem: Partial<CartItem> = {
-            quantity,
-            customizations: finalCustomizations,
-            specialNotes,
-            price: totalPrice,
-        };
-        if (onAddToCart) {
-            // This case is for the cashier walk-in flow, which doesn't have an edit feature yet.
-        } else {
-            updateCartItem(itemToEdit.id, updatedCartItem);
-        }
-        toast({
-            title: "Item Updated",
-            description: `${item.name} has been updated in your order.`,
+  // Reset/Edit Logic
+  useEffect(() => {
+    if (!isOpen) { setActivePanel(null); return; }
+    if (itemToEdit && item) {
+        setQuantity(itemToEdit.quantity);
+        setSpecialNotes(itemToEdit.specialNotes);
+        const initial: SelectedOptions = {};
+        relevantGroups.forEach(g => {
+            const names = itemToEdit.customizations[g.name]?.split(', ') || [];
+            initial[g.id] = g.options.filter(opt => names.includes(opt.name));
         });
-
-    } else { // ADD logic
-        const newCartItem: CartItem = {
-          id: `${item.id}-${Date.now()}`,
-          menuItem: item,
-          quantity,
-          customizations: finalCustomizations,
-          specialNotes,
-          price: totalPrice,
-        };
-
-        if (onAddToCart) {
-          onAddToCart(newCartItem);
-        } else {
-          addToCart(newCartItem);
-        }
-
-        toast({
-          title: "Added to order",
-          description: `${item.name} has been added to your order.`,
-        })
+        setSelectedOptions(initial);
     }
-    
-    onOpenChange(false);
-  }
+  }, [item, isOpen, relevantGroups, itemToEdit]);
+
+  const toggleOption = (groupId: string, option: ModifierOption, type: 'single' | 'multiple') => {
+    setSelectedOptions(prev => {
+      const current = prev[groupId] || [];
+      if (type === 'single') return { ...prev, [groupId]: [option] };
+      return { ...prev, [groupId]: current.some(o => o.name === option.name) 
+        ? current.filter(o => o.name !== option.name) 
+        : [...current, option] 
+      };
+    });
+  };
 
   if (!item) return null;
-
-  let imageUrl: string | undefined = item.imageUrl;
-  let imageHint: string | undefined;
-
-  if (!imageUrl) {
-    const imagePlaceholder = PlaceHolderImages.find(p => p.id === item.image);
-    if (imagePlaceholder) {
-      imageUrl = imagePlaceholder.imageUrl;
-      imageHint = imagePlaceholder.imageHint;
-    }
-  }
-
+  const imageUrl = item.imageUrl || PlaceHolderImages.find(p => p.id === item.image)?.imageUrl;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] md:max-w-2xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-2xl">{item.name}</DialogTitle>
-          <DialogDescription>{item.description}</DialogDescription>
-        </DialogHeader>
-        <div className="grid md:grid-cols-2 gap-6 flex-grow min-h-0">
-          <div className="relative aspect-video md:aspect-auto rounded-lg overflow-hidden">
-            {imageUrl && (
-              <Image
-                src={imageUrl}
-                alt={item.name}
-                fill
-                className="object-cover"
-                data-ai-hint={imageHint}
-              />
-            )}
-          </div>
+      <DialogContent className="sm:max-w-[425px] md:max-w-2xl h-[95vh] flex flex-col overflow-hidden p-0 gap-0 border-none">
+        
+        {/* Main Wrapper: This container gets blurred */}
+        <div className={cn(
+            "flex flex-col max-h-full h-full transition-all duration-300",
+            activePanel ? "blur-sm scale-[0.98] brightness-75 select-none pointer-events-none" : "blur-0"
+        )}>
+            <div className="p-6 pb-2">
+                <DialogHeader>
+                    <DialogTitle className="font-headline text-2xl">{item.name}</DialogTitle>
+                    <DialogDescription>{item.description}</DialogDescription>
+                </DialogHeader>
+            </div>
 
-          <div className="flex flex-col space-y-6 overflow-y-auto -mr-4 pr-4">
-              {relevantGroups.map(group => (
-                <div key={group.id}>
-                  <Label className="font-semibold flex items-center gap-2 mb-2">
-                    <IconForGroup groupName={group.name} />
-                    {group.name}
-                    {group.required && <span className="text-destructive ml-1">*</span>}
-                     <span className="text-sm text-muted-foreground ml-auto">
-                        {group.selectionType === 'single' ? '(Select 1)' : '(Select multiple)'}
-                    </span>
-                  </Label>
-                    {group.selectionType === 'single' ? (
-                      <RadioGroup
-                        value={JSON.stringify(selectedOptions[group.id]?.[0])}
-                        onValueChange={(valueStr) => handleSingleSelect(group.id, JSON.parse(valueStr))}
-                        className="space-y-2"
-                      >
-                        {group.options.map(option => (
-                          <Label
-                            key={option.name}
-                            htmlFor={`${group.id}-${option.name}`}
-                            className={cn(
-                                "flex cursor-pointer items-center justify-between rounded-md border-2 p-3",
-                                selectedOptions[group.id]?.[0]?.name === option.name
-                                    ? "border-primary bg-primary/5"
-                                    : "border-muted bg-transparent"
-                            )}
-                          >
-                            <div>
-                              <p className="font-medium">{option.name}</p>
-                              {option.priceAdjustment > 0 && (
-                                <p className="text-xs text-muted-foreground">
-                                  +${option.priceAdjustment.toFixed(2)}
-                                </p>
-                              )}
-                            </div>
-                            <RadioGroupItem
-                              value={JSON.stringify(option)}
-                              id={`${group.id}-${option.name}`}
-                            />
-                          </Label>
-                        ))}
-                      </RadioGroup>
-                    ) : (
-                      <div className="space-y-2">
-                        {group.options.map(option => (
-                          <div key={option.name} className="flex items-center justify-between rounded-md border p-3">
-                            <Label htmlFor={`${group.id}-${option.name}`} className="flex items-center gap-3 cursor-pointer">
-                              <Checkbox
-                                id={`${group.id}-${option.name}`}
-                                checked={selectedOptions[group.id]?.some(o => o.name === option.name)}
-                                onCheckedChange={(checked) => handleMultiSelect(group.id, option, checked)}
-                              />
-                              {option.name}
-                            </Label>
-                             {option.priceAdjustment > 0 && <span className="text-sm text-muted-foreground">+${option.priceAdjustment.toFixed(2)}</span>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+            <div className="flex-grow px-6 space-y-6">
+                <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted shadow-inner">
+                    {imageUrl && <Image src={imageUrl} alt={item.name} fill className="object-cover" />}
                 </div>
-              ))}
-            
-            <div className="space-y-2">
-              <Label htmlFor="special-notes" className="font-semibold">Special Notes</Label>
-              <Textarea
-                id="special-notes"
-                placeholder="Any special requests? (e.g., allergies, no foam)"
-                value={specialNotes}
-                onChange={(e) => setSpecialNotes(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="quantity" className="font-semibold">Quantity</Label>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</Button>
-                <Input id="quantity" value={quantity} readOnly className="w-16 text-center" />
-                <Button variant="outline" size="icon" onClick={() => setQuantity(q => q + 1)}>+</Button>
-              </div>
+
+                <div className="flex items-center gap-4 py-2">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {relevantGroups.map(group => (
+                            <Button 
+                                key={group.id}
+                                variant="outline"
+                                size="icon"
+                                className="rounded-xl h-12 w-12 bg-secondary/50 border-none"
+                                onClick={() => setActivePanel(group.id)}
+                            >
+                                <IconForGroup groupName={group.name} />
+                            </Button>
+                        ))}
+                        <Button 
+                            variant="outline"
+                            size="icon"
+                            className="rounded-xl h-12 w-12 bg-secondary/50 border-none"
+                            onClick={() => setActivePanel('note')}
+                        >
+                            <FileText className="h-5 w-5" />
+                        </Button>
+                    </div>
+
+                    <div className="ml-auto flex items-center bg-secondary rounded-xl p-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQuantity(q => Math.max(1, q - 1))}>-</Button>
+                        <span className="w-8 text-center font-bold text-sm">{quantity}</span>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQuantity(q => q + 1)}>+</Button>
+                    </div>
+                </div>
             </div>
 
-          </div>
+            <DialogFooter className="p-4 mt-auto">
+                <div className="w-full flex justify-between items-center">
+                    <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
+                    <Button size="lg" className="rounded-full px-10" onClick={() => onOpenChange(false)}>Add to Order</Button>
+                </div>
+            </DialogFooter>
         </div>
-        <DialogFooter>
-          <div className="w-full flex justify-between items-center">
-            <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
-            <Button type="button" size="lg" onClick={handleConfirmClick} disabled={isAddToCartDisabled}>
-              {itemToEdit ? 'Update Item' : 'Add to Order'}
-            </Button>
-          </div>
-        </DialogFooter>
+
+        {/* Backdrop Overlay (only visible when panel is active) */}
+        {activePanel && (
+            <div 
+                className="absolute inset-0 z-10 bg-transparent cursor-pointer" 
+                onClick={() => setActivePanel(null)} 
+            />
+        )}
+
+        {/* Sliding Customization Panel */}
+        <div className={cn(
+            "absolute inset-x-0 bottom-0 z-20 bg-background/95 backdrop-blur-md border-t rounded-t-[2.5rem] transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex flex-col max-h-[70%]",
+            activePanel ? "translate-y-0" : "translate-y-full"
+        )}>
+            {/* Close Handle / Button */}
+            <div className="flex justify-center p-4">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="rounded-full hover:bg-muted"
+                    onClick={() => setActivePanel(null)}
+                >
+                    <X className="h-6 w-6 text-muted-foreground" />
+                </Button>
+            </div>
+            
+            <div className="px-8 pb-12 overflow-y-auto">
+                {relevantGroups.map(group => group.id === activePanel && (
+                    <div key={group.id} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="space-y-1">
+                            <h3 className="font-bold text-xl">{group.name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                                {group.selectionType === 'single' ? 'Choose one option' : 'Choose as many as you like'}
+                            </p>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            {group.options.map(option => {
+                                const isSelected = selectedOptions[group.id]?.some(o => o.name === option.name);
+                                return (
+                                    <Badge
+                                        key={option.name}
+                                        variant={isSelected ? "default" : "outline"}
+                                        className={cn(
+                                            "px-5 py-3 text-sm rounded-2xl cursor-pointer transition-all border-2",
+                                            isSelected ? "border-primary shadow-lg scale-105" : "border-transparent bg-secondary/50"
+                                        )}
+                                        onClick={() => toggleOption(group.id, option, group.selectionType)}
+                                    >
+                                        {option.name}
+                                        {option.priceAdjustment > 0 && <span className="ml-2 opacity-70">+${option.priceAdjustment}</span>}
+                                    </Badge>
+                                )
+                            })}
+                        </div>
+                    </div>
+                ))}
+
+                {activePanel === 'note' && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <h3 className="font-bold text-xl">Special Notes</h3>
+                        <Textarea
+                            placeholder="Type any instructions here..."
+                            className="min-h-[150px] bg-secondary/30 border-none rounded-2xl focus-visible:ring-1 ring-primary p-4"
+                            value={specialNotes}
+                            onChange={(e) => setSpecialNotes(e.target.value)}
+                        />
+                        <Button className="w-full rounded-2xl h-12" onClick={() => setActivePanel(null)}>
+                            Done
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

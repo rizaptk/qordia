@@ -29,6 +29,7 @@ import { useMenuStore } from "@/stores/products-store";
 import { useTableStore } from "@/stores/table-store";
 import { useCategoryStore } from "@/stores/categories-store";
 import { useModifierGroupStore } from "@/stores/modifiers-store";
+import { useTenantStore } from "@/stores/tenant-store";
 
 
 export default function MenuPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
@@ -55,7 +56,8 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   const { toast } = useToast();
 
   const firestore = useFirestore();
-  const { user, isLoading: isUserLoading, hasAdvancedMenuStyles } = useAuthStore();
+  const { user, isLoading: isUserLoading } = useAuthStore();
+  const { hasAdvancedMenuStyles } = useTenantStore();
 
   // --- Data Store ---
   const { getTable } = useTableStore();
@@ -192,16 +194,15 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
 
   return (
     <Sheet>
-        <div className="min-h-screen bg-muted/30">
-            {menuStyle !== 'promo' && (
-              <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
-                  <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-                      <div className="font-semibold">
-                        {`${tableData?.tableNumber}`}
-                      </div>
-                  </div>
-              </header>
-            )}
+        <div className="min-h-screen bg-muted/30 relative">
+
+            <header className={`bg-background/80 backdrop-blur-sm ${menuStyle !== 'promo' ? 'sticky' : 'absolute w-full'}  top-0 z-40 border-b`}>
+                <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+                    <div className="font-semibold">
+                      {isMount ? `${tableData?.tableNumber}` : '...'}
+                    </div>
+                </div>
+            </header>
 
             {isLoading ? (
               <div className="flex items-center justify-center h-[calc(100vh-4rem)]">

@@ -16,7 +16,7 @@ async function getTenantIdFromApiKey(apiKey: string): Promise<string | null> {
 
 export async function GET(request: Request, { params }: { params: { itemId: string } }) {
     const { firestore } = initializeFirebase();
-    const headersList = headers();
+    const headersList = await headers();
     const authHeader = headersList.get('Authorization');
     const { itemId } = params;
 

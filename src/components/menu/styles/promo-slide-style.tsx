@@ -19,8 +19,8 @@ interface StyleProps {
 
 export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
     const [emblaRef, emblaApi] = useEmblaCarousel(
-        { loop: true },
-        [Autoplay({ delay: 5000, stopOnInteraction: false }), Fade()]
+        { loop: true, duration: 30 },
+        [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: false })]
     );
     
     const [progress, setProgress] = useState(0);
@@ -48,7 +48,7 @@ export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
         animationFrame = requestAnimationFrame(animate);
         
         emblaApi.on('select', () => setProgress(0));
-        emblaApi.on('reInit', () => setProgress(0));
+        // emblaApi.on('reInit', () => setProgress(0));
         
         return () => cancelAnimationFrame(animationFrame);
     }, [emblaApi, updateProgress]);
@@ -103,7 +103,7 @@ export function PromoSlideStyle({ menuItems, onSelectItem }: StyleProps) {
                 </div>
             </div>
             <div className="promo-hero__progress">
-                <div className="promo-hero__progress__inner" style={{ width: `${progress}%` }} />
+                <div className="promo-hero__progress__inner" style={{ width: `${progress}%`, transition: progress === 0 ? 'none' : 'width 0.1s linier' }} />
             </div>
         </section>
     );

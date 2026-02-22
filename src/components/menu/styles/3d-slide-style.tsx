@@ -12,7 +12,7 @@ interface StyleProps {
     onSelectItem: (item: MenuItem) => void;
 }
 
-const TWEEN_FACTOR_BASE = 0.5;
+const TWEEN_FACTOR_BASE = 0.25;
 
 export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
     const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -84,7 +84,7 @@ export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
 
 
     return (
-        <div className="py-12">
+        <div className="py-4">
             <div className="embla">
                 <div className="embla__viewport" ref={emblaRef}>
                     <div className="embla__container">
@@ -101,7 +101,7 @@ export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
                     </div>
                 </div>
             </div>
-             <div className="text-center mt-12">
+             <div className="text-center">
                 <p className="text-lg font-semibold">Swipe to browse our featured items</p>
                 <p className="text-muted-foreground">Tap on a card to customize and add to your order.</p>
             </div>

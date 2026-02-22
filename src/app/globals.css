@@ -110,7 +110,7 @@ body {
 }
 
 .embla__slide {
-  flex: 0 0 85%; /* Make slides much wider on mobile */
+  flex: 0 0 95%; /* Make slides much wider on mobile */
   min-width: 0;
   padding: 0 1rem;
   position: relative;
@@ -153,6 +153,7 @@ body {
 .promo-hero__container {
   display: flex;
   height: 100%;
+  will-change: transform;
 }
 
 .promo-hero__slide {
