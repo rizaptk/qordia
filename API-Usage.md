@@ -25,6 +25,8 @@ Authorization: Bearer qordia_live_sk_xxxxxxxxxxxxxxxxxxxxxxxx
 
 Requests made without authentication or with an invalid key will fail with a `401 Unauthorized` error.
 
+**Note on Subscription Status:** API access is tied to your subscription. If your tenant's subscription is `overdue` or `canceled`, all API requests will be rejected with a `403 Forbidden` error.
+
 ---
 
 ## 3. Rate Limiting

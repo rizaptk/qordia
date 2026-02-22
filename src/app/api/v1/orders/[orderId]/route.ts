@@ -1,17 +1,37 @@
 import { NextResponse } from 'next/server';
 import { initializeFirebase } from '@/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, type Firestore } from 'firebase/firestore';
 import { headers } from 'next/headers';
+import type { Tenant } from '@/lib/types';
 
-// This is a placeholder for a real API key validation mechanism.
-// In a real app, you would look up the key hash in the database.
-async function getTenantIdFromApiKey(apiKey: string): Promise<string | null> {
-    if (apiKey.startsWith('qordia_live_sk_')) {
-        // For this PoC, we'll assume any valid-looking key belongs to our test tenant.
-        // A real implementation would query the 'api_keys' collection.
-        return 'qordiapro-tenant';
+// This function validates the API key and checks the tenant's subscription status.
+async function validateApiKey(apiKey: string, firestore: Firestore): Promise<{ tenantId: string } | { error: string, status: number }> {
+    if (!apiKey.startsWith('qordia_live_sk_')) {
+        return { error: 'Unauthorized: Invalid API key format.', status: 401 };
     }
-    return null;
+    
+    // Placeholder: In a real app, you'd look up the tenantId from a secure API key store.
+    const tenantId = 'qordiapro-tenant'; 
+
+    try {
+        const tenantRef = doc(firestore, 'tenants', tenantId);
+        const tenantSnap = await getDoc(tenantRef);
+
+        if (!tenantSnap.exists()) {
+            return { error: 'Unauthorized: Tenant not found.', status: 401 };
+        }
+        
+        const tenant = tenantSnap.data() as Tenant;
+        
+        if (tenant.subscriptionStatus !== 'active' && tenant.subscriptionStatus !== 'trialing') {
+            return { error: `Forbidden: Tenant subscription status is "${tenant.subscriptionStatus}". API access is disabled.`, status: 403 };
+        }
+        
+        return { tenantId };
+    } catch (e) {
+        console.error("API Authentication Error:", e);
+        return { error: 'Internal Server Error during authentication.', status: 500 };
+    }
 }
 
 export async function GET(request: Request, { params }: { params: { orderId: string } }) {
@@ -25,11 +45,13 @@ export async function GET(request: Request, { params }: { params: { orderId: str
     }
 
     const apiKey = authHeader.split(' ')[1];
-    const tenantId = await getTenantIdFromApiKey(apiKey);
+    const validationResult = await validateApiKey(apiKey, firestore);
 
-    if (!tenantId) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid API key.' }, { status: 401 });
+    if ('error' in validationResult) {
+        return NextResponse.json({ error: validationResult.error }, { status: validationResult.status });
     }
+
+    const { tenantId } = validationResult;
 
     try {
         const orderRef = doc(firestore, `tenants/${tenantId}/orders`, orderId);
@@ -64,11 +86,13 @@ export async function PATCH(request: Request, { params }: { params: { orderId: s
     }
 
     const apiKey = authHeader.split(' ')[1];
-    const tenantId = await getTenantIdFromApiKey(apiKey);
+    const validationResult = await validateApiKey(apiKey, firestore);
 
-    if (!tenantId) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid API key.' }, { status: 401 });
+    if ('error' in validationResult) {
+        return NextResponse.json({ error: validationResult.error }, { status: validationResult.status });
     }
+
+    const { tenantId } = validationResult;
 
     try {
         const body = await request.json();
