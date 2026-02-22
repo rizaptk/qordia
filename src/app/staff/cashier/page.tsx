@@ -10,7 +10,6 @@ import { collection, query, where, Timestamp, doc, updateDoc } from 'firebase/fi
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { Banknote, PlusCircle, Search, ShoppingCart, Minus, Plus, Loader2, LogOut } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
@@ -26,9 +25,9 @@ import { ShiftSummaryDialog, type ShiftSummaryData } from '@/components/staff/sh
 import { useRouter } from 'next/navigation';
 import { useTableStore } from '@/stores/table-store';
 import { useMenuStore } from '@/stores/products-store';
+import { SettleBillDialog } from '@/components/staff/settle-bill-dialog';
 
-
-type TableBill = {
+export type TableBill = {
     tableId: string;
     tableNumber: string;
     totalAmount: number;
@@ -53,6 +52,7 @@ export default function CashierPage() {
     const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
     const [orderToRefund, setOrderToRefund] = useState<Order | null>(null);
     const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
+    const [selectedBill, setSelectedBill] = useState<TableBill | null>(null);
 
     // stored data
     const { tables } = useTableStore();
@@ -63,21 +63,15 @@ export default function CashierPage() {
 
     // --- Data for Pending Payments Tab ---
     const activeOrdersQuery = useMemoFirebase(() => 
-        firestore && TENANT_ID
+        firestore && TENANT_ID && !isAuthLoading
         ? query(
             collection(firestore, `tenants/${TENANT_ID}/orders`), 
             where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])
           )
         : null, 
-        [firestore, TENANT_ID]
+        [firestore, TENANT_ID, isAuthLoading]
     );
     const { data: activeOrders, isLoading: isLoadingOrders } = useCollection<Order>(activeOrdersQuery);
-
-    // const tablesRef = useMemoFirebase(() => 
-    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
-    //     [firestore, TENANT_ID]
-    // );
-    // const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
 
     const openBills = useMemo(() => {
         if (!activeOrders || !tables) return [];
@@ -108,12 +102,6 @@ export default function CashierPage() {
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // const menuItemsRef = useMemoFirebase(() => 
-    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
-    //     [firestore, TENANT_ID]
-    // );
-    // const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 
     const categoriesRef = useMemoFirebase(() => 
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
@@ -470,8 +458,8 @@ export default function CashierPage() {
                                         <p className="text-sm text-muted-foreground">{bill.orderCount} order(s)</p>
                                     </CardContent>
                                     <CardFooter>
-                                        <Button asChild className="w-full">
-                                            <Link href={`/staff/cashier/${bill.tableId}`}>View & Settle Bill</Link>
+                                        <Button className="w-full" onClick={() => setSelectedBill(bill)}>
+                                            View & Settle Bill
                                         </Button>
                                     </CardFooter>
                                 </Card>
@@ -695,9 +683,15 @@ export default function CashierPage() {
                 summary={shiftSummary}
                 onConfirm={handleConfirmCloseShift}
             />
+            <SettleBillDialog 
+                bill={selectedBill}
+                isOpen={!!selectedBill}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setSelectedBill(null);
+                    }
+                }}
+            />
         </>
     );
 }
-
-    
-    
