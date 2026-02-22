@@ -13,7 +13,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/stores/cart-store"
@@ -62,6 +61,47 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
     return modifierGroups.filter(g => item.modifierGroupIds?.includes(g.id));
   }, [item, modifierGroups]);
 
+  const handleClose = (finalizing: boolean) => {
+    if (finalizing && item) {
+       const customizedPrice = (totalPrice / quantity);
+        const cartItem: CartItem = {
+            id: itemToEdit?.id || `${item.id}-${Date.now()}`,
+            menuItem: item,
+            quantity: quantity,
+            customizations: Object.entries(selectedOptions).reduce((acc, [groupId, options]) => {
+                const group = relevantGroups.find(g => g.id === groupId);
+                if (group && options.length > 0) {
+                    acc[group.name] = options.map(o => o.name).join(', ');
+                }
+                return acc;
+            }, {} as { [key: string]: string }),
+            specialNotes: specialNotes,
+            price: customizedPrice * quantity,
+        };
+
+        if (onAddToCart) {
+            onAddToCart(cartItem);
+        } else if (itemToEdit) {
+            updateCartItem(itemToEdit.id, cartItem);
+        } else {
+            addToCart(cartItem);
+        }
+        toast({
+            title: itemToEdit ? "Item Updated" : "Added to Order",
+            description: `${item.name} is now in your cart.`,
+        });
+    }
+
+    onOpenChange(false);
+    // Short delay to allow dialog to close before resetting state
+    setTimeout(() => {
+        setQuantity(1);
+        setSelectedOptions({});
+        setSpecialNotes("");
+        setActivePanel(null);
+    }, 300);
+  };
+
   // Pricing Logic
   useEffect(() => {
     if (!item) return;
@@ -74,16 +114,21 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
 
   // Reset/Edit Logic
   useEffect(() => {
-    if (!isOpen) { setActivePanel(null); return; }
-    if (itemToEdit && item) {
-        setQuantity(itemToEdit.quantity);
-        setSpecialNotes(itemToEdit.specialNotes);
-        const initial: SelectedOptions = {};
-        relevantGroups.forEach(g => {
-            const names = itemToEdit.customizations[g.name]?.split(', ') || [];
-            initial[g.id] = g.options.filter(opt => names.includes(opt.name));
-        });
-        setSelectedOptions(initial);
+    if (isOpen) {
+        if (itemToEdit && item) {
+            setQuantity(itemToEdit.quantity);
+            setSpecialNotes(itemToEdit.specialNotes);
+            const initial: SelectedOptions = {};
+            relevantGroups.forEach(g => {
+                const names = itemToEdit.customizations[g.name]?.split(', ') || [];
+                initial[g.id] = g.options.filter(opt => names.includes(opt.name));
+            });
+            setSelectedOptions(initial);
+        } else if (item) {
+             setQuantity(1);
+             setSelectedOptions({});
+             setSpecialNotes("");
+        }
     }
   }, [item, isOpen, relevantGroups, itemToEdit]);
 
@@ -101,9 +146,11 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
   if (!item) return null;
   const imageUrl = item.imageUrl || PlaceHolderImages.find(p => p.id === item.image)?.imageUrl;
 
+  const hasSelections = Object.values(selectedOptions).some(opts => opts.length > 0) || specialNotes;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] md:max-w-2xl h-[95vh] flex flex-col overflow-hidden p-0 gap-0 border-none">
+      <DialogContent className="sm:max-w-lg h-[95vh] flex flex-col overflow-hidden p-0 gap-0 border-none">
         
         {/* Main Wrapper: This container gets blurred */}
         <div className={cn(
@@ -117,7 +164,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                 </DialogHeader>
             </div>
 
-            <div className="flex-grow px-6 space-y-6">
+            <div className="flex-grow px-6 space-y-4">
                 <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted shadow-inner">
                     {imageUrl && <Image src={imageUrl} alt={item.name} fill className="object-cover" />}
                 </div>
@@ -151,12 +198,40 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQuantity(q => q + 1)}>+</Button>
                     </div>
                 </div>
+                
+                 <div className="py-2 space-y-2 animate-in fade-in duration-300">
+                    {hasSelections ? (
+                        <div className="text-sm text-muted-foreground space-y-1 rounded-lg bg-secondary/30 p-3">
+                            {relevantGroups.map(group => {
+                                const selected = selectedOptions[group.id];
+                                if (!selected || selected.length === 0) return null;
+                                const optionNames = selected.map(opt => opt.name).join(', ');
+                                return (
+                                    <div key={group.id} className="flex justify-between items-center gap-2">
+                                        <span>{group.name}</span>
+                                        <span className="font-semibold text-right text-foreground">{optionNames}</span>
+                                    </div>
+                                )
+                            })}
+                            {specialNotes && (
+                                <div className="flex justify-between items-start gap-2 pt-1">
+                                    <span>Notes</span>
+                                    <p className="font-semibold text-right text-foreground truncate">{specialNotes}</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-sm text-center text-muted-foreground py-4">
+                            Tap an icon to add customizations.
+                        </div>
+                    )}
+                </div>
             </div>
 
             <DialogFooter className="p-4 mt-auto">
                 <div className="w-full flex justify-between items-center">
                     <span className="text-2xl font-bold">${totalPrice.toFixed(2)}</span>
-                    <Button size="lg" className="rounded-full px-10" onClick={() => onOpenChange(false)}>Add to Order</Button>
+                    <Button size="lg" className="rounded-full px-10" onClick={() => handleClose(true)}>{itemToEdit ? 'Update Item' : 'Add to Order'}</Button>
                 </div>
             </DialogFooter>
         </div>
@@ -171,10 +246,9 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
 
         {/* Sliding Customization Panel */}
         <div className={cn(
-            "absolute inset-x-0 bottom-0 z-20 bg-background/95 backdrop-blur-md border-t rounded-t-[2.5rem] transition-transform duration-500 cubic-bezier(0.4, 0, 0.2, 1) shadow-[0_-10px_40px_rgba(0,0,0,0.2)] flex flex-col max-h-[70%]",
+            "absolute inset-x-0 bottom-0 z-20 bg-background/95 backdrop-blur-md border-t rounded-t-[2.5rem] transition-transform duration-500 ease-in-out flex flex-col max-h-[70%]",
             activePanel ? "translate-y-0" : "translate-y-full"
         )}>
-            {/* Close Handle / Button */}
             <div className="flex justify-center p-4">
                 <Button 
                     variant="ghost" 
@@ -209,7 +283,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                                         onClick={() => toggleOption(group.id, option, group.selectionType)}
                                     >
                                         {option.name}
-                                        {option.priceAdjustment > 0 && <span className="ml-2 opacity-70">+${option.priceAdjustment}</span>}
+                                        {option.priceAdjustment > 0 && <span className="ml-2 opacity-70">+${option.priceAdjustment.toFixed(2)}</span>}
                                     </Badge>
                                 )
                             })}
