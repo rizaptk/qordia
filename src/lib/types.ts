@@ -1,6 +1,7 @@
 
 
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -88,6 +89,7 @@ export type Tenant = {
     subscriptionStatus?: 'active' | 'trialing' | 'overdue' | 'canceled';
     nextBillingDate?: { seconds: number; nanoseconds: number };
     staffUids?: string[];
+    hasUsedTrial?: boolean;
     shopType?: 'cafe' | 'coffee_shop' | 'food_court' | 'small_restaurant';
     logoUrl?: string;
     priceOverride?: number;

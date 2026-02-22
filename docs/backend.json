@@ -14,6 +14,10 @@
         "subscriptionStatus": { "type": "string", "enum": ["active", "trialing", "overdue", "canceled"] },
         "nextBillingDate": { "type": "string", "format": "date-time" },
         "staffUids": { "type": "array", "items": { "type": "string" }, "description": "List of Firebase UIDs for staff members of this tenant." },
+        "hasUsedTrial": {
+          "type": "boolean",
+          "description": "Set to true once a tenant has activated any trial period. Prevents re-subscribing to new trials."
+        },
         "shopType": {
           "type": "string",
           "enum": ["cafe", "coffee_shop", "food_court", "small_restaurant"],

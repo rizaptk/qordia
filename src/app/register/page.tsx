@@ -71,9 +71,10 @@ export default function RegisterPage() {
             name: `${newUser.displayName || data.email.split('@')[0]}'s Cafe`,
             ownerId: newUser.uid,
             createdAt: Timestamp.now(),
-            planId: 'plan_free', // Assign the default free plan
+            planId: 'plan_basic', // Assign a basic plan to start the trial on
             subscriptionStatus: 'trialing',
             nextBillingDate: Timestamp.fromDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)), // 14 day trial
+            hasUsedTrial: true, // Mark trial as used immediately
         };
         const tenantRef = await addDocumentNonBlocking(collection(firestore, 'tenants'), tenantData);
         
