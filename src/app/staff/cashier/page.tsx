@@ -27,6 +27,7 @@ import { useTableStore } from '@/stores/table-store';
 import { useMenuStore } from '@/stores/products-store';
 import { SettleBillDialog } from '@/components/staff/settle-bill-dialog';
 import { Badge } from '@/components/ui/badge';
+import { OpenShiftForm } from '@/components/staff/open-shift-form';
 
 export type TableBill = {
     tableId: string;
@@ -382,28 +383,32 @@ export default function CashierPage() {
     const { data: activeShifts, isLoading: isLoadingShifts } = useCollection<Shift>(activeShiftQuery);
     const activeShift = useMemo(() => (activeShifts && activeShifts.length > 0 ? activeShifts[0] : null), [activeShifts]);
 
-    useEffect(() => {
-        if (!isLoadingShifts && !isAuthLoading && user && TENANT_ID && activeShifts && activeShifts.length === 0) {
-            const createNewShift = async () => {
-                const newShiftData = {
-                    tenantId: TENANT_ID,
-                    cashierId: user.uid,
-                    status: 'active' as const,
-                    startedAt: Timestamp.now(),
-                };
-                try {
-                    await addDocumentNonBlocking(collection(firestore!, `tenants/${TENANT_ID}/shifts`), newShiftData);
-                    toast({
-                        title: "Shift Started",
-                        description: "Your new shift has been automatically started.",
-                    });
-                } catch (e) {
-                    console.error("Failed to start new shift:", e);
-                }
-            };
-            createNewShift();
+    const handleStartShift = async (openingFloat: number) => {
+        if (!firestore || !user || !TENANT_ID) return;
+        
+        const newShiftData = {
+            tenantId: TENANT_ID,
+            cashierId: user.uid,
+            status: 'active' as const,
+            startedAt: Timestamp.now(),
+            openingFloat: openingFloat,
+        };
+        try {
+            await addDocumentNonBlocking(collection(firestore, `tenants/${TENANT_ID}/shifts`), newShiftData);
+            toast({
+                title: "Shift Started",
+                description: "Your new shift has been started.",
+            });
+        } catch (e) {
+            console.error("Failed to start new shift:", e);
+            toast({
+                variant: 'destructive',
+                title: 'Error Starting Shift',
+                description: 'Could not start your shift. Please try again.'
+            });
         }
-    }, [isLoadingShifts, isAuthLoading, user, TENANT_ID, activeShifts, firestore, toast]);
+    };
+
 
     const shiftSummary = useMemo((): ShiftSummaryData | null => {
         if (!activeShift || !completedOrders || !refundedOrders) return null;
@@ -417,6 +422,7 @@ export default function CashierPage() {
         const totalRefunds = refundsInShift.reduce((sum, order) => sum + (order.refundDetails?.refundAmount || 0), 0);
         
         return {
+            openingFloat: activeShift.openingFloat || 0,
             totalOrders: ordersInShift.length,
             totalSales: totalSales,
             totalRefunds: totalRefunds,
@@ -455,6 +461,11 @@ export default function CashierPage() {
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
     }
+
+    if (!isLoadingShifts && !activeShift) {
+        return <OpenShiftForm onShiftStart={handleStartShift} />;
+    }
+
 
     return (
         <>

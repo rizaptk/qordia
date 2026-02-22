@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -9,8 +10,9 @@ import { Separator } from '@/components/ui/separator';
 import { Loader2 } from 'lucide-react';
 
 export type ShiftSummaryData = {
+    openingFloat: number;
     totalOrders: number;
-    totalSales: number;
+    totalSales: number; // For now, this is total sales, not just cash sales
     totalRefunds: number;
 };
 
@@ -34,10 +36,15 @@ export function ShiftSummaryDialog({ isOpen, onOpenChange, summary, onConfirm }:
     const [declaredCash, setDeclaredCash] = useState<string>('');
     const [isClosing, setIsClosing] = useState(false);
 
-    const variance = useMemo(() => {
-        const expected = summary?.totalSales || 0;
+    const { expectedCash, variance } = useMemo(() => {
+        const openingFloat = summary?.openingFloat || 0;
+        const totalSales = summary?.totalSales || 0;
+        // In a real scenario, you'd want to subtract digital payments from totalSales
+        // and only add cash refunds, but for now we use total values.
+        const expectedCashInDrawer = openingFloat + totalSales - (summary?.totalRefunds || 0);
         const declared = parseFloat(declaredCash) || 0;
-        return declared - expected;
+        const variance = declared - expectedCashInDrawer;
+        return { expectedCash: expectedCashInDrawer, variance };
     }, [declaredCash, summary]);
 
     const handleOpenChange = (open: boolean) => {
@@ -51,7 +58,7 @@ export function ShiftSummaryDialog({ isOpen, onOpenChange, summary, onConfirm }:
     const handleConfirm = async () => {
         setIsClosing(true);
         await onConfirm(parseFloat(declaredCash) || 0, variance);
-        setIsClosing(false); // This might not be reached if the user is redirected
+        setIsClosing(false);
     }
 
     return (
@@ -69,6 +76,8 @@ export function ShiftSummaryDialog({ isOpen, onOpenChange, summary, onConfirm }:
                         <SummaryRow label="Total Refunds" value={`-$${summary.totalRefunds.toFixed(2)}`} />
                         
                         <Separator />
+                        
+                        <SummaryRow label="Opening Float" value={`$${summary.openingFloat.toFixed(2)}`} />
 
                         <div className="space-y-2">
                              <Label htmlFor="declared-cash">Declared Cash</Label>
@@ -84,7 +93,7 @@ export function ShiftSummaryDialog({ isOpen, onOpenChange, summary, onConfirm }:
 
                          <Separator />
 
-                         <SummaryRow label="Expected in Register" value={`$${(summary.totalSales).toFixed(2)}`} />
+                         <SummaryRow label="Expected in Register" value={`$${expectedCash.toFixed(2)}`} />
                          <SummaryRow 
                             label="Variance" 
                             value={`${variance < 0 ? '-' : ''}$${Math.abs(variance).toFixed(2)}`}

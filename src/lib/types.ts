@@ -4,6 +4,7 @@
 
 
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -173,6 +174,7 @@ export type Shift = {
   status: 'active' | 'closed';
   startedAt: { seconds: number; nanoseconds: number };
   endedAt?: { seconds: number; nanoseconds: number };
+  openingFloat?: number;
   totalOrders?: number;
   totalSales?: number;
   totalRefunds?: number;

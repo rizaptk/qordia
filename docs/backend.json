@@ -292,6 +292,7 @@
         "status": { "type": "string", "enum": ["active", "closed"] },
         "startedAt": { "type": "string", "format": "date-time" },
         "endedAt": { "type": "string", "format": "date-time" },
+        "openingFloat": { "type": "number", "description": "The starting cash amount in the register." },
         "totalOrders": { "type": "number" },
         "totalSales": { "type": "number" },
         "totalRefunds": { "type": "number" },
