@@ -4,23 +4,25 @@ This document reveals some of the core architectural features of Qordia that, wh
 
 ---
 
-## 1. Aggregated Billing: The "Magic" of a Unified Table Bill
+## 1. Flexible Billing: Unified or Split Payments
 
-One of Qordia's most powerful features is how it handles multiple orders for a single table.
+One of Qordia's most powerful features is how it handles multiple orders for a single table, accommodating both single payers and groups who want to split the bill.
 
 **The Problem:**
-Customers often want to add more items after their initial order. If a new item is added to an existing order that the kitchen is already preparing, it can cause confusion, missed items, and operational chaos.
+Customers often want to add more items after their initial order. If a new item is added to an existing order that the kitchen is already preparing, it can cause confusion, missed items, and operational chaos. Furthermore, groups often need to pay for their own items separately.
 
-**The Qordia Solution: Separate Orders, Unified Bill**
+**The Qordia Solution: Separate Orders, Flexible Billing**
 Qordia elegantly solves this by decoupling the kitchen's workflow from the customer's billing experience.
 
-*   **For the Kitchen:** Every time an order is placed (even from the same table), it is sent to the Kitchen Display System (PDS) as a **new, separate, and clean ticket**. A "Ready" order is never disturbed with new items. This guarantees an unambiguous and stress-free workflow for your baristas and chefs.
+*   **For the Kitchen:** Every time an order is placed (even from the same table), it is sent to the Kitchen Display System (KDS) as a **new, separate, and clean ticket**. A "Ready" order is never disturbed with new items. This guarantees an unambiguous and stress-free workflow for your baristas and chefs.
 
 *   **For the Customer:** Customers can place as many separate orders as they like throughout their visit without friction.
 
-*   **For the Cashier:** This is where the magic happens. The cashier terminal doesn't show a confusing list of separate orders. Instead, it automatically **aggregates all active orders for a table into a single, consolidated "Open Bill."** When the customer is ready to pay, the cashier sees one total amount, and settling the bill closes all associated orders at once.
+*   **For the Cashier:** This is where the magic happens. The cashier terminal automatically **aggregates all active orders for a table into a single, consolidated "Open Bill."** The cashier can then choose how to settle it:
+    *   **Unified Payment:** Settle the entire table's bill in one transaction.
+    *   **Split Payment:** View each individual order within the bill and settle them one by one, allowing each person to pay for exactly what they ordered.
 
-**Value:** This architecture provides the best of both worlds: operational clarity for the kitchen and ultimate convenience for both the customer and the cashier.
+**Value:** This architecture provides the best of both worlds: operational clarity for the kitchen and ultimate convenience and flexibility for both the customer and the cashier.
 
 ---
 
@@ -31,8 +33,8 @@ Qordia is a fully real-time system, powered by Firestore's live data listeners.
 **How it Works:**
 When an action happens on one device, it is instantly reflected on all others.
 
-*   A customer places an order on their phone → it appears instantly on the PDS.
-*   A barista marks an order "Ready" on the PDS tablet → the customer's phone updates and a notification is sent to the runner's device.
+*   A customer places an order on their phone → it appears instantly on the KDS.
+*   A barista marks an order "Ready" on the KDS tablet → the customer's phone updates and a notification is sent to the runner's device.
 *   A manager marks an item "Sold Out" on their dashboard → it is immediately removed from all customer menus.
 
 **Value:** This eliminates the need for staff to shout across the room or manually check on order statuses. It creates a quiet, efficient, and modern operational environment where everyone has access to the most current information.
@@ -43,7 +45,7 @@ When an action happens on one device, it is instantly reflected on all others.
 
 Qordia provides more than just role-based permissions; it delivers **role-optimized workflows**. When a staff member logs in, they are taken directly to the interface that is most relevant to their job.
 
-*   **Barista/Kitchen Staff:** Logs in directly to the **Kitchen Display System (PDS)**. No need to navigate through unnecessary dashboards.
+*   **Barista/Kitchen Staff:** Logs in directly to the **Kitchen Display System (KDS)**. No need to navigate through unnecessary dashboards.
 *   **Runner/Service Staff:** Logs in directly to a view showing only **"Ready" orders** that need to be delivered.
 *   **Cashier:** Logs in directly to the **Cashier Terminal** to manage open bills and payments.
 *   **Manager:** Gets the full **Dashboard View** with analytics, menu management, and operational oversight.
@@ -68,7 +70,7 @@ The database structure (`/tenants/{tenantId}/...`) and security rules ensure tha
 Qordia's features are tied to subscription plans, allowing for flexible and scalable business models.
 
 **How it Works:**
-Features like "Advanced Reporting," "Custom Staff Roles," or "API Access" are not simply hidden in the UI. The system checks the tenant's subscription plan (`Free`, `Basic`, `Pro`) and enables or disables the functionality at a core level.
+Features like "Advanced Reporting," "Custom Staff Roles," or "API Access" are not simply hidden in the UI. The system checks the tenant's subscription plan (`Free`, `Basic`, `Pro`) and enables or disables the functionality at a core level. Even the API will reject requests if a tenant's subscription is not in an active state (`active` or `trialing`).
 
 **Value:** This provides a clear upgrade path for businesses as they grow. They can start with a basic plan and unlock more powerful tools as their needs evolve, creating a sustainable revenue model for the Qordia platform.
 
@@ -94,11 +96,11 @@ Since the customer menu is a web page, anyone with the link could potentially pl
 **The Qordia Solution: A Trusted Table Session**
 Instead of using intrusive location tracking, Qordia creates a trusted session for each table.
 
-*   **Initial State:** All tables are considered `Inactive`.
-*   **First Order Pending:** When a customer at an inactive table places their first order, it does **not** go to the kitchen. Instead, it enters a `Pending Confirmation` state.
-*   **Staff Verification:** This pending order appears on the cashier's terminal, prompting them to confirm the new session. With a single glance to verify the table is occupied, the staff member taps "Confirm."
-*   **Session Activated:** Confirming the order simultaneously sends it to the kitchen and sets the table's status to `Active`.
-*   **Frictionless Subsequent Orders:** For the rest of the dining session, all further orders from that table are trusted and sent directly to the kitchen without needing confirmation.
-*   **Session End:** The session remains active until the cashier settles the final bill for that table, at which point the table's status is reset to `Inactive`.
+*   **Initial State:** All tables start as `Inactive`.
+*   **First Order Pending:** When a customer at an inactive table places their first order, it does **not** go to the kitchen. Instead, it enters a `Pending Confirmation` state and appears on the cashier's terminal.
+*   **Staff Verification:** With a single glance to verify the table is occupied, the staff member taps "Confirm."
+*   **Session Activated:** Confirming the order simultaneously sends it to the kitchen and sets the table's status to `Active`. This trust is established for the **entire table**, not just one customer.
+*   **Frictionless Group Orders:** If another person at the same table orders a minute later, the system sees the table is already `Active`, and their order goes directly to the kitchen without needing a second confirmation.
+*   **Session End:** The session remains active until the cashier settles the final bill for that table, at which point the table's status is reset to `Inactive`, ready for the next group.
 
-**Value:** This system provides robust protection against spam with minimal operational overhead—just one quick tap per table, per dining session. It maintains an effortless customer experience while giving staff full control.
+**Value:** This system provides robust protection against spam with minimal operational overhead—just one quick tap per table, per dining session. It creates a secure ordering environment for groups without adding friction.
