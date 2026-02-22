@@ -69,8 +69,8 @@ export function PaymentProofDialog({ plan, isOpen, onOpenChange }: PaymentProofD
             const ticketsRef = collection(firestore, 'support_tickets');
             await addDocumentNonBlocking(ticketsRef, ticketData);
             
-            const tenantRef = doc(firestore, 'tenants', TENANT_ID);
-            updateDocumentNonBlocking(tenantRef, { subscriptionStatus: 'pending_payment' });
+            // The status is already 'pending_payment', so no need to update it again here.
+            // This dialog is only opened when the status is already pending.
 
             toast({
                 title: "Payment Proof Submitted",
@@ -147,4 +147,3 @@ export function PaymentProofDialog({ plan, isOpen, onOpenChange }: PaymentProofD
         </Dialog>
     );
 }
-

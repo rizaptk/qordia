@@ -2,9 +2,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { SubscriptionPlan } from '@/lib/types';
+import { useFirestore, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc, updateDoc } from 'firebase/firestore';
+import type { SubscriptionPlan, Tenant } from '@/lib/types';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,11 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { PaymentProofDialog } from '@/components/staff/payment-proof-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SubscriptionPage() {
     const firestore = useFirestore();
+    const { toast } = useToast();
     const { tenant, plan: currentPlan } = useAuthStore();
     const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<SubscriptionPlan | null>(null);
 
@@ -30,31 +32,34 @@ export default function SubscriptionPage() {
         return [...plans].sort((a, b) => a.price - b.price);
     }, [plans]);
 
-    const handleSelectPlan = (plan: SubscriptionPlan) => {
+    const handleInitiateSubscriptionChange = async (plan: SubscriptionPlan) => {
+        if (!firestore || !tenant) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not select plan.' });
+            return;
+        }
+
+        const tenantRef = doc(firestore, 'tenants', tenant.id);
+        try {
+            await updateDoc(tenantRef, {
+                planId: plan.id,
+                subscriptionStatus: 'pending_payment'
+            });
+            toast({
+                title: "Plan Selected",
+                description: `Your subscription to the ${plan.name} plan is pending. Please submit your proof of payment to activate it.`,
+            });
+        } catch (error) {
+            console.error("Error initiating subscription change:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not update your plan selection.' });
+        }
+    };
+
+    const handleOpenPaymentDialog = (plan: SubscriptionPlan) => {
         setSelectedPlanForPayment(plan);
     };
-    
-    if (tenant?.subscriptionStatus === 'pending_payment') {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <Card className="max-w-lg text-center">
-                    <CardHeader>
-                        <CardTitle>Payment Pending</CardTitle>
-                        <CardDescription>Your subscription is awaiting payment verification.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Alert>
-                            <Hourglass className="h-4 w-4" />
-                            <AlertTitle>Verification in Progress</AlertTitle>
-                            <AlertDescription>
-                                Our team is currently reviewing your payment proof. Your plan will be activated as soon as it's confirmed. Thank you for your patience!
-                            </AlertDescription>
-                        </Alert>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
+
+    const isSubscriptionPending = tenant?.subscriptionStatus === 'pending_payment';
+    const pendingPlan = isSubscriptionPending ? sortedPlans?.find(p => p.id === tenant?.planId) : null;
 
     if (isLoading) {
         return <div className="text-center text-muted-foreground py-16">Loading subscription plans...</div>;
@@ -66,36 +71,46 @@ export default function SubscriptionPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Manage Subscription</CardTitle>
-                        <CardDescription>Choose the plan that's right for your business. Your current plan is highlighted.</CardDescription>
+                        <CardDescription>Choose the plan that's right for your business.</CardDescription>
                     </CardHeader>
+                    {isSubscriptionPending && pendingPlan && (
+                         <CardContent>
+                            <Alert variant="default" className="border-amber-500/50">
+                                <Hourglass className="h-4 w-4" />
+                                <AlertTitle>Payment Pending for {pendingPlan.name}</AlertTitle>
+                                <AlertDescription className="mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                    <span>Your subscription is awaiting payment verification. Please submit your proof of payment to activate it.</span>
+                                    <Button onClick={() => handleOpenPaymentDialog(pendingPlan)}>Submit Payment Proof</Button>
+                                </AlertDescription>
+                            </Alert>
+                        </CardContent>
+                    )}
                 </Card>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {sortedPlans?.map(plan => {
-                        const isCurrent = plan.id === currentPlan?.id;
-                        const canTrial = !tenant?.hasUsedTrial && plan.trialPeriodDays && plan.trialPeriodDays > 0;
+                        const isCurrent = plan.id === currentPlan?.id && tenant?.subscriptionStatus === 'active';
+                        const isPending = plan.id === tenant?.planId && isSubscriptionPending;
+
                         return (
                             <Card key={plan.id} className={cn(
                                 "flex flex-col",
-                                isCurrent && "border-primary border-2"
+                                isCurrent && "border-primary border-2",
+                                isPending && "border-amber-500 border-2"
                             )}>
                                 <CardHeader>
                                     <div className="flex justify-between items-center">
                                         <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                                            <Gem className={cn(isCurrent ? "text-primary": "text-muted-foreground")} />
+                                            <Gem className={cn(isCurrent ? "text-primary": isPending ? "text-amber-500" : "text-muted-foreground")} />
                                             {plan.name}
                                         </CardTitle>
                                         {isCurrent && <Badge variant="default">Current Plan</Badge>}
+                                        {isPending && <Badge variant="warning">Pending</Badge>}
                                     </div>
                                     <div className="text-sm text-muted-foreground space-y-1">
                                          <div>
                                             <span className="text-3xl font-extrabold text-foreground">${plan.price.toFixed(2)}</span>
                                             <span className="text-muted-foreground">/month</span>
                                         </div>
-                                        {canTrial ? (
-                                            <Badge variant="accent">{plan.trialPeriodDays}-Day Free Trial</Badge>
-                                        ) : tenant?.hasUsedTrial && plan.trialPeriodDays && plan.trialPeriodDays > 0 ? (
-                                            <Badge variant="outline">Trial Previously Used</Badge>
-                                        ) : null}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="flex-grow">
@@ -117,10 +132,10 @@ export default function SubscriptionPage() {
                                 <CardFooter>
                                     <Button 
                                         className="w-full" 
-                                        disabled={isCurrent}
-                                        onClick={() => handleSelectPlan(plan)}
+                                        disabled={isCurrent || isSubscriptionPending}
+                                        onClick={() => handleInitiateSubscriptionChange(plan)}
                                     >
-                                        {isCurrent ? "This is your current plan" : `Switch to ${plan.name}`}
+                                        {isCurrent ? "This is your current plan" : isSubscriptionPending ? "Awaiting Payment" : `Switch to ${plan.name}`}
                                     </Button>
                                 </CardFooter>
                             </Card>
