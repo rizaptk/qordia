@@ -103,7 +103,7 @@ export default function SubscriptionPage() {
                                     </CardTitle>
                                     {isCurrent && <Badge variant="default">Current Plan</Badge>}
                                 </div>
-                                <CardDescription className="space-y-1">
+                                <div className="text-sm text-muted-foreground space-y-1">
                                     <div>
                                         <span className="text-3xl font-extrabold text-foreground">${plan.price}</span>
                                         <span className="text-muted-foreground">/month</span>
@@ -113,7 +113,7 @@ export default function SubscriptionPage() {
                                     ) : tenant?.hasUsedTrial && plan.trialPeriodDays && plan.trialPeriodDays > 0 ? (
                                         <Badge variant="outline">Trial Previously Used</Badge>
                                     ) : null}
-                                </CardDescription>
+                                </div>
                             </CardHeader>
                             <CardContent className="flex-grow">
                                 <ul className="space-y-2">
