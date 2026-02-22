@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from 'react';
-import useEmblaCarousel, { type EmblaCarouselType } from 'embla-carousel-react';
+import useEmblaCarousel from 'embla-carousel-react';
+import {type EmblaCarouselType} from 'embla-carousel';
 import Autoplay from 'embla-carousel-autoplay';
 import Fade from 'embla-carousel-fade';
 import type { MenuItem } from '@/lib/types';

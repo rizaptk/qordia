@@ -9,6 +9,7 @@ import { useCollection, useMemoFirebase } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
+import { useTableStore } from '@/stores/table-store';
 
 type TableData = {
     id: string;
@@ -19,6 +20,8 @@ export default function PDSPage() {
     const firestore = useFirestore();
     const { tenant, isLoading: isAuthLoading } = useAuthStore();
     const TENANT_ID = tenant?.id;
+
+    const { tables } = useTableStore();
 
     const ordersQuery = useMemoFirebase(() => 
         firestore && TENANT_ID
@@ -31,11 +34,11 @@ export default function PDSPage() {
     );
     const { data: orders, isLoading: isLoadingOrders } = useCollection<Order>(ordersQuery);
 
-    const tablesRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
+    // const tablesRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
 
     const { newOrders, inProgressOrders, readyOrders, tableMap } = useMemo(() => {
         const tableMap = new Map(tables?.map(t => [t.id, t.tableNumber]));
@@ -45,7 +48,7 @@ export default function PDSPage() {
         return { newOrders: newOrds, inProgressOrders: inProgress, readyOrders: ready, tableMap };
     }, [orders, tables]);
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingTables;
+    const isLoading = isLoadingOrders || isAuthLoading;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading orders...</div>

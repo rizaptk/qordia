@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { QordiaLogo } from '@/components/logo';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTableStore } from '@/stores/table-store';
 
 type Table = {
     id: string;
@@ -51,7 +52,7 @@ export default function TableManagementPage() {
     const [selectedTable, setSelectedTable] = useState<Table | null>(null);
     const [origin, setOrigin] = useState('');
     const qrDialogContentRef = useRef<HTMLDivElement>(null);
-    
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             setOrigin(window.location.origin);
@@ -64,6 +65,8 @@ export default function TableManagementPage() {
         resolver: zodResolver(newTableSchema),
         defaultValues: { tableNumber: '', menuStyle: 'default' },
     });
+
+    const {tables} = useTableStore();
     
     useEffect(() => {
         if (editingTable) {
@@ -78,12 +81,6 @@ export default function TableManagementPage() {
             });
         }
     }, [editingTable, form]);
-
-    const tablesRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: tables, isLoading: isLoadingTables } = useCollection<Table>(tablesRef);
 
     const activeOrdersQuery = useMemoFirebase(() =>
         firestore && TENANT_ID ? query(collection(firestore, `tenants/${TENANT_ID}/orders`), where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])) : null
@@ -280,9 +277,7 @@ export default function TableManagementPage() {
             
             <Card>
                 <CardContent className="pt-6">
-                    {isLoadingTables ? (
-                        <p className="text-muted-foreground">Loading tables...</p>
-                    ) : tables && tables.length > 0 ? (
+                    {tables && tables.length > 0 ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {tables.sort((a,b) => a.tableNumber.localeCompare(b.tableNumber, undefined, {numeric: true})).map(table => {
                                 const isActive = activeTableIds.has(table.id);
@@ -353,7 +348,7 @@ export default function TableManagementPage() {
                             Scan this QR code to view the menu and place your order.
                         </DialogDescription>
                     </DialogHeader>
-                    <div ref={qrDialogContentRef} className="bg-background p-8 rounded-lg text-center space-y-6 printable-content">
+                    <div ref={qrDialogContentRef} className="bg-background p-8 rounded-lg text-center space-y-6 printable-content relative">
                         {selectedTable && tenant && (
                             <>
                                 <div className="flex flex-col items-center gap-2">
@@ -385,19 +380,17 @@ export default function TableManagementPage() {
                                 </p>
                             </>
                         )}
-                    </div>
-                     <DialogFooter className="sm:justify-center non-printable">
-                        <Button type="button" variant="outline" onClick={handlePrint}>
-                            <Printer className="mr-2 h-4 w-4" />
-                            Print
-                        </Button>
-                        <a href={qrUrl} download={downloadFilename}>
-                            <Button type="button">
-                                <Download className="mr-2 h-4 w-4" />
-                                Download
+                        <div className='absolute -top-6 -left-2 flex gap-4 py-6'>
+                            <Button type="button" variant="outline" className='size-12 grid place-items-center' onClick={handlePrint}>
+                                <Printer className="size-5" />
                             </Button>
-                        </a>
-                    </DialogFooter>
+                            <a href={qrUrl} download={downloadFilename}>
+                                <Button type="button" variant="outline" className='size-12 grid place-content-center'>
+                                    <Download className="size-5" />
+                                </Button>
+                            </a>
+                        </div>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

@@ -9,6 +9,7 @@ import { useFirestore } from '@/firebase/provider';
 import { collection, query, where } from 'firebase/firestore';
 import { useAuthStore } from '@/stores/auth-store';
 import { Truck } from 'lucide-react';
+import { useTableStore } from '@/stores/table-store';
 
 type TableData = {
     id: string;
@@ -31,11 +32,13 @@ export default function RunnerPage() {
     );
     const { data: readyOrders, isLoading: isLoadingOrders } = useCollection<Order>(readyOrdersQuery);
     
-    const tablesRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
+    const { tables } = useTableStore();
+
+    // const tablesRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
 
     const { sortedReadyOrders, tableMap } = useMemo(() => {
         const sorted = readyOrders?.sort((a,b) => (b.orderedAt.seconds || 0) - (a.orderedAt.seconds || 0)) ?? [];
@@ -43,7 +46,7 @@ export default function RunnerPage() {
         return { sortedReadyOrders: sorted, tableMap: map };
     }, [readyOrders, tables]);
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingTables;
+    const isLoading = isLoadingOrders || isAuthLoading;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading ready orders...</div>

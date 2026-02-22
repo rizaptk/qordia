@@ -6,6 +6,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AuthProvider } from '@/firebase/auth-provider';
 import { InvitationHandler } from '@/components/auth/InvitationHandler';
 import { ThemeHandler } from '@/components/theme/theme-handler';
+import { StoreInitializer } from '@/components/auth/dataInitiate';
 
 
 export const metadata: Metadata = {
@@ -33,6 +34,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthProvider>
             <InvitationHandler />
+            <StoreInitializer />
             {children}
           </AuthProvider>
         </FirebaseClientProvider>

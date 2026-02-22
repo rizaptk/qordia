@@ -30,7 +30,7 @@ export default function OrderTrackingPage({ params }: { params: Promise<{ tenant
   const { data: order, isLoading } = useDoc<Order>(orderRef);
 
   const currentStatus = order?.status ?? 'Placed';
-  const message = statusMessages[currentStatus] ?? "We're processing your order.";
+  const message = statusMessages[currentStatus as keyof typeof statusMessages] ?? "We're processing your order.";
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">

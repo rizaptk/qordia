@@ -19,6 +19,9 @@ import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from '@/stores/auth-store';
+import { useMenuStore } from '@/stores/products-store';
+import { useCategoryStore } from '@/stores/categories-store';
+import { useModifierGroupStore } from '@/stores/modifiers-store';
 
 export default function MenuManagementPage() {
     const firestore = useFirestore();
@@ -32,23 +35,30 @@ export default function MenuManagementPage() {
     const [isModifierGroupFormOpen, setIsModifierGroupFormOpen] = useState(false);
     const [editingModifierGroup, setEditingModifierGroup] = useState<ModifierGroup | null>(null);
 
-    const menuItemsRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
+    // init store
+    const {menus: menuItems} = useMenuStore();
+    const {categories} = useCategoryStore();
+    const {modifierGroups} = useModifierGroupStore();
 
-    const categoriesRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: categories, isLoading: isLoadingCategories } = useCollection<MenuCategory>(categoriesRef);
+    
 
-    const modifierGroupsRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
+    // const menuItemsRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
+
+    // const categoriesRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: categories, isLoading: isLoadingCategories } = useCollection<MenuCategory>(categoriesRef);
+
+    // const modifierGroupsRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
 
 
     const categoryMap = new Map(categories?.map(c => [c.id, c.name]));
@@ -92,12 +102,6 @@ export default function MenuManagementPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold">Menu Management</h1>
-                    <p className="text-muted-foreground">Organize your products, categories, and modifiers.</p>
-                </div>
-            </div>
             <Tabs defaultValue="products">
                 <TabsList>
                     <TabsTrigger value="products">Products</TabsTrigger>
@@ -129,11 +133,7 @@ export default function MenuManagementPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoadingMenu || isLoadingCategories ? (
-                                        <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24">Loading menu items...</TableCell>
-                                        </TableRow>
-                                    ) : menuItems && menuItems.length > 0 ? (
+                                    { menuItems && menuItems.length > 0 ? (
                                         menuItems.map(item => (
                                             <TableRow key={item.id}>
                                                 <TableCell>
@@ -194,11 +194,7 @@ export default function MenuManagementPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                     {isLoadingCategories ? (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24">Loading categories...</TableCell>
-                                        </TableRow>
-                                    ) : categories && categories.length > 0 ? (
+                                     { categories && categories.length > 0 ? (
                                         categories.sort((a,b) => a.displayOrder - b.displayOrder).map(category => (
                                             <TableRow key={category.id}>
                                                 <TableCell>
@@ -255,11 +251,7 @@ export default function MenuManagementPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {isLoadingModifierGroups ? (
-                                        <TableRow>
-                                            <TableCell colSpan={4} className="text-center h-24">Loading modifier groups...</TableCell>
-                                        </TableRow>
-                                    ) : modifierGroups && modifierGroups.length > 0 ? (
+                                    { modifierGroups && modifierGroups.length > 0 ? (
                                         modifierGroups.map(group => (
                                             <TableRow key={group.id}>
                                                 <TableCell className="font-medium">{group.name}</TableCell>

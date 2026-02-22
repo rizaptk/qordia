@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useMemo, use, useEffect, useRef } from "react";
-import type { MenuItem, ModifierGroup, Table, CartItem } from "@/lib/types";
+import { useState, use, useEffect, useRef, useMemo } from "react";
+import type { MenuItem, CartItem } from "@/lib/types";
 import { CustomizationDialog } from "@/components/menu/customization-dialog";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetTrigger } from "@/components/ui/sheet";
@@ -11,8 +11,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShoppingCart, Trash2, Loader2, Edit } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/stores/cart-store";
-import { useCollection, useDoc, useMemoFirebase, addDocumentNonBlocking, useFirestore } from "@/firebase";
-import { collection, Timestamp, doc } from "firebase/firestore";
+import { addDocumentNonBlocking, useFirestore } from "@/firebase";
+import { collection, Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth-store";
@@ -25,11 +25,15 @@ import { DefaultListStyle } from "@/components/menu/styles/default-list-style";
 import { CarouselSlidesStyle } from "@/components/menu/styles/carousel-slides-style";
 import { ThreeDSlideStyle } from "@/components/menu/styles/3d-slide-style";
 import { PromoSlideStyle } from "@/components/menu/styles/promo-slide-style";
+import { useMenuStore } from "@/stores/products-store";
+import { useTableStore } from "@/stores/table-store";
+import { useCategoryStore } from "@/stores/categories-store";
+import { useModifierGroupStore } from "@/stores/modifiers-store";
 
 
 export default function MenuPage({ params }: { params: Promise<{ tenantId: string, tableId: string }> }) {
   const { tenantId, tableId } = use(params);
-  const { cart, removeFromCart, clearCart, totalItems, totalPrice, updateCartItem } = useCartStore();
+  const { cart, removeFromCart, clearCart, totalItems, totalPrice } = useCartStore();
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null);
@@ -39,39 +43,27 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
   const [suggestedItems, setSuggestedItems] = useState<MenuItem[]>([]);
   const [isSuggestionsLoading, setIsSuggestionsLoading] = useState(false);
 
+  const [isMount, setIsMount] = useState(false);
+  useEffect(() => {
+    setIsMount(true);
+  }, []);
+
+
   const prevTotalItemsRef = useRef(totalItems());
 
   const router = useRouter();
   const { toast } = useToast();
 
   const firestore = useFirestore();
-  const { user, isUserLoading, hasAdvancedMenuStyles } = useAuthStore();
+  const { user, isLoading: isUserLoading, hasAdvancedMenuStyles } = useAuthStore();
 
-  // --- Data Fetching ---
-  const tableRef = useMemoFirebase(() => 
-    firestore ? doc(firestore, `tenants/${tenantId}/tables`, tableId) : null,
-    [firestore, tenantId, tableId]
-  );
-  const { data: tableData, isLoading: isLoadingTable } = useDoc<Table>(tableRef);
+  // --- Data Store ---
+  const { getTable } = useTableStore();
+  const tableData = useMemo(() => isMount ? getTable(tableId) : null ,[tableId, isMount]);
+  const { menus: menuItems } = useMenuStore();
+  const { categories } = useCategoryStore();
+  const { modifierGroups } = useModifierGroupStore();
 
-  const menuItemsRef = useMemoFirebase(() => 
-    firestore && tenantId ? collection(firestore, `tenants/${tenantId}/menu_items`) : null, 
-    [firestore, tenantId]
-  );
-  const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
-
-  const categoriesRef = useMemoFirebase(() => 
-    firestore && tenantId ? collection(firestore, `tenants/${tenantId}/menu_categories`) : null, 
-    [firestore, tenantId]
-  );
-  const { data: categories, isLoading: isLoadingCategories } = useCollection<{id: string; name: string, displayOrder: number}>(categoriesRef);
-
-  const modifierGroupsRef = useMemoFirebase(() =>
-    firestore && tenantId ? collection(firestore, `tenants/${tenantId}/modifier_groups`) : null,
-    [firestore, tenantId]
-  );
-  const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
-  
   // --- Effects ---
   useEffect(() => {
     const currentTotalItems = totalItems();
@@ -194,7 +186,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
       }
   };
 
-  const isLoading = isLoadingTable || isLoadingMenu || isLoadingCategories || isUserLoading || isLoadingModifierGroups;
+  const isLoading = isUserLoading;
   const cartTotal = totalPrice();
   const cartItemCount = totalItems();
 
@@ -205,7 +197,7 @@ export default function MenuPage({ params }: { params: Promise<{ tenantId: strin
               <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
                   <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
                       <div className="font-semibold">
-                        {isLoadingTable ? '...' : `Table ${tableData?.tableNumber || tableId}`}
+                        {`${tableData?.tableNumber}`}
                       </div>
                   </div>
               </header>

@@ -13,6 +13,7 @@ import { collection, query, where } from 'firebase/firestore';
 import type { Order, OrderItem, MenuItem } from '@/lib/types';
 import { format } from 'date-fns';
 import { useAuthStore } from '@/stores/auth-store';
+import { useMenuStore } from '@/stores/products-store';
 
 export default function AnalyticsPage() {
     const firestore = useFirestore();
@@ -38,11 +39,7 @@ export default function AnalyticsPage() {
     const { data: allOrders, isLoading: isLoadingAll } = useCollection<Order>(allOrdersQuery);
     
     // Fetch menu items to map IDs to names for best-sellers chart
-    const menuItemsRef = useMemoFirebase(() =>
-        (firestore && tenant?.id && user) ? collection(firestore, `tenants/${tenant.id}/menu_items`) : null,
-        [firestore, tenant, user]
-    );
-    const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
+    const { menus: menuItems } = useMenuStore();
 
     const analyticsData = useMemo(() => {
         if (!completedOrders || !allOrders || !menuItems) return null;
@@ -111,7 +108,7 @@ export default function AnalyticsPage() {
 
     }, [completedOrders, allOrders, menuItems]);
     
-    const isLoading = isLoadingAll || isLoadingCompleted || isLoadingMenu || isAuthLoading;
+    const isLoading = isLoadingAll || isLoadingCompleted || isAuthLoading;
 
     if (isLoading || !analyticsData) {
         return <div className="text-center text-muted-foreground py-16">Loading analytics...</div>;

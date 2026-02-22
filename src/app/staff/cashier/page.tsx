@@ -3,7 +3,7 @@
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
-import type { Order, MenuItem, CartItem, OrderItem, Shift, ModifierGroup } from '@/lib/types';
+import type { Order, MenuItem, CartItem, Shift, ModifierGroup } from '@/lib/types';
 import { useCollection, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useAuth } from '@/firebase';
 import { useFirestore } from '@/firebase/provider';
 import { collection, query, where, Timestamp, doc, updateDoc } from 'firebase/firestore';
@@ -24,6 +24,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { format } from 'date-fns';
 import { ShiftSummaryDialog, type ShiftSummaryData } from '@/components/staff/shift-summary-dialog';
 import { useRouter } from 'next/navigation';
+import { useTableStore } from '@/stores/table-store';
+import { useMenuStore } from '@/stores/products-store';
 
 
 type TableBill = {
@@ -52,6 +54,13 @@ export default function CashierPage() {
     const [orderToRefund, setOrderToRefund] = useState<Order | null>(null);
     const [isShiftSummaryOpen, setIsShiftSummaryOpen] = useState(false);
 
+    // stored data
+    const { tables } = useTableStore();
+    const tableMap = useMemo(() => new Map(tables.map(t => [t.id, t])), [tables]);
+
+    const { menus: menuItems } = useMenuStore();
+    const menuMap = useMemo(() => new Map(menuItems.map(m => [m.id, m])), [menuItems]);
+
     // --- Data for Pending Payments Tab ---
     const activeOrdersQuery = useMemoFirebase(() => 
         firestore && TENANT_ID
@@ -64,11 +73,11 @@ export default function CashierPage() {
     );
     const { data: activeOrders, isLoading: isLoadingOrders } = useCollection<Order>(activeOrdersQuery);
 
-    const tablesRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
+    // const tablesRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/tables`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: tables, isLoading: isLoadingTables } = useCollection<TableData>(tablesRef);
 
     const openBills = useMemo(() => {
         if (!activeOrders || !tables) return [];
@@ -100,11 +109,11 @@ export default function CashierPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const menuItemsRef = useMemoFirebase(() => 
-        firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
-        [firestore, TENANT_ID]
-    );
-    const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
+    // const menuItemsRef = useMemoFirebase(() => 
+    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
+    //     [firestore, TENANT_ID]
+    // );
+    // const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
 
     const categoriesRef = useMemoFirebase(() => 
         firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
@@ -371,7 +380,7 @@ export default function CashierPage() {
         const shiftStart = activeShift.startedAt.seconds;
 
         const ordersInShift = completedOrders.filter(order => order.orderedAt.seconds >= shiftStart);
-        const refundsInShift = refundedOrders.filter(order => order.refundDetails?.processedAt.seconds >= shiftStart);
+        const refundsInShift = refundedOrders.filter(order => order.refundDetails?.processedAt.seconds??0 >= shiftStart);
 
         const totalSales = ordersInShift.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
         const totalRefunds = refundsInShift.reduce((sum, order) => sum + (order.refundDetails?.refundAmount || 0), 0);
@@ -410,7 +419,7 @@ export default function CashierPage() {
     };
 
 
-    const isLoading = isLoadingOrders || isAuthLoading || isLoadingMenu || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups || isLoadingTables;
+    const isLoading = isLoadingOrders || isAuthLoading || isLoadingCategories || isLoadingCompleted || isLoadingRefunded || isLoadingShifts || isLoadingModifierGroups;
 
     if (isLoading || !TENANT_ID) {
         return <div className="text-center text-muted-foreground py-16">Loading cashier terminal...</div>
@@ -454,7 +463,7 @@ export default function CashierPage() {
                             {openBills.map(bill => (
                                 <Card key={bill.tableId}>
                                     <CardHeader>
-                                        <CardTitle>Table {bill.tableNumber}</CardTitle>
+                                        <CardTitle>{tableMap.get(bill.tableId)?.tableNumber || bill.tableId}</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <p className="text-3xl font-bold">${bill.totalAmount.toFixed(2)}</p>
@@ -612,7 +621,7 @@ export default function CashierPage() {
                                         filteredCompletedOrders.map(order => (
                                             <TableRow key={order.id}>
                                                 <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                                                <TableCell>{order.tableId}</TableCell>
+                                                <TableCell>{tableMap.get(order.tableId)?.tableNumber || order.tableId}</TableCell>
                                                 <TableCell>{format(new Date(order.orderedAt.seconds * 1000), 'PPp')}</TableCell>
                                                 <TableCell className="text-right">${(order.totalAmount || 0).toFixed(2)}</TableCell>
                                                 <TableCell className="text-right">

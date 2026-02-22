@@ -78,11 +78,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="space-y-6 max-w-2xl">
-            <div>
-                <h1 className="text-3xl font-bold font-headline">Shop Settings</h1>
-                <p className="text-muted-foreground">Manage your business details, branding, and appearance.</p>
-            </div>
+        <div className="space-y-6 max-w-2xl mx-auto">
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                     <Card>

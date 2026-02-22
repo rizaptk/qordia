@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import useEmblaCarousel, { EmblaCarouselType, EmblaEventType } from 'embla-carousel-react';
+import { useEffect, useCallback, useRef } from 'react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { EmblaCarouselType, EmblaEventType } from 'embla-carousel';
 import type { MenuItem } from '@/lib/types';
 import { MenuItemCard } from '@/components/menu/menu-item-card';
 
@@ -45,8 +46,8 @@ export function ThreeDSlideStyle({ menuItems, onSelectItem }: StyleProps) {
             if (engine.options.loop) {
                 engine.slideLooper.loopPoints.forEach((loopItem) => {
                     const target = loopItem.target
-                    if (snapIndex === loopItem.index && target !== 0) {
-                        const sign = Math.sign(target)
+                    if (snapIndex === loopItem.index && target() !== 0) {
+                        const sign = Math.sign(target())
                         if (sign === -1) diffToTarget = scrollSnap - (1 + scrollProgress)
                         if (sign === 1) diffToTarget = scrollSnap + (1 - scrollProgress)
                     }
