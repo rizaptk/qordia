@@ -67,7 +67,7 @@
     "Table": {
       "title": "Table",
       "type": "object",
-      "description": "A specific table or seating area within a Location.",
+      "description": "A specific table or seating area within a Location. Default status is 'inactive'.",
       "properties": {
         "id": { "type": "string" },
         "tableNumber": { "type": "string" },
@@ -76,6 +76,16 @@
           "type": "string",
           "enum": ["default", "carousel", "3d", "promo"],
           "description": "The visual presentation style for the customer menu at this table."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["inactive", "active"],
+          "description": "The current session status of the table. 'inactive' by default."
+        },
+        "sessionExpiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for when the current active session expires."
         }
       },
       "required": ["id", "tableNumber"]
@@ -147,7 +157,7 @@
         "tableId": { "type": "string" },
         "status": {
           "type": "string",
-          "enum": ["Placed", "Accepted", "In Progress", "Ready", "Served", "Completed", "Refunded"]
+          "enum": ["Pending Confirmation", "Placed", "Accepted", "In Progress", "Ready", "Served", "Completed", "Refunded"]
         },
         "totalAmount": { "type": "number" },
         "orderedAt": { "type": "string", "format": "date-time" },
