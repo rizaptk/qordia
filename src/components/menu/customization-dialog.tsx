@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
@@ -150,7 +151,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg h-[95vh] flex flex-col overflow-hidden p-0 gap-0 border-none">
+      <DialogContent className="sm:max-w-md h-[95vh] flex flex-col overflow-hidden p-0 gap-0 border-none">
         
         {/* Main Wrapper: This container gets blurred */}
         <div className={cn(
@@ -205,7 +206,9 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                             {relevantGroups.map(group => {
                                 const selected = selectedOptions[group.id];
                                 if (!selected || selected.length === 0) return null;
-                                const optionNames = selected.map(opt => opt.name).join(', ');
+                                const optionNames = selected.map(opt => 
+                                  `${opt.name}${opt.priceAdjustment > 0 ? ` (+$${opt.priceAdjustment.toFixed(2)})` : ''}`
+                                ).join(', ');
                                 return (
                                     <div key={group.id} className="flex justify-between items-center gap-2">
                                         <span>{group.name}</span>
@@ -246,14 +249,14 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
 
         {/* Sliding Customization Panel */}
         <div className={cn(
-            "absolute inset-x-0 bottom-0 z-20 bg-background/95 backdrop-blur-md border-t rounded-t-[2.5rem] transition-transform duration-500 ease-in-out flex flex-col max-h-[70%]",
+            "absolute inset-x-0 bottom-0 z-20 bg-muted/95 backdrop-blur-md border-t rounded-t-[2.5rem] transition-transform duration-500 ease-in-out flex flex-col max-h-[70%]",
             activePanel ? "translate-y-0" : "translate-y-full"
         )}>
             <div className="flex justify-center p-4">
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="rounded-full hover:bg-muted"
+                    className="rounded-full hover:bg-background"
                     onClick={() => setActivePanel(null)}
                 >
                     <X className="h-6 w-6 text-muted-foreground" />
@@ -278,7 +281,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                                         variant={isSelected ? "default" : "outline"}
                                         className={cn(
                                             "px-5 py-3 text-sm rounded-2xl cursor-pointer transition-all border-2",
-                                            isSelected ? "border-primary shadow-lg scale-105" : "border-transparent bg-secondary/50"
+                                            isSelected ? "border-primary shadow-lg scale-105" : "border-transparent bg-background"
                                         )}
                                         onClick={() => toggleOption(group.id, option, group.selectionType)}
                                     >
@@ -296,7 +299,7 @@ export function CustomizationDialog({ item, isOpen, onOpenChange, modifierGroups
                         <h3 className="font-bold text-xl">Special Notes</h3>
                         <Textarea
                             placeholder="Type any instructions here..."
-                            className="min-h-[150px] bg-secondary/30 border-none rounded-2xl focus-visible:ring-1 ring-primary p-4"
+                            className="min-h-[150px] bg-background border-none rounded-2xl focus-visible:ring-1 ring-primary p-4"
                             value={specialNotes}
                             onChange={(e) => setSpecialNotes(e.target.value)}
                         />
