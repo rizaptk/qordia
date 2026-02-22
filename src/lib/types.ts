@@ -5,6 +5,7 @@
 
 
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -153,7 +154,7 @@ export type SupportTicket = {
     tenantId: string;
     tenantName: string;
     submittedByUid: string;
-    type: 'support' | 'payment';
+    type: 'support' | 'payment' | 'feedback';
     subject: string;
     message: string;
     priority: 'normal' | 'high' | 'urgent';

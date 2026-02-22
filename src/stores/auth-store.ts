@@ -23,6 +23,7 @@ export interface AuthState {
   hasMenuCustomizationFeature: boolean;
   hasAdvancedMenuStyles: boolean;
   hasAdvancedReportingFeature: boolean;
+  hasBasicSupportFeature: boolean;
   hasPrioritySupportFeature: boolean;
   hasApiAccessFeature: boolean;
   hasCustomRolesFeature: boolean;
@@ -56,6 +57,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   hasMenuCustomizationFeature: false,
   hasAdvancedMenuStyles: false,
   hasAdvancedReportingFeature: false,
+  hasBasicSupportFeature: false,
   hasPrioritySupportFeature: false,
   hasApiAccessFeature: false,
   hasCustomRolesFeature: false,
@@ -90,6 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       hasMenuCustomizationFeature: features.has('Menu Customization'),
       hasAdvancedMenuStyles: features.has('Advanced Menu Styles'),
       hasAdvancedReportingFeature: features.has('Advanced Reporting'),
+      hasBasicSupportFeature: features.has('Basic Support'),
       hasPrioritySupportFeature: features.has('Priority Support'),
       hasApiAccessFeature: features.has('API Access'),
       hasCustomRolesFeature: features.has('Staff Roles'),

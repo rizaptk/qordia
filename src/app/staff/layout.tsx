@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog } from "lucide-react";
+import { BarChart3, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog, MessageSquare } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -43,6 +43,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     isPlatformAdmin,
     hasAnalyticsFeature,
     hasAdvancedReportingFeature,
+    hasBasicSupportFeature,
     hasPrioritySupportFeature,
     hasApiAccessFeature,
     hasCustomRolesFeature,
@@ -75,7 +76,8 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
     if (pathname.includes('/tables')) return 'Table Management';
     if (pathname.includes('/subscription')) return 'Subscription';
     if (pathname.includes('/reports')) return 'Advanced Reporting';
-    if (pathname.includes('/support')) return 'Priority Support';
+    if (pathname.includes('/support')) return 'Support';
+    if (pathname.includes('/feedback')) return 'Feedback Hub';
     if (pathname.includes('/api')) return 'API Access';
     if (pathname.includes('/roles')) return 'Custom Staff Roles';
     return 'Staff Portal';
@@ -230,7 +232,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   </SidebarMenuButton>
                   </SidebarMenuItem>
               )}
-              {hasPrioritySupportFeature && (
+              {(hasPrioritySupportFeature || hasBasicSupportFeature) && (
                   <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname.includes("/staff/support")}>
                       <Link href="/staff/support">
@@ -248,6 +250,15 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                     <Link href="/staff/settings">
                     <Cog />
                     <span className="group-data-[collapsible=icon]:hidden">Settings</span>
+                    </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              
+               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.includes("/staff/feedback")}>
+                    <Link href="/staff/feedback">
+                    <MessageSquare />
+                    <span className="group-data-[collapsible=icon]:hidden">Feedback</span>
                     </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

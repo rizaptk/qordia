@@ -262,7 +262,7 @@
         "tenantId": { "type": "string" },
         "tenantName": { "type": "string" },
         "submittedByUid": { "type": "string" },
-        "type": { "type": "string", "enum": ["support", "payment"], "description": "The type of ticket being submitted." },
+        "type": { "type": "string", "enum": ["support", "payment", "feedback"], "description": "The type of ticket being submitted." },
         "subject": { "type": "string" },
         "message": { "type": "string" },
         "priority": { "type": "string", "enum": ["normal", "high", "urgent"] },
@@ -279,7 +279,7 @@
             }
         }
       },
-      "required": ["tenantId", "tenantName", "submittedByUid", "type", "subject", "message", "status", "createdAt"]
+      "required": ["tenantId", "tenantName", "submittedByUid", "type", "subject", "message", "status", "createdAt", "priority"]
     },
     "Shift": {
       "title": "Shift",

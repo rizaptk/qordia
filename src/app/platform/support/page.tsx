@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Banknote, LifeBuoy } from 'lucide-react';
+import { Banknote, LifeBuoy, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 type Status = 'new' | 'in-progress' | 'resolved';
@@ -35,6 +35,11 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
     };
     
     const isPaymentTicket = ticket.type === 'payment';
+    const isFeedbackTicket = ticket.type === 'feedback';
+
+    const Icon = isPaymentTicket ? Banknote : isFeedbackTicket ? MessageSquare : LifeBuoy;
+    const iconColor = isPaymentTicket ? 'text-green-600' : isFeedbackTicket ? 'text-purple-600' : 'text-blue-600';
+
 
     return (
         <Card 
@@ -45,7 +50,7 @@ function TicketCard({ ticket }: { ticket: SupportTicket }) {
             <CardHeader className='pb-2'>
                 <div className='flex justify-between items-start'>
                     <CardTitle className="text-base flex items-center gap-2">
-                        {isPaymentTicket ? <Banknote className="h-5 w-5 text-green-600" /> : <LifeBuoy className="h-5 w-5 text-blue-600" />}
+                        <Icon className={cn("h-5 w-5", iconColor)} />
                         {ticket.subject}
                     </CardTitle>
                     <Badge variant="outline" className={cn('capitalize', priorityStyles[ticket.priority])}>{ticket.priority}</Badge>
@@ -133,6 +138,12 @@ export default function SupportPage() {
         [firestore]
     );
     const { data: allTickets, isLoading } = useCollection<SupportTicket>(ticketsRef);
+    
+    const priorityOrder: Record<SupportTicket['priority'], number> = {
+        urgent: 1,
+        high: 2,
+        normal: 3,
+    };
 
     const ticketsByStatus = useMemo(() => {
         const grouped: Record<Status, SupportTicket[]> = {
@@ -145,12 +156,16 @@ export default function SupportPage() {
                 grouped[ticket.status].push(ticket);
             }
         });
-        // Sort tickets within each status group
+        // Sort tickets within each status group by priority then by creation date
         Object.values(grouped).forEach(group => {
-            group.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+            group.sort((a, b) => {
+                const priorityDiff = (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+                if (priorityDiff !== 0) return priorityDiff;
+                return b.createdAt.seconds - a.createdAt.seconds;
+            });
         });
         return grouped;
-    }, [allTickets]);
+    }, [allTickets, priorityOrder]);
 
     const handleTicketDrop = async (newStatus: Status, ticketId: string) => {
         if (!firestore) return;

@@ -1,223 +1,146 @@
 
 'use client';
 
-import { useMemo, useState, DragEvent } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, doc, Timestamp, writeBatch, getDoc } from 'firebase/firestore';
-import type { SupportTicket, Tenant } from '@/lib/types';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { format, formatDistanceToNow } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { Banknote, LifeBuoy } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { useFirestore, addDocumentNonBlocking } from '@/firebase';
+import { useAuthStore } from '@/stores/auth-store';
+import { collection, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Send, LifeBuoy } from 'lucide-react';
+import Link from 'next/link';
 
-type Status = 'new' | 'in-progress' | 'resolved';
+const supportSchema = z.object({
+  subject: z.string().min(5, "Subject must be at least 5 characters long."),
+  message: z.string().min(20, "Please provide a detailed description of your issue."),
+});
 
-const TICKET_STATUSES: Status[] = ['new', 'in-progress', 'resolved'];
+type SupportFormValues = z.infer<typeof supportSchema>;
 
-const statusLabels: Record<Status, string> = {
-    new: 'New Tickets',
-    'in-progress': 'In Progress',
-    resolved: 'Resolved'
-};
-
-const priorityStyles: Record<SupportTicket['priority'], string> = {
-    normal: 'bg-blue-500/20 text-blue-700 border-blue-500/50',
-    high: 'bg-yellow-500/20 text-yellow-700 border-yellow-500/50',
-    urgent: 'bg-red-500/20 text-red-700 border-red-500/50',
-};
-
-
-function TicketCard({ ticket }: { ticket: SupportTicket }) {
-    const handleDragStart = (e: DragEvent<HTMLDivElement>) => {
-        e.dataTransfer.setData('ticketId', ticket.id);
-    };
-    
-    const isPaymentTicket = ticket.type === 'payment';
-
-    return (
-        <Card 
-            draggable 
-            onDragStart={handleDragStart}
-            className="mb-4 cursor-grab active:cursor-grabbing"
-        >
-            <CardHeader className='pb-2'>
-                <div className='flex justify-between items-start'>
-                    <CardTitle className="text-base flex items-center gap-2">
-                        {isPaymentTicket ? <Banknote className="h-5 w-5 text-green-600" /> : <LifeBuoy className="h-5 w-5 text-blue-600" />}
-                        {ticket.subject}
-                    </CardTitle>
-                    <Badge variant="outline" className={cn('capitalize', priorityStyles[ticket.priority])}>{ticket.priority}</Badge>
-                </div>
-                <p className='text-xs text-muted-foreground font-mono'>{ticket.tenantName}</p>
-            </CardHeader>
-            <CardContent>
-                {isPaymentTicket && ticket.paymentDetails && (
-                    <div className="mb-2 p-2 bg-muted rounded-md">
-                        <p className="text-sm font-semibold">Payment for: {ticket.paymentDetails.planName}</p>
-                        {ticket.attachmentUrl && (
-                             <a href={ticket.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">View Attachment</a>
-                        )}
-                    </div>
-                )}
-                <p className="text-sm text-muted-foreground line-clamp-3">{ticket.message}</p>
-                <p className="text-xs text-muted-foreground mt-4">
-                    {formatDistanceToNow(new Date(ticket.createdAt.seconds * 1000), { addSuffix: true })}
-                </p>
-            </CardContent>
-        </Card>
-    );
-}
-
-function StatusColumn({ 
-    status, 
-    tickets,
-    onDrop,
-}: { 
-    status: Status, 
-    tickets: SupportTicket[],
-    onDrop: (status: Status, ticketId: string) => void,
-}) {
-    const [isOver, setIsOver] = useState(false);
-
-    const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsOver(true);
-    };
-
-    const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsOver(false);
-    };
-
-    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const ticketId = e.dataTransfer.getData('ticketId');
-        if (ticketId) {
-            onDrop(status, ticketId);
-        }
-        setIsOver(false);
-    };
-
-    return (
-        <div 
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={cn(
-                "flex-1 bg-muted/50 rounded-lg p-4 transition-colors",
-                isOver && "bg-primary/10"
-            )}
-        >
-            <h2 className="text-lg font-semibold mb-4 capitalize">{statusLabels[status]} ({tickets.length})</h2>
-            <div className="space-y-4">
-                {tickets.map(ticket => (
-                    <TicketCard key={ticket.id} ticket={ticket} />
-                ))}
-                {tickets.length === 0 && (
-                    <div className="text-center text-muted-foreground py-10">No tickets here.</div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-
-export default function SupportPage() {
+export default function PrioritySupportPage() {
     const firestore = useFirestore();
+    const { user, tenant, hasPrioritySupportFeature, hasBasicSupportFeature } = useAuthStore();
     const { toast } = useToast();
-    
-    const ticketsRef = useMemoFirebase(() => 
-        firestore ? collection(firestore, 'support_tickets') : null,
-        [firestore]
-    );
-    const { data: allTickets, isLoading } = useCollection<SupportTicket>(ticketsRef);
 
-    const ticketsByStatus = useMemo(() => {
-        const grouped: Record<Status, SupportTicket[]> = {
-            new: [],
-            'in-progress': [],
-            resolved: []
+    const form = useForm<SupportFormValues>({
+        resolver: zodResolver(supportSchema),
+        defaultValues: { subject: '', message: '' },
+    });
+
+    const canSubmitTicket = hasPrioritySupportFeature || hasBasicSupportFeature;
+
+    const onSubmit = async (data: SupportFormValues) => {
+        if (!firestore || !user || !tenant || !canSubmitTicket) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Cannot submit ticket at this time.' });
+            return;
+        }
+
+        const newTicket = {
+            tenantId: tenant.id,
+            tenantName: tenant.name,
+            submittedByUid: user.uid,
+            type: 'support' as const,
+            subject: data.subject,
+            message: data.message,
+            priority: hasPrioritySupportFeature ? 'high' : 'normal' as const,
+            status: 'new' as const,
+            createdAt: Timestamp.now(),
         };
-        allTickets?.forEach(ticket => {
-            if (grouped[ticket.status]) {
-                grouped[ticket.status].push(ticket);
-            }
-        });
-        // Sort tickets within each status group
-        Object.values(grouped).forEach(group => {
-            group.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
-        });
-        return grouped;
-    }, [allTickets]);
-
-    const handleTicketDrop = async (newStatus: Status, ticketId: string) => {
-        if (!firestore) return;
-    
-        const ticket = allTickets?.find(t => t.id === ticketId);
-        if (!ticket) return;
-    
-        const batch = writeBatch(firestore);
-        const ticketRef = doc(firestore, 'support_tickets', ticketId);
-    
-        const updateData: any = { status: newStatus };
-        if (newStatus === 'resolved') {
-          updateData.resolvedAt = Timestamp.now();
-        }
-        batch.update(ticketRef, updateData);
-    
-        // If a payment ticket is resolved, activate the tenant's subscription
-        if (newStatus === 'resolved' && ticket.type === 'payment' && ticket.paymentDetails) {
-            const tenantRef = doc(firestore, 'tenants', ticket.tenantId);
-            const nextBillingDate = new Date();
-            nextBillingDate.setDate(nextBillingDate.getDate() + 30); // Activate for 30 days
-    
-            batch.update(tenantRef, {
-                subscriptionStatus: 'active',
-                planId: ticket.paymentDetails.planId,
-                nextBillingDate: Timestamp.fromDate(nextBillingDate),
-                hasUsedTrial: true, // Mark trial as used on first payment
-            });
-            
-            toast({
-                title: 'Subscription Activated!',
-                description: `${ticket.tenantName}'s plan has been successfully activated.`
-            });
-        }
-    
+        
         try {
-            await batch.commit();
-        } catch (error) {
-            console.error("Error updating ticket status:", error);
+            const ticketsRef = collection(firestore, 'support_tickets');
+            await addDocumentNonBlocking(ticketsRef, newTicket);
             toast({
-                variant: "destructive",
-                title: "Update Failed",
-                description: "Could not update the ticket status."
+                title: 'Ticket Submitted',
+                description: 'Our support team will get back to you shortly.',
             });
+            form.reset();
+        } catch (error) {
+            console.error("Error submitting support ticket:", error);
+            toast({ variant: 'destructive', title: 'Submission Failed', description: 'There was a problem submitting your ticket.' });
         }
     };
-
-    if (isLoading) {
-        return <div className="text-center text-muted-foreground p-8">Loading support tickets...</div>;
+    
+    if (!canSubmitTicket) {
+        return (
+             <Card className="max-w-2xl mx-auto text-center">
+                <CardHeader>
+                    <CardTitle>Support Unavailable</CardTitle>
+                    <CardDescription>
+                        Your current plan does not include access to our support channels.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-muted-foreground mb-4">Please upgrade your subscription to submit support tickets and get help from our team.</p>
+                     <Button asChild>
+                        <Link href="/staff/subscription">View Plans</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        )
     }
 
     return (
-        <div className="flex flex-col h-full">
-             <div className="mb-6">
-                <h1 className="text-3xl font-bold">Support Ticket Board</h1>
-                <p className="text-muted-foreground">Manage and resolve support requests from tenants.</p>
-            </div>
-            <div className="flex-grow flex gap-6">
-                {TICKET_STATUSES.map(status => (
-                    <StatusColumn 
-                        key={status}
-                        status={status}
-                        tickets={ticketsByStatus[status]}
-                        onDrop={handleTicketDrop}
-                    />
-                ))}
-            </div>
+        <div className="max-w-2xl mx-auto">
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)}>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Contact Support</CardTitle>
+                            <CardDescription>
+                                {hasPrioritySupportFeature
+                                    ? "As a Pro subscriber, your ticket will be prioritized."
+                                    : "Describe your issue, and our team will get back to you."
+                                }
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="subject"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Subject</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., Issue with menu item availability" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="message"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>How can we help?</FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Please provide as much detail as possible..."
+                                                rows={8}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </CardContent>
+                        <CardFooter>
+                            <Button type="submit" disabled={form.formState.isSubmitting}>
+                                <Send className="mr-2 h-4 w-4" />
+                                {form.formState.isSubmitting ? 'Submitting...' : 'Submit Ticket'}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </form>
+            </Form>
         </div>
     );
 }

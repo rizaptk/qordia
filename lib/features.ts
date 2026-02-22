@@ -2,6 +2,7 @@
 export const availableFeatures = [
   { id: 'Analytics', label: 'Analytics Dashboard' },
   { id: 'Advanced Reporting', label: 'Advanced Reporting' },
+  { id: 'Basic Support', label: 'Standard Support' },
   { id: 'Priority Support', label: 'Priority Support' },
   { id: 'API Access', label: 'API Access' },
   { id: 'Menu Customization', label: 'Advanced Menu Customization' },
