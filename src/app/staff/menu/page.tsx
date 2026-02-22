@@ -2,15 +2,14 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { MenuItem, MenuCategory, ModifierGroup } from '@/lib/types';
-import { useCollection, useMemoFirebase, useFirestore } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, MoreHorizontal } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Search } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MenuItemFormDialog } from '@/components/staff/menu-item-form-dialog';
 import { CategoryFormDialog } from '@/components/staff/category-form-dialog';
@@ -22,12 +21,14 @@ import { useAuthStore } from '@/stores/auth-store';
 import { useMenuStore } from '@/stores/products-store';
 import { useCategoryStore } from '@/stores/categories-store';
 import { useModifierGroupStore } from '@/stores/modifiers-store';
+import { Input } from '@/components/ui/input';
 
 export default function MenuManagementPage() {
     const firestore = useFirestore();
     const { tenant } = useAuthStore();
     const TENANT_ID = tenant?.id;
 
+    const [productSearchTerm, setProductSearchTerm] = useState('');
     const [isItemFormOpen, setIsItemFormOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isCategoryFormOpen, setIsCategoryFormOpen] = useState(false);
@@ -40,29 +41,16 @@ export default function MenuManagementPage() {
     const {categories} = useCategoryStore();
     const {modifierGroups} = useModifierGroupStore();
 
-    
-
-    // const menuItemsRef = useMemoFirebase(() => 
-    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_items`) : null, 
-    //     [firestore, TENANT_ID]
-    // );
-    // const { data: menuItems, isLoading: isLoadingMenu } = useCollection<MenuItem>(menuItemsRef);
-
-    // const categoriesRef = useMemoFirebase(() => 
-    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/menu_categories`) : null, 
-    //     [firestore, TENANT_ID]
-    // );
-    // const { data: categories, isLoading: isLoadingCategories } = useCollection<MenuCategory>(categoriesRef);
-
-    // const modifierGroupsRef = useMemoFirebase(() => 
-    //     firestore && TENANT_ID ? collection(firestore, `tenants/${TENANT_ID}/modifier_groups`) : null, 
-    //     [firestore, TENANT_ID]
-    // );
-    // const { data: modifierGroups, isLoading: isLoadingModifierGroups } = useCollection<ModifierGroup>(modifierGroupsRef);
-
 
     const categoryMap = new Map(categories?.map(c => [c.id, c.name]));
     
+    const filteredMenuItems = useMemo(() => {
+        if (!menuItems) return [];
+        return menuItems.filter(item =>
+            item.name.toLowerCase().includes(productSearchTerm.toLowerCase())
+        );
+    }, [menuItems, productSearchTerm]);
+
     const handleAddNewItem = () => {
         setEditingItem(null);
         setIsItemFormOpen(true);
@@ -120,6 +108,15 @@ export default function MenuManagementPage() {
                             </Button>
                         </CardHeader>
                         <CardContent>
+                             <div className="relative mb-4">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                <Input
+                                    placeholder="Search by item name..."
+                                    className="pl-10"
+                                    value={productSearchTerm}
+                                    onChange={(e) => setProductSearchTerm(e.target.value)}
+                                />
+                            </div>
                             <Table>
                                 <TableHeader>
                                     <TableRow>
@@ -133,8 +130,8 @@ export default function MenuManagementPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    { menuItems && menuItems.length > 0 ? (
-                                        menuItems.map(item => (
+                                    { filteredMenuItems && filteredMenuItems.length > 0 ? (
+                                        filteredMenuItems.map(item => (
                                             <TableRow key={item.id}>
                                                 <TableCell>
                                                     <Badge variant={item.isAvailable ? 'accent' : 'destructive'}>
@@ -164,7 +161,7 @@ export default function MenuManagementPage() {
                                         ))
                                     ) : (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="text-center h-24">No menu items found. Add one to get started.</TableCell>
+                                            <TableCell colSpan={5} className="text-center h-24">No menu items found.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
