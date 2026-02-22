@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState, DragEvent } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection, doc, Timestamp, writeBatch } from 'firebase/firestore';
 import type { SupportTicket } from '@/lib/types';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -177,6 +177,7 @@ export default function SupportPage() {
                 subscriptionStatus: 'active',
                 planId: ticket.paymentDetails.planId,
                 nextBillingDate: Timestamp.fromDate(nextBillingDate),
+                hasUsedTrial: true, // Mark trial as used on first payment
             });
             
             toast({
@@ -187,6 +188,20 @@ export default function SupportPage() {
     
         try {
             await batch.commit();
+
+            if (newStatus === 'resolved' && ticket) {
+                const managerNotification = {
+                    userId: ticket.submittedByUid,
+                    title: `Ticket Resolved: "${ticket.subject}"`,
+                    message: `Your support ticket has been marked as resolved by an administrator.`,
+                    type: 'ticket' as const,
+                    isRead: false,
+                    link: `/staff/support`,
+                    createdAt: Timestamp.now(),
+                };
+                const notificationsRef = collection(firestore, 'users', ticket.submittedByUid, 'notifications');
+                addDocumentNonBlocking(notificationsRef, managerNotification);
+            }
         } catch (error) {
             console.error("Error updating ticket status:", error);
             toast({

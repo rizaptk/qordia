@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useEffect } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
 export default function PlatformAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -149,6 +150,7 @@ export default function PlatformAdminLayout({ children }: { children: React.Reac
             </div>
             <div className="flex items-center gap-4">
                 <ThemeToggle />
+                <NotificationDropdown />
                 <Link href="/">
                   <Button variant="outline">
                     Customer View

@@ -3,6 +3,7 @@
 
 
 
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -177,4 +178,15 @@ export type Shift = {
   totalRefunds?: number;
   declaredCash?: number;
   variance?: number;
+};
+
+export type Notification = {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'subscription' | 'ticket' | 'staff' | 'general';
+  isRead: boolean;
+  link?: string;
+  createdAt: { seconds: number; nanoseconds: number };
 };

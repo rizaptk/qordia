@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { useAuth } from '@/firebase';
-import { BarChart3, Bell, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog } from "lucide-react";
+import { BarChart3, ChefHat, Truck, Banknote, BookOpen, Table2, Loader2, Gem, LogOut, CreditCard, FileText, LifeBuoy, Terminal, Users, LayoutGrid, Cog } from "lucide-react";
 import {
   SidebarProvider,
   Sidebar,
@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { QordiaLogo } from "@/components/logo";
 import { useEffect } from "react";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
 const staffRoles = ['manager', 'barista', 'service', 'cashier'];
 
@@ -299,10 +300,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   </div>
                   <div className="flex items-center gap-4">
                       <ThemeToggle />
-                      <Button variant="ghost" size="icon" className="rounded-full">
-                          <Bell className="h-5 w-5" />
-                          <span className="sr-only">Notifications</span>
-                      </Button>
+                      <NotificationDropdown />
                       <Link href="/">
                       <Button variant="outline">
                           Customer View
@@ -319,6 +317,7 @@ export default function StaffLayout({ children }: { children: React.ReactNode })
                   {user && (
                   <div className="flex items-center gap-2">
                           <ThemeToggle />
+                          <NotificationDropdown />
                           <span className="text-sm text-muted-foreground hidden sm:inline">{user.email}</span>
                           <Button variant="ghost" size="icon" onClick={handleSignOut}>
                               <LogOut className="h-5 w-5" />

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -49,6 +50,13 @@ service cloud.firestore {
       // Allow users to update their own profile, or managers to update profiles of users within their tenant, or admins to update any profile.
       allow update: if isOwner(userId) || isPlatformAdmin() || (isManagerOfTenant(resource.data.tenantId));
       allow delete: if isPlatformAdmin();
+
+      match /notifications/{notificationId} {
+        allow read, update, delete: if isOwner(userId);
+        // Allow any signed-in user to create a notification for another user.
+        // This relies on client-side logic to be correct (e.g., an admin creating a notification for a user).
+        allow create: if isSignedIn();
+      }
     }
     
     match /subscription_plans/{planId} {
@@ -75,7 +83,7 @@ service cloud.firestore {
     }
     
     match /support_tickets/{ticketId} {
-      allow read, update: if isPlatformAdmin();
+      allow read, update: if isPlatformAdmin() || isManagerOfTenant(resource.data.tenantId);
       allow create: if isManagerOfTenant(request.resource.data.tenantId);
     }
 
