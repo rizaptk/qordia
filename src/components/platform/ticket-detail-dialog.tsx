@@ -27,7 +27,7 @@ function DetailRow({ label, value }: { label: string; value: string | React.Reac
     return (
         <div>
             <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="font-semibold">{value}</p>
+            <div className="font-semibold">{value}</div>
         </div>
     );
 }
@@ -101,4 +101,3 @@ export function TicketDetailDialog({ ticket, isOpen, onOpenChange, onUpdateStatu
         </Dialog>
     );
 }
-
