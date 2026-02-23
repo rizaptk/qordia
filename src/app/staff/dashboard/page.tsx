@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuthStore } from '@/stores/auth-store';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
@@ -18,6 +18,11 @@ export default function StaffDashboardPage() {
     const { user, tenant, isLoading: isAuthLoading, hasAnalyticsFeature, hasCustomRolesFeature } = useAuthStore();
     const firestore = useFirestore();
 
+    const [isMount, setIsMount] = useState(false);
+    useEffect(() => {
+        setIsMount(true);
+    }, []);
+
     const welcomeMessage = useMemo(() => user ? `Welcome back, ${user.displayName || user.email?.split('@')[0]}!` : 'Welcome!', [user]);
     const shopName = useMemo(() => tenant ? tenant.name : 'your business', [tenant]);
 
@@ -27,31 +32,32 @@ export default function StaffDashboardPage() {
     }, []);
 
     const activeOrdersQuery = useMemoFirebase(() => 
-      (firestore && tenant?.name && user?.displayName && !isAuthLoading)
+      isMount ?
+      (firestore && tenant && user && !isAuthLoading)
         ? query(
             collection(firestore, `tenants/${tenant.id}/orders`),
             where('status', 'in', ['Placed', 'In Progress', 'Ready', 'Served'])
           )
-        : null,
+        : null : null,
       [firestore, tenant, user, isAuthLoading]
     );
     const { data: activeOrders, isLoading: isLoadingActive } = useCollection<Order>(activeOrdersQuery);
     
     const todaysCompletedOrdersQuery = useMemoFirebase(() =>
-        (firestore && tenant?.name && user?.displayName && !isAuthLoading)
+        isMount ? (firestore && tenant && user && !isAuthLoading)
         ? query(
             collection(firestore, `tenants/${tenant.id}/orders`),
             where('status', '==', 'Completed'),
             where('orderedAt', '>=', Timestamp.fromDate(todayStart)),
             where('orderedAt', '<=', Timestamp.fromDate(todayEnd))
         )
-        : null,
+        : null : null,
     [firestore, tenant, todayStart, todayEnd, user, isAuthLoading]);
     
     const { data: todaysCompletedOrders, isLoading: isLoadingRevenue } = useCollection<Order>(todaysCompletedOrdersQuery);
 
     const tablesQuery = useMemoFirebase(() =>
-      (firestore && tenant?.name && user?.displayName && !isAuthLoading) ? collection(firestore, `tenants/${tenant.id}/tables`) : null,
+      isMount ? (firestore && tenant && user && !isAuthLoading) ? collection(firestore, `tenants/${tenant.id}/tables`) : null : null,
       [firestore, tenant, user, isAuthLoading]
     );
     const { data: tables, isLoading: isLoadingTables } = useCollection<{id: string}>(tablesQuery);
